@@ -706,8 +706,32 @@
 
       // ── AROME packages ────────────────────────────────────────────────────────────
       const PACKAGES = {
-        SP1: { key: "SP1", label: "AROME SP1 0.01°" },
-        SP2: { key: "SP2", label: "AROME SP2 0.01°" },
+        SP1: {
+          key: "SP1",
+          label: "AROME SP1 0.01°",
+          variables: [
+            { shortName: "t",     name: "Temperature",                          units: "K",      level: "2 m above ground"  },
+            { shortName: "r",     name: "Relative humidity",                    units: "%",      level: "2 m above ground"  },
+            { shortName: "u",     name: "U-component of wind",                  units: "m s-1",  level: "10 m above ground" },
+            { shortName: "v",     name: "V-component of wind",                  units: "m s-1",  level: "10 m above ground" },
+            { shortName: "ugust", name: "U-component of wind (gust)",           units: "m s-1",  level: "10 m above ground" },
+            { shortName: "vgust", name: "V-component of wind (gust)",           units: "m s-1",  level: "10 m above ground" },
+          ],
+        },
+        SP2: {
+          key: "SP2",
+          label: "AROME SP2 0.01°",
+          variables: [
+            { shortName: "p",     name: "Pressure",                             units: "Pa",     level: "Ground surface"    },
+            { shortName: "cape",  name: "Convective available potential energy", units: "J kg-1", level: "Ground surface"    },
+            { shortName: "lcc",   name: "Low cloud cover",                      units: "%",      level: "Ground surface"    },
+            { shortName: "mcc",   name: "Medium cloud cover",                   units: "%",      level: "Ground surface"    },
+            { shortName: "hcc",   name: "High cloud cover",                     units: "%",      level: "Ground surface"    },
+            { shortName: "tgrp",  name: "Graupel (snow pellets) precipitation", units: "kg m-2", level: "Ground surface"    },
+            { shortName: "rrate", name: "Rain precipitation",                   units: "kg m-2", level: "Ground surface"    },
+            { shortName: "srate", name: "Snow precipitation",                   units: "kg m-2", level: "Ground surface"    },
+          ],
+        },
       };
 
       // ── State ─────────────────────────────────────────────────────────────────────
@@ -1390,22 +1414,6 @@
         }
       }
 
-      function discoverVariables(buffer) {
-        const seen = new Map();
-        for (const msg of iterateGRIB2Messages(buffer)) {
-          const { shortName, units } = msg.product;
-          if (!seen.has(shortName)) {
-            seen.set(shortName, {
-              shortName,
-              name: msg.product.name,
-              units: units ?? "",
-              level: fmtLevel(msg.product),
-            });
-          }
-        }
-        return [...seen.values()];
-      }
-
       async function startAromeDownload(packageKey) {
         // Init state + UI before fetch
         aromeState = {
@@ -1419,6 +1427,13 @@
 
         const varSelect = document.getElementById("arome-var-select");
         varSelect.innerHTML = "";
+
+        const pkgVars = PACKAGES[packageKey].variables;
+        aromeState.variable = pkgVars[0].shortName;
+        varSelect.innerHTML = pkgVars
+          .map((v) => `<option value="${v.shortName}">${v.name}${v.level ? " · " + v.level : ""}${v.units ? " (" + v.units + ")" : ""}</option>`)
+          .join("");
+        varSelect.value = aromeState.variable;
 
         const slider = document.getElementById("arome-slider");
         slider.value = 0;
@@ -1469,21 +1484,6 @@
               },
             );
             aromeState.buffers.set(hour, buffer);
-
-            // Discover variables from first downloaded file
-            if (!aromeState.variable) {
-              const vars = discoverVariables(buffer);
-              if (vars.length > 0) {
-                aromeState.variable = vars[0].shortName;
-                varSelect.innerHTML = vars
-                  .map(
-                    (v) =>
-                      `<option value="${v.shortName}">${v.name}${v.level ? " · " + v.level : ""}${v.units ? " (" + v.units + ")" : ""}</option>`,
-                  )
-                  .join("");
-                varSelect.value = aromeState.variable;
-              }
-            }
 
             document.getElementById(`dl-${hour}`).classList.add("done");
             doneCount++;
