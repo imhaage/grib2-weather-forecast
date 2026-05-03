@@ -762,6 +762,22 @@
         "Plasma", "Viridis", "Magma", "Inferno", "Spectral", "RdBu", "RdYlBu",
       ]);
 
+      const VARIABLE_PALETTES = {
+        t:     "RdYlBu",
+        r:     "Blues",
+        u:     "Viridis",  v:     "Viridis",
+        ugust: "Viridis",  vgust: "Viridis",
+        rrate: "Spectral", srate: "Spectral", tgrp: "Spectral",
+      };
+
+      function applyDefaultPalette(shortName) {
+        const pal = VARIABLE_PALETTES[shortName];
+        if (!pal) return;
+        currentPalette = pal;
+        document.getElementById("palette-select").value = pal;
+        document.getElementById("palette-select-arome").value = pal;
+      }
+
       function makeScale(paletteName) {
         const scale = chroma.scale(
           CUSTOM_SCALES[paletteName] ?? chroma.brewer[paletteName],
@@ -1431,6 +1447,7 @@
 
         const pkgVars = PACKAGES[packageKey].variables;
         aromeState.variable = pkgVars[0].shortName;
+        applyDefaultPalette(pkgVars[0].shortName);
         varSelect.innerHTML = pkgVars
           .map((v) => `<option value="${v.shortName}">${v.name}${v.level ? " · " + v.level : ""}${v.units ? " (" + v.units + ")" : ""}</option>`)
           .join("");
@@ -1605,6 +1622,7 @@
         .addEventListener("change", (e) => {
           if (!aromeState) return;
           aromeState.variable = e.target.value;
+          applyDefaultPalette(e.target.value);
           aromeState.decoded.clear();
           aromeState.decodedOrder = [];
           const idx = parseInt(
