@@ -275,6 +275,7 @@
         display: flex;
         align-items: center;
         gap: 10px;
+        margin-bottom: 12px;
       }
       #gv-name {
         font-size: 0.95rem;
@@ -583,15 +584,15 @@
 ══════════════════════════════════════════════════════ -->
     <div id="view-grid">
       <main>
+        <div id="gv-meta">
+          <span class="badge" id="gv-badge"></span>
+          <div>
+            <div id="gv-name"></div>
+            <div id="gv-sub"></div>
+          </div>
+        </div>
         <div id="grid-toolbar">
           <button class="btn-back" id="back-btn">← Variables</button>
-          <div id="gv-meta">
-            <span class="badge" id="gv-badge"></span>
-            <div>
-              <div id="gv-name"></div>
-              <div id="gv-sub"></div>
-            </div>
-          </div>
           <div id="grid-stats">
             <div class="stat-item">
               <span class="stat-label">Min</span>
@@ -1264,6 +1265,11 @@
         const { min, max, mean, count } = computeStats(values);
         const range = max - min || 1;
         gridState = { values, min, range, grid, product };
+
+        document.getElementById('gv-badge').textContent = product.shortName;
+        document.getElementById('gv-name').textContent  = product.name;
+        document.getElementById('gv-sub').textContent   =
+          `${aromeState.packageKey} · ${fmtLevel(product)} · run ${fmtRefTime(header)}`;
 
         // Create/resize offscreen canvas only when needed
         const needH = mercatorCanvasHeight(grid);
