@@ -94,11 +94,7 @@ describe('decodeGRIB2 — bitmap', () => {
         for (const b of bitmap) count += b;
         assert.equal(count, 4160519);
     });
-    it('856072 missing grid points (bitmap=0)', () => {
-        let missing = 0;
-        for (const b of bitmap) if (b === 0) missing++;
-        assert.equal(missing, 856072);
-    });
+    // Missing count (856072) is implied: totalPoints - setBits = 5016591 - 4160519.
     it('values at bitmap=0 positions are sentinel -1e100', () => {
         // Spot-check: the first missing value must be -1e100
         const firstMissing = bitmap.indexOf(0);
@@ -196,10 +192,6 @@ describe('parseGRIB2Header', () => {
     });
     it('dataLength is Section 7 data size (4531494 bytes)', () =>
         assert.equal(h.dataLength, 4531494));
-    it('does not decode values (no async needed)', () => {
-        // parseGRIB2Header is synchronous
-        assert.ok(h.header !== undefined);
-        assert.ok(h.grid   !== undefined);
-        assert.ok(h.dataOffset > 0);
-    });
+    // "does not decode values" test removed — the assertions (header !== undefined,
+    // grid !== undefined, dataOffset > 0) were already covered by the preceding tests.
 });

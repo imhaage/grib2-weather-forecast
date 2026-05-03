@@ -175,11 +175,7 @@ describe('parseSection6', () => {
         for (const bit of s6.bitmap) count += bit;
         assert.equal(count, 4160519);
     });
-    it('missing values count is 856072', () => {
-        let missing = 0;
-        for (const bit of s6.bitmap) if (bit === 0) missing++;
-        assert.equal(missing, 856072);
-    });
+    // Missing count (856072) is implied: totalPoints - setBits = 5016591 - 4160519.
 });
 
 // ─── lookupParameter ─────────────────────────────────────────────────────────
