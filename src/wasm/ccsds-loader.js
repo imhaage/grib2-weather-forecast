@@ -19,7 +19,8 @@
 //   → final flags = AEC_DATA_PREPROCESS = 8
 export const AEC_FLAGS_LE = 8;
 
-let _module = null;
+// Cache the in-flight Promise so concurrent callers share one instantiation.
+let _modulePromise = null;
 
 /**
  * Load and initialise the WASM module. Safe to call multiple times —
@@ -30,22 +31,22 @@ let _module = null;
  * @returns {Promise<object>} Emscripten module instance.
  */
 export async function loadCCSDSModule(wasmUrl) {
-    if (_module) return _module;
+    if (!_modulePromise) {
+        // Dynamic import of the Emscripten glue (CJS-compatible via .cjs rename or
+        // direct import when bundled).  The glue file sets up the WASM binary.
+        const { default: createCCSDSModule } = await import('./ccsds.js');
 
-    // Dynamic import of the Emscripten glue (CJS-compatible via .cjs rename or
-    // direct import when bundled).  The glue file sets up the WASM binary.
-    const { default: createCCSDSModule } = await import('./ccsds.js');
+        const opts = {};
+        if (wasmUrl) {
+            // Allow caller to override the WASM binary URL (e.g. from a CDN or
+            // asset pipeline).
+            opts.locateFile = (filename) =>
+                filename.endsWith('.wasm') ? wasmUrl.toString() : filename;
+        }
 
-    const opts = {};
-    if (wasmUrl) {
-        // Allow caller to override the WASM binary URL (e.g. from a CDN or
-        // asset pipeline).
-        opts.locateFile = (filename) =>
-            filename.endsWith('.wasm') ? wasmUrl.toString() : filename;
+        _modulePromise = createCCSDSModule(opts);
     }
-
-    _module = await createCCSDSModule(opts);
-    return _module;
+    return _modulePromise;
 }
 
 /**

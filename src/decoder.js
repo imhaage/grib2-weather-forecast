@@ -387,10 +387,11 @@ function parseSection5(data, dataStart) {
             result.ccsdsRsi      = u16(data, t + 12);
         }
     } else if (result.templateNumber === 40) {
-        // Constant field: reference value already read above as float32
-        if (t + 10 <= data.length) {
+        // Constant field (Template 5.0): only a reference value, no scale factors
+        if (t + 4 <= data.length) {
             result.referenceValue = f32be(data, t);
         }
+        result.bitsPerValue = 0;
     } else if (result.templateNumber === 254) {
         // IEEE 754 32-bit float grid (no scaling needed)
         if (t + 5 <= data.length) result.bitsPerValue = u8(data, t + 4);
@@ -510,8 +511,10 @@ export async function decodeGRIB2(buffer) {
     const tmpl = s5.templateNumber;
 
     if (s5.bitsPerValue === 0 || tmpl === 40) {
-        // Constant field
-        values.fill(s5.referenceValue);
+        // Constant field — respect bitmap: only fill non-missing grid points
+        for (let i = 0; i < totalPoints; i++) {
+            if (!bitmap || bitmap[i] !== 0) values[i] = s5.referenceValue;
+        }
 
     } else if (tmpl === 0) {
         // Simple packing: Y(i) = (R + X(i) × 2^E) × 10^(-D)
@@ -556,8 +559,7 @@ export async function decodeGRIB2(buffer) {
 
     } else if (tmpl === 254) {
         // IEEE 754 float32 big-endian
-        const view = new DataView(buffer instanceof ArrayBuffer ? buffer : buffer.buffer,
-                                  buffer.byteOffset ?? 0);
+        const view = new DataView(data.buffer);
         for (let i = 0; i < s5.numberOfPackedValues; i++) {
             const offset = dataStart + i * 4;
             if (offset + 4 <= data.length) {
