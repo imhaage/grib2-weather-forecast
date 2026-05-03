@@ -832,6 +832,8 @@
           dj,
         } = grid;
         const lut = buildLUT(currentPalette);
+        const sn = gridState.product?.shortName;
+        const isPrecip = sn === "rrate" || sn === "srate" || sn === "tgrp";
         const outW = heatCanvas.width; // = ni
         const outH = heatCanvas.height; // Mercator-proportional
         const ctx = heatCanvas.getContext("2d");
@@ -857,8 +859,12 @@
             const off = (imgRow + col) * 4;
             const v = values[rowOff + col];
             if (v <= MISSING_VALUE) {
-              px[off] = px[off + 1] = px[off + 2] = 180;
-              px[off + 3] = 100;
+              if (!isPrecip) {
+                px[off] = px[off + 1] = px[off + 2] = 180;
+                px[off + 3] = 100;
+              }
+            } else if (isPrecip && v <= 0) {
+              /* zero precipitation → transparent */
             } else {
               const li =
                 Math.min(Math.round(((v - min) / range) * 255), 255) * 3;
