@@ -214,6 +214,9 @@ describe('lookupParameter', () => {
         assert.equal(lookupParameter(0, 1, 84).shortName, 'ciwc');
         assert.equal(lookupParameter(0, 3, 18).shortName, 'blh');
         assert.equal(lookupParameter(0, 14, 0).shortName, 'toz');
+        // SP2 graupel precipitation (0:1:75, eccodes shortName.def)
+        assert.equal(lookupParameter(0, 1, 75).shortName, 'tgrp');
+        assert.equal(lookupParameter(0, 1, 75).units, 'kg m-2');
     });
 
     it('land surface parameters (discipline 2)', () => {

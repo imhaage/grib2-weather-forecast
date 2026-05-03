@@ -48,6 +48,7 @@ const PARAMETERS = {
     '0:1:66': { shortName: 'srate',  name: 'Snow precipitation rate',               units: 'kg m-2 s-1'  },
     '0:1:69': { shortName: 'tclw',   name: 'Total column integrated cloud water',   units: 'kg m-2'      },
     '0:1:70': { shortName: 'tciw',   name: 'Total column integrated cloud ice',     units: 'kg m-2'      },
+    '0:1:75': { shortName: 'tgrp',   name: 'Graupel (snow pellets) precipitation',  units: 'kg m-2'      },
     '0:1:83': { shortName: 'clwc',   name: 'Specific cloud liquid water content',   units: 'kg kg-1'     },
     '0:1:84': { shortName: 'ciwc',   name: 'Specific cloud ice water content',      units: 'kg kg-1'     },
     '0:1:85': { shortName: 'crwc',   name: 'Specific rain water content',           units: 'kg kg-1'     },
