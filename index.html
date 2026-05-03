@@ -1351,9 +1351,18 @@
         }
         // idx === 0: displayValues = raw cumulative (equals first-hour increment since model starts at 0).
 
+        if (product.shortName === "t") {
+          const c = new Float64Array(displayValues.length);
+          for (let i = 0; i < displayValues.length; i++)
+            c[i] = displayValues[i] <= MISSING_VALUE ? MISSING_VALUE : displayValues[i] - 273.15;
+          displayValues = c;
+        }
+
         const { min, max, mean, count } = computeStats(displayValues);
         const range = max - min || 1;
-        const displayUnits = (isAccumulation && idx > 0 && !isFallback) ? "mm/h" : product.units;
+        const displayUnits = product.shortName === "t" ? "°C"
+          : (isAccumulation && idx > 0 && !isFallback) ? "mm/h"
+          : product.units;
         gridState = { values: displayValues, min, range, grid, product, displayUnits };
 
         document.getElementById('gv-badge').textContent = product.shortName;
