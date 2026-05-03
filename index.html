@@ -1262,14 +1262,57 @@
 
         aromeState.currentHour = hour;
         const { values, grid, product, header } = data;
-        const { min, max, mean, count } = computeStats(values);
+
+        // Precipitation variables (PDT 4.8) are cumulative since H+00 — show hourly increment.
+        const isAccumulation = product.pdtNumber === 8;
+        let displayValues = values;
+        let isFallback = false;
+
+        if (isAccumulation && idx > 0) {
+          const prevHour = resources[idx - 1].hour;
+
+          async function decodePrevValues() {
+            if (decoded.has(prevHour)) return decoded.get(prevHour).values;
+            const prevBuffer = buffers.get(prevHour);
+            if (!prevBuffer) return null;
+            let prevMsg = null;
+            for (const msg of iterateGRIB2Messages(prevBuffer)) {
+              if (msg.product.shortName === variable) { prevMsg = msg; break; }
+            }
+            if (!prevMsg) return null;
+            if (decodedOrder.length >= 5) decoded.delete(decodedOrder.shift());
+            const prevDec = await decodeGRIB2(prevMsg.buffer);
+            decoded.set(prevHour, { values: prevDec.values, grid: prevDec.grid, product: prevDec.product, header: prevDec.header });
+            decodedOrder.push(prevHour);
+            return prevDec.values;
+          }
+
+          const prevValues = await decodePrevValues();
+          if (prevValues !== null) {
+            const diff = new Float64Array(values.length);
+            for (let i = 0; i < values.length; i++) {
+              if (values[i] <= MISSING_VALUE || prevValues[i] <= MISSING_VALUE) {
+                diff[i] = MISSING_VALUE;
+              } else {
+                diff[i] = Math.max(0, values[i] - prevValues[i]);
+              }
+            }
+            displayValues = diff;
+          } else {
+            isFallback = true;
+          }
+        }
+        // idx === 0: displayValues = raw cumulative (equals first-hour increment since model starts at 0).
+
+        const { min, max, mean, count } = computeStats(displayValues);
         const range = max - min || 1;
-        gridState = { values, min, range, grid, product };
+        gridState = { values: displayValues, min, range, grid, product };
 
         document.getElementById('gv-badge').textContent = product.shortName;
         document.getElementById('gv-name').textContent  = product.name;
         document.getElementById('gv-sub').textContent   =
-          `${aromeState.packageKey} · ${fmtLevel(product)} · run ${fmtRefTime(header)}`;
+          `${aromeState.packageKey} · ${fmtLevel(product)} · run ${fmtRefTime(header)}`
+          + (isFallback ? ' · (cumulative — prev not loaded)' : '');
 
         // Create/resize offscreen canvas only when needed
         const needH = mercatorCanvasHeight(grid);
