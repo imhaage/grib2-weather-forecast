@@ -929,7 +929,7 @@
 
           mapCanvas.style.cursor = "crosshair";
           tooltip.hidden = false;
-          tooltip.textContent = `${product.name} : ${val.toFixed(2)} ${product.units}`;
+          tooltip.textContent = `${product.name} : ${val.toFixed(2)} ${gridState.displayUnits ?? product.units}`;
           const wrap = document.getElementById("map-wrap");
           const rect = wrap.getBoundingClientRect();
           tooltip.style.left = e.originalEvent.clientX - rect.left + 14 + "px";
@@ -1353,7 +1353,8 @@
 
         const { min, max, mean, count } = computeStats(displayValues);
         const range = max - min || 1;
-        gridState = { values: displayValues, min, range, grid, product };
+        const displayUnits = (isAccumulation && idx > 0 && !isFallback) ? "mm/h" : product.units;
+        gridState = { values: displayValues, min, range, grid, product, displayUnits };
 
         document.getElementById('gv-badge').textContent = product.shortName;
         document.getElementById('gv-name').textContent  = product.name;
@@ -1410,16 +1411,16 @@
         }
         // Update stats + colorscale + valid time
         document.getElementById("gv-min").textContent =
-          fmtNum(min, 3) + " " + product.units;
+          fmtNum(min, 3) + " " + displayUnits;
         document.getElementById("gv-max").textContent =
-          fmtNum(max, 3) + " " + product.units;
+          fmtNum(max, 3) + " " + displayUnits;
         document.getElementById("gv-mean").textContent =
-          fmtNum(mean, 3) + " " + product.units;
+          fmtNum(mean, 3) + " " + displayUnits;
         document.getElementById("gv-valid").textContent =
           count.toLocaleString();
         document.getElementById("cs-min").textContent = fmtNum(min, 2);
         document.getElementById("cs-max").textContent = fmtNum(max, 2);
-        document.getElementById("cs-unit").textContent = product.units;
+        document.getElementById("cs-unit").textContent = displayUnits;
         document.getElementById("cs-min").style.visibility = "visible";
         document.getElementById("cs-max").style.visibility = "visible";
         document.getElementById("cs-unit").style.visibility = "visible";
