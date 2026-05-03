@@ -1270,6 +1270,14 @@
             }
           }
           if (!targetMsg) {
+            if (map?.getSource("grib2")) {
+              map.removeLayer("grib2-layer");
+              map.removeSource("grib2");
+            }
+            gridState = null;
+            document.getElementById("cs-min").style.visibility = "hidden";
+            document.getElementById("cs-max").style.visibility = "hidden";
+            document.getElementById("cs-unit").style.visibility = "hidden";
             isDecoding = false;
             return;
           }
