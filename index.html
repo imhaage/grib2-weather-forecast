@@ -1015,6 +1015,13 @@
         aromeState = null;
         isDecoding = false;
         pendingHourIdx = null;
+        if (map?.getSource("grib2")) {
+          map.removeLayer("grib2-layer");
+          map.removeSource("grib2");
+        }
+        document.getElementById("cs-min").style.visibility = "hidden";
+        document.getElementById("cs-max").style.visibility = "hidden";
+        document.getElementById("cs-unit").style.visibility = "hidden";
         setStatus("");
         document.getElementById("file-summary").style.display = "none";
         document.getElementById("results").style.display = "none";
@@ -1577,6 +1584,14 @@
       });
 
       document.getElementById("back-btn").addEventListener("click", () => {
+        if (map?.getSource("grib2")) {
+          map.removeLayer("grib2-layer");
+          map.removeSource("grib2");
+        }
+        gridState = null;
+        document.getElementById("cs-min").style.visibility = "hidden";
+        document.getElementById("cs-max").style.visibility = "hidden";
+        document.getElementById("cs-unit").style.visibility = "hidden";
         location.hash = "";
       });
 
