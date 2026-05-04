@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { decodeGRIB2, iterateGRIB2Messages } from '../src/decoder.js';
 
-const GRIB_FILE = 'test/arome__001__SP1__01H__2026-04-25T03_00_00Z.grib2';
-const FIXTURE   = 'test/fixtures/arome_t_ref.json';
+const GRIB_FILE = new URL('./arome__001__SP1__01H__2026-04-25T03_00_00Z.grib2', import.meta.url);
+const FIXTURE   = new URL('./fixtures/arome_t_ref.json', import.meta.url);
 
-// Le fixture est généré une fois via : npm run make-fixture
-// Il est commité dans le dépôt — eccodes n'est pas requis à l'exécution des tests.
+// The fixture is generated once via: npm run make-fixture
+// It is committed to the repo — eccodes is not required at test runtime.
 const ref = JSON.parse(readFileSync(FIXTURE, 'utf8'));
 
 describe('cross-decode — JS decoder vs eccodes reference', () => {
