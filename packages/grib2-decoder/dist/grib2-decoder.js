@@ -1381,3 +1381,5 @@ function fmtScanMode(mode) {
 }
 //#endregion
 export { CENTRES, DATA_REPR_TEMPLATES, DISCIPLINES, GENERATING_PROCESS, MISSING_VALUE, PARAMETERS, REF_TIME_SIGNIFICANCE, SCAN_MODE_BITS, TIME_UNIT, TYPE_OF_DATA, TYPE_OF_LEVEL, computeStats, decodeGRIB2, fmtLevel, fmtRefTime, fmtScanMode, fmtValidTime, iterateGRIB2Messages, lookupParameter, parseGRIB2Header, parseSection1, parseSection3, parseSection4, parseSection5, parseSection6, walkSections };
+
+//# sourceMappingURL=grib2-decoder.js.map
