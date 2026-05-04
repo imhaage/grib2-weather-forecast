@@ -94,13 +94,6 @@ export function fmtLevel(p) {
 }
 
 /**
- * Format the forecast time from a product object.
- */
-export function fmtForecast(p) {
-    return `+${p.forecastTime} ${TIME_UNIT[p.timeUnit] ?? `unit ${p.timeUnit}`}`;
-}
-
-/**
  * Compute and format the valid time (reference time + forecast offset).
  * Returns a human-readable US date string (e.g. "Apr 25, 2026 04:00 UTC").
  */

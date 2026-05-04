@@ -22,5 +22,5 @@ export {
     CENTRES, DISCIPLINES, REF_TIME_SIGNIFICANCE, TYPE_OF_DATA,
     TYPE_OF_LEVEL, TIME_UNIT, GENERATING_PROCESS,
     DATA_REPR_TEMPLATES, SCAN_MODE_BITS,
-    fmtRefTime, fmtLevel, fmtForecast, fmtValidTime, fmtScanMode,
+    fmtRefTime, fmtLevel, fmtValidTime, fmtScanMode,
 } from './wmo-tables.js';

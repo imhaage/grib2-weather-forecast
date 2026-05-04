@@ -572,7 +572,6 @@
     <div id="view-grid">
       <main>
         <div id="gv-meta">
-          <span class="badge" id="gv-badge"></span>
           <div>
             <div id="gv-name"></div>
             <div id="gv-sub"></div>
@@ -1151,7 +1150,6 @@
         const p = msg.product;
 
         // Populate toolbar
-        document.getElementById("gv-badge").textContent = p.shortName;
         document.getElementById("gv-name").textContent = p.name;
         document.getElementById("gv-sub").textContent =
           `${fmtLevel(p)} · ${fmtValidTime(msg.header, p)}`;
@@ -1419,7 +1417,6 @@
         const range = renderMax - renderMin || 1;
         gridState = { values: displayValues, min: renderMin, range, grid, product, displayUnits, staticScale };
 
-        document.getElementById('gv-badge').textContent = product.shortName;
         document.getElementById('gv-name').textContent  = product.name;
         document.getElementById('gv-sub').textContent   =
           `${aromeState.packageKey} · ${fmtLevel(product)} · run ${fmtRefTime(header)}`
