@@ -836,8 +836,8 @@
         lcc:   { min: 0, max: 100, zeroThreshold: 0.005 },
         mcc:   { min: 0, max: 100, zeroThreshold: 0.005 },
         hcc:   { min: 0, max: 100, zeroThreshold: 0.005 },
-        rrate: { min: 0,    max: 150, log: true },
-        srate: { min: 0,    max: 20,  log: true },
+        rrate: { min: 0,    max: 150, log: true, zeroThreshold: 0.005 },
+        srate: { min: 0,    max: 20,  log: true, zeroThreshold: 0.005 },
         tgrp:  { min: 0,    max: 15,  log: true, zeroThreshold: 0.005 },
       };
 
