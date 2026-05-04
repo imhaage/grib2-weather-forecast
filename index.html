@@ -9,6 +9,34 @@
       href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css"
     />
     <style>
+      :root {
+        --color-text:          #1a1d23;
+        --color-text-2:        #555e6d;
+        --color-text-muted:    #8b919e;
+        --color-surface:       #fff;
+        --color-bg:            #f5f6f8;
+        --color-surface-hover: #f0f1f4;
+        --color-border:        #e2e6ec;
+        --color-border-2:      #c5cad4;
+        --color-text-hover:    #353b4a;
+        --color-accent:        #3b82f6;
+        --color-accent-bg:     #eff6ff;
+        --color-error:         #dc2626;
+        --color-success:       #22c55e;
+        --color-progress:      #93c5fd;
+        --space-xs: 4px;
+        --space-sm: 8px;
+        --space-md: 16px;
+        --space-lg: 24px;
+        --space-xl: 32px;
+        --radius-sm: 6px;
+        --radius-md: 8px;
+        --radius-lg: 10px;
+        --transition-fast: 0.12s;
+        --transition-base: 0.15s;
+        --transition-slow: 0.2s;
+      }
+
       *,
       *::before,
       *::after {
@@ -22,18 +50,18 @@
           system-ui,
           -apple-system,
           sans-serif;
-        background: #f5f6f8;
-        color: #1a1d23;
+        background: var(--color-bg);
+        color: var(--color-text);
         min-height: 100vh;
       }
 
       header {
-        background: #1a1d23;
-        color: #fff;
-        padding: 18px 32px;
+        background: var(--color-text);
+        color: var(--color-surface);
+        padding: var(--space-md) var(--space-xl);
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: var(--space-sm);
       }
       header h1 {
         font-size: 1.15rem;
@@ -42,7 +70,7 @@
       }
       header span {
         font-size: 0.8rem;
-        color: #8b919e;
+        color: var(--color-text-muted);
         font-weight: 400;
       }
 
@@ -53,40 +81,46 @@
       #view-home main {
         max-width: 960px;
         margin: 0 auto;
-        padding: 32px 24px;
+        padding: var(--space-xl) var(--space-lg);
+      }
+
+      #view-home main hr {
+        border: none;
+        border-top: 1px solid var(--color-border);
+        margin: var(--space-xl) 0;
       }
 
       /* ── Drop zone ── */
       #drop-zone {
-        border: 2px dashed #c5cad4;
-        border-radius: 12px;
-        background: #fff;
-        padding: 18px 32px;
+        border: 2px dashed var(--color-border-2);
+        border-radius: var(--radius-lg);
+        background: var(--color-surface);
+        padding: var(--space-md) var(--space-xl);
         text-align: center;
         cursor: pointer;
         transition:
-          border-color 0.2s,
-          background 0.2s;
+          border-color var(--transition-slow),
+          background var(--transition-slow);
       }
       #drop-zone:hover,
       #drop-zone.over {
-        border-color: #3b82f6;
-        background: #eff6ff;
+        border-color: var(--color-accent);
+        background: var(--color-accent-bg);
       }
       #drop-zone .icon {
         font-size: 0.9rem;
-        margin-bottom: 4px;
+        margin-bottom: var(--space-xs);
       }
       #drop-zone p {
-        color: #555e6d;
+        color: var(--color-text-2);
         font-size: 0.8rem;
         line-height: 1.4;
       }
       #drop-zone p strong {
-        color: #1a1d23;
+        color: var(--color-text);
       }
       #drop-zone small {
-        color: #8b919e;
+        color: var(--color-text-muted);
         font-size: 0.72rem;
       }
       #file-input {
@@ -95,25 +129,30 @@
 
       /* ── Status ── */
       #status {
-        margin-top: 16px;
+        margin-top: var(--space-md);
         font-size: 0.875rem;
-        color: #555e6d;
+        color: var(--color-text-2);
         min-height: 1.4em;
         text-align: center;
       }
       #status.error {
-        color: #dc2626;
+        color: var(--color-error);
+      }
+
+      /* ── Shared: surface panels ── */
+      .card,
+      #file-summary {
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
       }
 
       /* ── File summary ── */
       #file-summary {
         display: none;
-        margin-top: 28px;
-        background: #fff;
-        border: 1px solid #e2e6ec;
-        border-radius: 10px;
-        padding: 18px 22px;
-        gap: 32px;
+        margin-top: var(--space-xl);
+        padding: var(--space-md) var(--space-lg);
+        gap: var(--space-xl);
         flex-wrap: wrap;
         align-items: center;
       }
@@ -122,12 +161,17 @@
         flex-direction: column;
         gap: 2px;
       }
-      #file-summary .meta-label {
+
+      /* ── Shared: uppercase labels ── */
+      .meta-label,
+      .stat-label,
+      #results h2 {
         font-size: 0.72rem;
         text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: #8b919e;
+        letter-spacing: 0.07em;
+        color: var(--color-text-muted);
       }
+
       #file-summary .meta-value {
         font-size: 0.95rem;
         font-weight: 600;
@@ -136,27 +180,20 @@
       /* ── Message cards ── */
       #results {
         display: none;
-        margin-top: 28px;
+        margin-top: var(--space-xl);
       }
       #results h2 {
-        font-size: 0.78rem;
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-        color: #8b919e;
-        margin-bottom: 14px;
+        margin-bottom: var(--space-md);
       }
       .cards {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
-        gap: 16px;
+        gap: var(--space-md);
       }
 
       .card {
-        background: #fff;
-        border: 1px solid #e2e6ec;
-        border-radius: 10px;
-        padding: 18px 20px;
-        transition: box-shadow 0.15s;
+        padding: var(--space-md);
+        transition: box-shadow var(--transition-base);
       }
       .card:hover {
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
@@ -165,17 +202,17 @@
       .card-header {
         display: flex;
         align-items: center;
-        gap: 10px;
-        margin-bottom: 14px;
+        gap: var(--space-sm);
+        margin-bottom: var(--space-md);
       }
       .badge {
-        background: #1a1d23;
-        color: #fff;
+        background: var(--color-text);
+        color: var(--color-surface);
         font-family: monospace;
         font-size: 0.85rem;
         font-weight: 700;
-        padding: 4px 10px;
-        border-radius: 6px;
+        padding: var(--space-xs) var(--space-sm);
+        border-radius: var(--radius-sm);
         letter-spacing: 0.03em;
         white-space: nowrap;
       }
@@ -188,17 +225,17 @@
       .card-rows {
         display: flex;
         flex-direction: column;
-        gap: 7px;
+        gap: var(--space-sm);
       }
       .card-row {
         display: flex;
         justify-content: space-between;
         align-items: baseline;
         font-size: 0.82rem;
-        gap: 8px;
+        gap: var(--space-sm);
       }
       .card-row .key {
-        color: #8b919e;
+        color: var(--color-text-muted);
         white-space: nowrap;
         flex-shrink: 0;
       }
@@ -209,26 +246,32 @@
       }
       .card-divider {
         border: none;
-        border-top: 1px solid #f0f1f4;
-        margin: 10px 0;
+        border-top: 1px solid var(--color-surface-hover);
+        margin: var(--space-sm) 0;
+      }
+
+      /* ── Shared: dark buttons ── */
+      .btn-primary,
+      .btn-grid {
+        background: var(--color-text);
+        color: var(--color-surface);
+        border: none;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        letter-spacing: 0.02em;
+        transition: background var(--transition-base);
+      }
+      .btn-primary:hover,
+      .btn-grid:hover {
+        background: var(--color-text-hover);
       }
 
       .btn-grid {
-        margin-top: 16px;
+        margin-top: var(--space-md);
         width: 100%;
-        padding: 9px 0;
-        background: #1a1d23;
-        color: #fff;
-        border: none;
-        border-radius: 7px;
+        padding: var(--space-sm) 0;
         font-size: 0.82rem;
         font-weight: 500;
-        cursor: pointer;
-        letter-spacing: 0.02em;
-        transition: background 0.15s;
-      }
-      .btn-grid:hover {
-        background: #353b4a;
       }
 
       /* ══════════════════════════════════════════════════════
@@ -241,43 +284,42 @@
       #view-grid main {
         max-width: 1100px;
         margin: 0 auto;
-        padding: 28px 24px;
+        padding: var(--space-xl) var(--space-lg);
       }
 
       /* ── Toolbar ── */
       #grid-toolbar {
         display: flex;
         align-items: center;
-        gap: 16px;
-        margin-bottom: 22px;
+        gap: var(--space-md);
+        margin-bottom: var(--space-lg);
         flex-wrap: wrap;
       }
 
-
       .btn-back {
-        background: #fff;
-        border: 1px solid #c5cad4;
-        border-radius: 7px;
-        padding: 7px 14px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border-2);
+        border-radius: var(--radius-md);
+        padding: var(--space-sm) var(--space-md);
         cursor: pointer;
         font-size: 0.84rem;
-        color: #555e6d;
+        color: var(--color-text-2);
         flex-shrink: 0;
-        margin-bottom: 14px;
+        margin-bottom: var(--space-md);
         transition:
-          background 0.12s,
-          border-color 0.12s;
+          background var(--transition-fast),
+          border-color var(--transition-fast);
       }
       .btn-back:hover {
-        background: #f0f1f4;
-        border-color: #8b919e;
+        background: var(--color-surface-hover);
+        border-color: var(--color-text-muted);
       }
 
       #gv-meta {
         display: flex;
         align-items: center;
-        gap: 10px;
-        margin-bottom: 12px;
+        gap: var(--space-sm);
+        margin-bottom: var(--space-sm);
       }
       #gv-name {
         font-size: 0.95rem;
@@ -285,30 +327,24 @@
       }
       #gv-desc {
         font-size: 0.75rem;
-        margin-top: 4px;
+        margin-top: var(--space-xs);
         line-height: 1.45;
       }
       #gv-sub {
         font-size: 0.78rem;
         font-weight: 600;
-        margin-bottom: 14px;
+        margin-bottom: var(--space-md);
       }
 
       #grid-stats {
         display: flex;
-        gap: 28px;
+        gap: var(--space-xl);
         flex-wrap: wrap;
       }
       .stat-item {
         display: flex;
         flex-direction: column;
         gap: 1px;
-      }
-      .stat-label {
-        font-size: 0.68rem;
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-        color: #8b919e;
       }
       .stat-value {
         font-size: 0.88rem;
@@ -319,7 +355,7 @@
       /* ── Map area ── */
       #map-wrap {
         position: relative;
-        border-radius: 10px;
+        border-radius: var(--radius-lg);
         overflow: hidden;
       }
 
@@ -349,9 +385,9 @@
         z-index: 10;
         pointer-events: none;
         background: rgba(0, 0, 0, 0.72);
-        color: #fff;
-        padding: 5px 9px;
-        border-radius: 5px;
+        color: var(--color-surface);
+        padding: var(--space-xs) var(--space-sm);
+        border-radius: var(--radius-sm);
         font-size: 0.78rem;
         white-space: nowrap;
       }
@@ -360,117 +396,104 @@
       #colorscale {
         display: none;
         align-items: center;
-        gap: 10px;
-        margin-top: 12px;
+        gap: var(--space-sm);
+        margin-top: var(--space-sm);
         font-size: 0.76rem;
-        color: #555e6d;
+        color: var(--color-text-2);
         font-variant-numeric: tabular-nums;
         height: 1.5rem;
       }
       #cs-bar {
         flex: 1;
         height: 10px;
-        border-radius: 5px;
+        border-radius: var(--radius-sm);
       }
       #cs-unit {
-        color: #8b919e;
-        margin-left: 4px;
+        color: var(--color-text-muted);
+        margin-left: var(--space-xs);
       }
 
       /* ── Palette selector ── */
       #palette-ctrl {
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: var(--space-sm);
         font-size: 0.82rem;
-        color: #555e6d;
+        color: var(--color-text-2);
         margin-left: auto;
       }
       .toolbar-select {
-        background: #fff;
-        border: 1px solid #c5cad4;
-        border-radius: 7px;
-        padding: 6px 10px;
+        background: var(--color-surface);
+        border: 1px solid var(--color-border-2);
+        border-radius: var(--radius-md);
+        padding: var(--space-sm);
         font-size: 0.82rem;
-        color: #1a1d23;
+        color: var(--color-text);
         cursor: pointer;
-        transition: border-color 0.12s;
+        transition: border-color var(--transition-fast);
       }
       .toolbar-select:hover {
-        border-color: #8b919e;
+        border-color: var(--color-text-muted);
       }
 
       /* ══════════════════════════════════════════════════════
        AROME SHORTCUT (home)
     ══════════════════════════════════════════════════════ */
       #arome-shortcut {
-        margin-top: 24px;
+        margin-top: var(--space-lg);
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 6px;
+        gap: var(--space-sm);
       }
       #btn-sp1,
       #btn-sp2 {
-        background: #1a1d23;
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        padding: 11px 28px;
+        padding: var(--space-sm) var(--space-xl);
         font-size: 0.9rem;
         font-weight: 600;
-        cursor: pointer;
-        letter-spacing: 0.02em;
-        transition: background 0.15s;
-      }
-      #btn-sp1:hover,
-      #btn-sp2:hover {
-        background: #353b4a;
       }
       #arome-shortcut small {
         font-size: 0.78rem;
-        color: #8b919e;
+        color: var(--color-text-muted);
       }
 
-
-
       #arome-dl-panel {
-        padding: 20px 0;
-        border-top: 1px solid #e2e6ec;
+        padding: var(--space-lg) 0;
+        border-top: 1px solid var(--color-border);
       }
       #arome-dl-status {
         font-size: 0.88rem;
-        color: #555e6d;
-        margin-bottom: 16px;
+        color: var(--color-text-2);
+        margin-bottom: var(--space-md);
       }
       #arome-dl-details {
-        margin-top: 12px;
+        margin-top: var(--space-sm);
       }
       #arome-dl-details > summary {
         font-size: 0.8rem;
-        color: #8b919e;
+        color: var(--color-text-muted);
         cursor: pointer;
         user-select: none;
         list-style: none;
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: var(--space-xs);
       }
       #arome-dl-details > summary::-webkit-details-marker { display: none; }
       #arome-dl-details > summary::marker { display: none; }
       #arome-dl-chevron {
         font-size: 0.65rem;
-        transition: transform 0.15s;
+        transition: transform var(--transition-base);
       }
       #arome-dl-details[open] #arome-dl-chevron {
         transform: rotate(180deg);
       }
       #arome-dl-file-list {
-        margin: 8px 0 0;
+        margin: var(--space-sm) 0 0;
         padding: 0;
         list-style: none;
         font-size: 0.78rem;
-        color: #555e6d;
+        color: var(--color-text-2);
         font-family: monospace;
         display: flex;
         flex-direction: column;
@@ -479,7 +502,7 @@
       #arome-dl-bars {
         display: grid;
         grid-template-columns: repeat(24, 1fr);
-        gap: 3px;
+        gap: var(--space-xs);
         font-size: 0.72rem;
       }
       .arome-dl-item {
@@ -487,13 +510,13 @@
         align-items: center;
         justify-content: center;
         padding: 0;
-        border-radius: 4px;
-        color: #555e6d;
-        background: linear-gradient(to right, #93c5fd var(--pct, 0%), #e2e6ec var(--pct, 0%));
+        border-radius: var(--radius-sm);
+        color: var(--color-text-2);
+        background: linear-gradient(to right, var(--color-progress) var(--pct, 0%), var(--color-border) var(--pct, 0%));
       }
       .arome-dl-item.done {
-        background: #22c55e;
-        color: #fff;
+        background: var(--color-success);
+        color: var(--color-surface);
       }
 
       /* ══════════════════════════════════════════════════════
@@ -502,16 +525,16 @@
       #arome-player-toolbar {
         display: flex;
         align-items: center;
-        gap: 16px;
-        margin-bottom: 22px;
+        gap: var(--space-md);
+        margin-bottom: var(--space-lg);
         flex-wrap: wrap;
-        padding-top: 20px;
-        border-top: 1px solid #e2e6ec;
+        padding-top: var(--space-lg);
+        border-top: 1px solid var(--color-border);
       }
       #arome-slider-wrap {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: var(--space-sm);
         width: 100%;
       }
       #arome-slider {
@@ -528,7 +551,7 @@
       }
       #arome-valid-time {
         font-size: 0.76rem;
-        color: #8b919e;
+        color: var(--color-text-muted);
         white-space: nowrap;
       }
     </style>
@@ -545,11 +568,11 @@
     <div id="view-home">
       <main>
         <div id="arome-shortcut">
-          <button id="btn-sp1">Météo France AROME SP1 0.01° (last available run)</button>
-          <button id="btn-sp2">Météo France AROME SP2 0.01° (last available run)</button>
+          <button id="btn-sp1" class="btn-primary">Météo France AROME SP1 0.01° (last available run)</button>
+          <button id="btn-sp2" class="btn-primary">Météo France AROME SP2 0.01° (last available run)</button>
         </div>
 
-        <hr style="border: none; border-top: 1px solid #e2e6ec; margin: 2rem 0;" />
+        <hr />
 
         <div
           id="drop-zone"
@@ -1142,6 +1165,19 @@
         document.getElementById("colorscale").style.display = "none";
       }
 
+      function updateParamInfo(name, desc, sub) {
+        document.getElementById("gv-name").textContent = name;
+        document.getElementById("gv-desc").textContent = desc;
+        document.getElementById("gv-sub").textContent = sub;
+      }
+
+      function updateStats(min, max, mean, count, units) {
+        document.getElementById("gv-min").textContent = fmtNum(min, 3) + " " + units;
+        document.getElementById("gv-max").textContent = fmtNum(max, 3) + " " + units;
+        document.getElementById("gv-mean").textContent = fmtNum(mean, 3) + " " + units;
+        document.getElementById("gv-valid").textContent = count.toLocaleString();
+      }
+
       function applyToValues(values, fn) {
         const out = new Float64Array(values.length);
         for (let i = 0; i < values.length; i++)
@@ -1227,10 +1263,7 @@
         const p = msg.product;
 
         // Populate toolbar
-        document.getElementById("gv-name").textContent = p.name;
-        document.getElementById("gv-desc").textContent = PARAM_DESCRIPTIONS[p.shortName] ?? '';
-        document.getElementById("gv-sub").textContent =
-          fmtValidTime(msg.header, p);
+        updateParamInfo(p.name, PARAM_DESCRIPTIONS[p.shortName] ?? '', fmtValidTime(msg.header, p));
 
         // Reset stats
         for (const id of ["gv-min", "gv-max", "gv-mean", "gv-valid"]) {
@@ -1258,14 +1291,7 @@
         const { min, max, mean, count } = computeStats(values);
         const range = max - min || 1;
 
-        document.getElementById("gv-min").textContent =
-          fmtNum(min, 3) + " " + p.units;
-        document.getElementById("gv-max").textContent =
-          fmtNum(max, 3) + " " + p.units;
-        document.getElementById("gv-mean").textContent =
-          fmtNum(mean, 3) + " " + p.units;
-        document.getElementById("gv-valid").textContent =
-          count.toLocaleString();
+        updateStats(min, max, mean, count, p.units);
 
         // Store state (grid + product needed by hover tooltip)
         gridState = { values, min, range, grid: gr, product: p };
@@ -1418,11 +1444,12 @@
         const range = renderMax - renderMin || 1;
         gridState = { values: displayValues, min: renderMin, range, grid, product, displayUnits, staticScale };
 
-        document.getElementById('gv-name').textContent  = product.name;
-        document.getElementById('gv-desc').textContent  = PARAM_DESCRIPTIONS[product.shortName] ?? '';
-        document.getElementById('gv-sub').textContent   =
+        updateParamInfo(
+          product.name,
+          PARAM_DESCRIPTIONS[product.shortName] ?? '',
           `${aromeState.packageKey} · run ${fmtRefTime(header)}`
-          + (isFallback ? ' · (cumulative — prev not loaded)' : '');
+            + (isFallback ? ' · (cumulative — prev not loaded)' : ''),
+        );
 
         // Create/resize offscreen canvas only when needed
         const needH = mercatorCanvasHeight(grid);
@@ -1441,14 +1468,7 @@
         await initMap([AROME_BOUNDS, { padding: 20, animate: false }]);
         if (!map.getSource("grib2") || canvasChanged) setMapLayer(heatCanvas, corners);
         // Update stats + colorscale + valid time
-        document.getElementById("gv-min").textContent =
-          fmtNum(dataMin, 3) + " " + displayUnits;
-        document.getElementById("gv-max").textContent =
-          fmtNum(dataMax, 3) + " " + displayUnits;
-        document.getElementById("gv-mean").textContent =
-          fmtNum(mean, 3) + " " + displayUnits;
-        document.getElementById("gv-valid").textContent =
-          count.toLocaleString();
+        updateStats(dataMin, dataMax, mean, count, displayUnits);
         showColorScale(renderMin, renderMax, displayUnits);
         document.getElementById("arome-valid-time").textContent =
           `Forecast time: ${fmtValidTime(header, product)}`;
@@ -1556,10 +1576,11 @@
               for (const msg of iterateGRIB2Messages(data)) {
                 if (msg.product?.shortName === aromeState.variable) {
                   applyDefaultPalette(aromeState.variable);
-                  document.getElementById('gv-name').textContent = msg.product.name;
-                  document.getElementById('gv-desc').textContent = PARAM_DESCRIPTIONS[aromeState.variable] ?? '';
-                  document.getElementById('gv-sub').textContent =
-                    `${packageKey} · run ${fmtRefTime(msg.header)}`;
+                  updateParamInfo(
+                    msg.product.name,
+                    PARAM_DESCRIPTIONS[aromeState.variable] ?? '',
+                    `${packageKey} · run ${fmtRefTime(msg.header)}`,
+                  );
                   const staticScale = STATIC_SCALES[aromeState.variable];
                   const varDef = pkgVars.find(v => v.shortName === aromeState.variable);
                   if (staticScale && varDef) {
