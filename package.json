@@ -1,22 +1,15 @@
 {
-  "name": "grib2-decoder",
-  "version": "0.1.0",
-  "description": "Browser-compatible GRIB2 decoder (edition 2) supporting simple & complex packing",
-  "type": "module",
-  "main": "src/decoder.js",
-  "browser": "src/decoder.js",
-  "exports": {
-    ".": "./src/decoder.js"
-  },
+  "name": "grib2-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
-    "test": "node --test test/decoder.test.js test/e2e.test.js test/cross-decode.test.js",
-    "make-fixture": "node test/generate-fixture.js test/arome__001__SP1__01H__2026-04-25T03_00_00Z.grib2",
-    "info": "node grib2-info.js",
-    "export": "node grib2-export.js",
-    "serve": "npx serve ."
-  },
-  "license": "Apache-2.0",
-  "devDependencies": {
-    "jest": "^30.3.0"
+    "build":  "npm run build -w packages/grib2-decoder",
+    "test":   "npm test -w packages/grib2-decoder",
+    "serve":  "npx serve .",
+    "info":   "node packages/grib2-decoder/grib2-info.js",
+    "export": "node packages/grib2-decoder/grib2-export.js"
   }
 }

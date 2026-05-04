@@ -8,3 +8,6 @@ libaec/
 
 # Git worktrees
 .worktrees/
+
+# Decoder build output — committed until npm publish is set up
+!packages/grib2-decoder/dist/
