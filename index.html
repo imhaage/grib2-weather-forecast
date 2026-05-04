@@ -698,7 +698,7 @@
           key: "SP1",
           label: "AROME SP1 0.01°",
           variables: [
-            { shortName: "t",     name: "Temperature",                          units: "K",      level: "2 m above ground"  },
+            { shortName: "t",     name: "Temperature",                          units: "°C",     level: "2 m above ground"  },
             { shortName: "r",     name: "Relative humidity",                    units: "%",      level: "2 m above ground"  },
             { shortName: "u",     name: "U-component of wind",                  units: "m s-1",  level: "10 m above ground" },
             { shortName: "v",     name: "V-component of wind",                  units: "m s-1",  level: "10 m above ground" },
@@ -710,14 +710,14 @@
           key: "SP2",
           label: "AROME SP2 0.01°",
           variables: [
-            { shortName: "p",     name: "Pressure",                             units: "Pa",     level: "Ground surface"    },
+            { shortName: "p",     name: "Pressure",                             units: "hPa",    level: "Ground surface"    },
             { shortName: "cape",  name: "Convective available potential energy", units: "J kg-1", level: "Ground surface"    },
             { shortName: "lcc",   name: "Low cloud cover",                      units: "%",      level: "Ground surface"    },
             { shortName: "mcc",   name: "Medium cloud cover",                   units: "%",      level: "Ground surface"    },
             { shortName: "hcc",   name: "High cloud cover",                     units: "%",      level: "Ground surface"    },
-            { shortName: "tgrp",  name: "Graupel (snow pellets) precipitation", units: "kg m-2", level: "Ground surface"    },
-            { shortName: "rrate", name: "Rain precipitation",                   units: "kg m-2", level: "Ground surface"    },
-            { shortName: "srate", name: "Snow precipitation",                   units: "kg m-2", level: "Ground surface"    },
+            { shortName: "tgrp",  name: "Graupel (snow pellets) precipitation", units: "mm/h",   level: "Ground surface"    },
+            { shortName: "rrate", name: "Rain precipitation",                   units: "mm/h",   level: "Ground surface"    },
+            { shortName: "srate", name: "Snow precipitation",                   units: "mm/h",   level: "Ground surface"    },
           ],
         },
       };
@@ -769,7 +769,27 @@
         r:     "Blues",
         u:     "Viridis",  v:     "Viridis",
         ugust: "Viridis",  vgust: "Viridis",
+        p:     "Spectral",
         rrate: "Spectral", srate: "Spectral", tgrp: "Spectral",
+      };
+
+      // Static color scale ranges for AROME variables (enables timestep comparison).
+      // Precipitation uses log:true — values are log-normalized between 0.1 and max.
+      const STATIC_SCALES = {
+        t:     { min: -25,  max: 50   },
+        r:     { min: 0,    max: 100  },
+        u:     { min: -30,  max: 30   },
+        v:     { min: -30,  max: 30   },
+        ugust: { min: 0,    max: 40   },
+        vgust: { min: 0,    max: 40   },
+        p:     { min: 950,  max: 1050 },
+        cape:  { min: 0,    max: 4000 },
+        lcc:   { min: 0,    max: 100  },
+        mcc:   { min: 0,    max: 100  },
+        hcc:   { min: 0,    max: 100  },
+        rrate: { min: 0,    max: 150, log: true },
+        srate: { min: 0,    max: 20,  log: true },
+        tgrp:  { min: 0,    max: 15,  log: true },
       };
 
       function applyDefaultPalette(shortName) {
@@ -836,6 +856,9 @@
         const lut = buildLUT(currentPalette);
         const sn = gridState.product?.shortName;
         const isPrecip = sn === "rrate" || sn === "srate" || sn === "tgrp";
+        const isLog = gridState.staticScale?.log ?? false;
+        // Log scale: normalize v ∈ [0.1, max] logarithmically → [0, 1]
+        const logDenom = isLog ? Math.log(gridState.staticScale.max / 0.1) : 1;
         const outW = heatCanvas.width; // = ni
         const outH = heatCanvas.height; // Mercator-proportional
         const ctx = heatCanvas.getContext("2d");
@@ -868,8 +891,14 @@
             } else if (isPrecip && v <= 0) {
               /* zero precipitation → transparent */
             } else {
-              const li =
-                Math.min(Math.round(((v - min) / range) * 255), 255) * 3;
+              let t;
+              if (isLog) {
+                // log-normalize: v=0.1 → 0, v=max → 1; clamp to [0,1]
+                t = Math.max(0, Math.min(1, Math.log(Math.max(v, 0.1) / 0.1) / logDenom));
+              } else {
+                t = Math.max(0, Math.min(1, (v - min) / range));
+              }
+              const li = Math.min(Math.round(t * 255), 255) * 3;
               px[off] = lut[li];
               px[off + 1] = lut[li + 1];
               px[off + 2] = lut[li + 2];
@@ -1019,19 +1048,53 @@
         el.className = isError ? "error" : "";
       }
 
-      function resetApp() {
-        fileState = null;
-        gridState = null;
-        aromeState = null;
-        isDecoding = false;
-        pendingHourIdx = null;
+      // Remove the grib2 map layer/source and reset grid display state.
+      function clearMapLayer() {
         if (map?.getSource("grib2")) {
           map.removeLayer("grib2-layer");
           map.removeSource("grib2");
         }
+        gridState = null;
         document.getElementById("cs-min").style.visibility = "hidden";
         document.getElementById("cs-max").style.visibility = "hidden";
         document.getElementById("cs-unit").style.visibility = "hidden";
+      }
+
+      // Populate and show the color scale legend bar.
+      function showColorScale(min, max, units) {
+        document.getElementById("cs-min").textContent = fmtNum(min, 2);
+        document.getElementById("cs-max").textContent = fmtNum(max, 2);
+        document.getElementById("cs-unit").textContent = units;
+        document.getElementById("cs-min").style.visibility = "visible";
+        document.getElementById("cs-max").style.visibility = "visible";
+        document.getElementById("cs-unit").style.visibility = "visible";
+        document.getElementById("colorscale").style.display = "flex";
+      }
+
+      // Create the MapLibre map once. fitBoundsArgs is optional [bounds, options].
+      async function initMap(fitBoundsArgs) {
+        if (map) return;
+        map = new maplibregl.Map({
+          container: "map",
+          style: "https://tiles.openfreemap.org/styles/positron",
+          attributionControl: true,
+        });
+        await new Promise((r) => map.once("load", r));
+        if (fitBoundsArgs) map.fitBounds(...fitBoundsArgs);
+        map.addControl(
+          new maplibregl.FullscreenControl({
+            container: document.getElementById("map-wrap"),
+          }),
+        );
+        setupHoverTooltip();
+      }
+
+      function resetApp() {
+        fileState = null;
+        aromeState = null;
+        isDecoding = false;
+        pendingHourIdx = null;
+        clearMapLayer();
         setStatus("");
         document.getElementById("file-summary").style.display = "none";
         document.getElementById("results").style.display = "none";
@@ -1126,20 +1189,7 @@
         renderHeatmap();
 
         // Init MapLibre once
-        if (!map) {
-          map = new maplibregl.Map({
-            container: "map",
-            style: "https://tiles.openfreemap.org/styles/positron",
-            attributionControl: true,
-          });
-          await new Promise((r) => map.once("load", r));
-          map.addControl(
-            new maplibregl.FullscreenControl({
-              container: document.getElementById("map-wrap"),
-            }),
-          );
-          setupHoverTooltip();
-        }
+        await initMap();
 
         // Replace raster source + layer
         if (map.getSource("grib2")) {
@@ -1172,13 +1222,7 @@
         );
 
         // Show color scale
-        document.getElementById("cs-min").textContent = fmtNum(min, 2);
-        document.getElementById("cs-max").textContent = fmtNum(max, 2);
-        document.getElementById("cs-unit").textContent = p.units;
-        document.getElementById("cs-min").style.visibility = "visible";
-        document.getElementById("cs-max").style.visibility = "visible";
-        document.getElementById("cs-unit").style.visibility = "visible";
-        document.getElementById("colorscale").style.display = "flex";
+        showColorScale(min, max, p.units);
       }
 
       // ── AROME live data ───────────────────────────────────────────────────────────
@@ -1232,28 +1276,13 @@
         return out;
       }
 
-      async function initAromeMap() {
-        if (map) return;
-        map = new maplibregl.Map({
-          container: "map",
-          style: "https://tiles.openfreemap.org/styles/positron",
-          attributionControl: true,
-        });
-        await new Promise((r) => map.once("load", r));
-        map.fitBounds([[-12, 37.5], [16, 55.4]], { padding: 20, animate: false });
-        map.addControl(
-          new maplibregl.FullscreenControl({
-            container: document.getElementById("map-wrap"),
-          }),
-        );
-        setupHoverTooltip();
-      }
 
 
       async function aromeShowHour(idx) {
         if (isDecoding) { pendingHourIdx = idx; return; }
         isDecoding = true;
         pendingHourIdx = null;
+        try {
 
         const { resources, buffers, decoded, decodedOrder, variable } =
           aromeState;
@@ -1268,14 +1297,7 @@
           if (decodedOrder.length >= 5) decoded.delete(decodedOrder.shift());
           const buffer = buffers.get(hour);
           if (!buffer) {
-            if (map?.getSource("grib2")) {
-              map.removeLayer("grib2-layer");
-              map.removeSource("grib2");
-            }
-            gridState = null;
-            document.getElementById("cs-min").style.visibility = "hidden";
-            document.getElementById("cs-max").style.visibility = "hidden";
-            document.getElementById("cs-unit").style.visibility = "hidden";
+            clearMapLayer();
             isDecoding = false;
             return;
           }
@@ -1287,14 +1309,7 @@
             }
           }
           if (!targetMsg) {
-            if (map?.getSource("grib2")) {
-              map.removeLayer("grib2-layer");
-              map.removeSource("grib2");
-            }
-            gridState = null;
-            document.getElementById("cs-min").style.visibility = "hidden";
-            document.getElementById("cs-max").style.visibility = "hidden";
-            document.getElementById("cs-unit").style.visibility = "hidden";
+            clearMapLayer();
             isDecoding = false;
             return;
           }
@@ -1358,14 +1373,23 @@
           for (let i = 0; i < displayValues.length; i++)
             c[i] = displayValues[i] <= MISSING_VALUE ? MISSING_VALUE : displayValues[i] - 273.15;
           displayValues = c;
+        } else if (product.shortName === "p") {
+          const c = new Float64Array(displayValues.length);
+          for (let i = 0; i < displayValues.length; i++)
+            c[i] = displayValues[i] <= MISSING_VALUE ? MISSING_VALUE : displayValues[i] / 100;
+          displayValues = c;
         }
 
-        const { min, max, mean, count } = computeStats(displayValues);
-        const range = max - min || 1;
-        const displayUnits = product.shortName === "t" ? "°C"
-          : (isAccumulation && idx > 0 && !isFallback) ? "mm/h"
-          : product.units;
-        gridState = { values: displayValues, min, range, grid, product, displayUnits };
+        const { min: dataMin, max: dataMax, mean, count } = computeStats(displayValues);
+        let displayUnits = product.units;
+        if (product.shortName === "t") displayUnits = "°C";
+        else if (product.shortName === "p") displayUnits = "hPa";
+        else if (isAccumulation && idx > 0 && !isFallback) displayUnits = "mm/h";
+        const staticScale = STATIC_SCALES[product.shortName] ?? null;
+        const renderMin = staticScale ? staticScale.min : dataMin;
+        const renderMax = staticScale ? staticScale.max : dataMax;
+        const range = renderMax - renderMin || 1;
+        gridState = { values: displayValues, min: renderMin, range, grid, product, displayUnits, staticScale };
 
         document.getElementById('gv-badge').textContent = product.shortName;
         document.getElementById('gv-name').textContent  = product.name;
@@ -1399,7 +1423,7 @@
           [lo2, la2],
           [lo1, la2],
         ];
-        if (!map) await initAromeMap();
+        await initMap([[[-12, 37.5], [16, 55.4]], { padding: 20, animate: false }]);
 
         // (Re)create source if canvas changed or source missing
         if (!map.getSource("grib2") || canvasChanged) {
@@ -1422,30 +1446,29 @@
         }
         // Update stats + colorscale + valid time
         document.getElementById("gv-min").textContent =
-          fmtNum(min, 3) + " " + displayUnits;
+          fmtNum(dataMin, 3) + " " + displayUnits;
         document.getElementById("gv-max").textContent =
-          fmtNum(max, 3) + " " + displayUnits;
+          fmtNum(dataMax, 3) + " " + displayUnits;
         document.getElementById("gv-mean").textContent =
           fmtNum(mean, 3) + " " + displayUnits;
         document.getElementById("gv-valid").textContent =
           count.toLocaleString();
-        document.getElementById("cs-min").textContent = fmtNum(min, 2);
-        document.getElementById("cs-max").textContent = fmtNum(max, 2);
-        document.getElementById("cs-unit").textContent = displayUnits;
-        document.getElementById("cs-min").style.visibility = "visible";
-        document.getElementById("cs-max").style.visibility = "visible";
-        document.getElementById("cs-unit").style.visibility = "visible";
-        document.getElementById("colorscale").style.display = "flex";
+        showColorScale(renderMin, renderMax, displayUnits);
         document.getElementById("arome-valid-time").textContent = fmtValidTime(
           header,
           product,
         );
 
-        isDecoding = false;
-        if (pendingHourIdx !== null) {
-          const next = pendingHourIdx;
-          pendingHourIdx = null;
-          aromeShowHour(next);
+        } catch (err) {
+          console.error('aromeShowHour:', err);
+          clearMapLayer();
+        } finally {
+          isDecoding = false;
+          if (pendingHourIdx !== null) {
+            const next = pendingHourIdx;
+            pendingHourIdx = null;
+            aromeShowHour(next);
+          }
         }
       }
 
@@ -1474,8 +1497,9 @@
         const slider = document.getElementById("arome-slider");
         slider.value = 0;
 
-        // Show base map immediately
-        await initAromeMap();
+        // Show base map, zoomed to AROME domain
+        await initMap();
+        map.fitBounds([[-12, 37.5], [16, 55.4]], { padding: 20, animate: false });
 
         document.getElementById("arome-dl-status").textContent =
           "Fetching file list…";
@@ -1603,23 +1627,17 @@
       });
 
       document.getElementById("back-btn").addEventListener("click", () => {
-        if (map?.getSource("grib2")) {
-          map.removeLayer("grib2-layer");
-          map.removeSource("grib2");
-        }
-        gridState = null;
-        document.getElementById("cs-min").style.visibility = "hidden";
-        document.getElementById("cs-max").style.visibility = "hidden";
-        document.getElementById("cs-unit").style.visibility = "hidden";
+        clearMapLayer();
         location.hash = "";
       });
 
-      document
-        .getElementById("palette-select")
-        .addEventListener("change", (e) => {
-          currentPalette = e.target.value;
-          if (gridState) renderHeatmap();
-        });
+      function onPaletteChange(e) {
+        currentPalette = e.target.value;
+        document.getElementById("palette-select").value = currentPalette;
+        document.getElementById("palette-select-arome").value = currentPalette;
+        if (gridState) renderHeatmap();
+      }
+      document.getElementById("palette-select").addEventListener("change", onPaletteChange);
 
       // ── AROME events ──────────────────────────────────────────────────────────────
 
@@ -1660,14 +1678,7 @@
         aromeShowHour(idx);
       });
 
-      document
-        .getElementById("palette-select-arome")
-        .addEventListener("change", (e) => {
-          currentPalette = e.target.value;
-          // Keep both selects in sync
-          document.getElementById("palette-select").value = e.target.value;
-          if (gridState) renderHeatmap();
-        });
+      document.getElementById("palette-select-arome").addEventListener("change", onPaletteChange);
     </script>
   </body>
 </html>
