@@ -1,0 +1,18 @@
+{
+  "name": "grib2-decoder",
+  "version": "0.1.0",
+  "description": "Browser-compatible GRIB2 decoder (edition 2) supporting simple & complex packing",
+  "type": "module",
+  "exports": {
+    ".": "./dist/grib2-decoder.js"
+  },
+  "scripts": {
+    "build":        "rolldown -c",
+    "test":         "node --test test/decoder.test.js test/e2e.test.js test/cross-decode.test.js",
+    "make-fixture": "node test/generate-fixture.js test/arome__001__SP1__01H__2026-04-25T03_00_00Z.grib2"
+  },
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "rolldown": "latest"
+  }
+}
