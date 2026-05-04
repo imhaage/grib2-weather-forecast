@@ -483,8 +483,7 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        flex: 1;
-        min-width: 200px;
+        width: 100%;
       }
       #arome-slider {
         flex: 1;
@@ -630,11 +629,6 @@
         <div id="arome-player-toolbar" style="display: none">
           <button class="btn-back" id="arome-back-btn">← Home</button>
           <select id="arome-var-select"></select>
-          <div id="arome-slider-wrap">
-            <span id="arome-hour-label">+01H</span>
-            <input type="range" id="arome-slider" min="0" step="1" value="0" />
-            <span id="arome-valid-time"></span>
-          </div>
           <div id="palette-ctrl-arome" class="palette-ctrl-shared">
             <label for="palette-select-arome">Palette</label>
             <select id="palette-select-arome" class="palette-select-el">
@@ -659,6 +653,11 @@
                 <option value="YlGnBu">YlGnBu</option>
               </optgroup>
             </select>
+          </div>
+          <div id="arome-slider-wrap">
+            <span id="arome-hour-label">+01H</span>
+            <input type="range" id="arome-slider" min="0" step="1" value="0" />
+            <span id="arome-valid-time"></span>
           </div>
         </div>
 
