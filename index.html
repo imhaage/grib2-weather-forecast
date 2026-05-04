@@ -1187,6 +1187,7 @@
         document.getElementById("results").style.display = "none";
         document.getElementById("cards").innerHTML = "";
         document.getElementById("arome-dl-bars").innerHTML = "";
+        document.getElementById("arome-dl-file-list").innerHTML = "";
         document.getElementById("arome-dl-panel").style.display = "none";
         location.hash = "";
       }
@@ -1706,6 +1707,7 @@
             pendingHourIdx = null;
             gridState = null;
             document.getElementById("arome-dl-bars").innerHTML = "";
+            document.getElementById("arome-dl-file-list").innerHTML = "";
             startAromeDownload(packageKey);
           }
         } else {
@@ -1758,6 +1760,7 @@
         if (gridState) renderHeatmap();
       }
       document.getElementById("palette-select").addEventListener("change", onPaletteChange);
+      document.getElementById("palette-select-arome").addEventListener("change", onPaletteChange);
 
       // ── AROME events ──────────────────────────────────────────────────────────────
 
