@@ -784,9 +784,9 @@
         vgust: { min: 0,    max: 40   },
         p:     { min: 950,  max: 1050 },
         cape:  { min: 0,    max: 4000 },
-        lcc:   { min: 0,    max: 100  },
-        mcc:   { min: 0,    max: 100  },
-        hcc:   { min: 0,    max: 100  },
+        lcc:   { min: 0, max: 100, zeroThreshold: 0.5 },
+        mcc:   { min: 0, max: 100, zeroThreshold: 0.5 },
+        hcc:   { min: 0, max: 100, zeroThreshold: 0.5 },
         rrate: { min: 0,    max: 150, log: true },
         srate: { min: 0,    max: 20,  log: true },
         tgrp:  { min: 0,    max: 15,  log: true },
@@ -861,6 +861,7 @@
         const isLog = gridState.staticScale?.log ?? false;
         // Log scale: normalize v ∈ [0.1, max] logarithmically → [0, 1]
         const logDenom = isLog ? Math.log(gridState.staticScale.max / 0.1) : 1;
+        const zeroThreshold = gridState.staticScale?.zeroThreshold ?? 0;
         const outW = heatCanvas.width; // = ni
         const outH = heatCanvas.height; // Mercator-proportional
         const ctx = heatCanvas.getContext("2d");
@@ -890,8 +891,8 @@
                 px[off] = px[off + 1] = px[off + 2] = 180;
                 px[off + 3] = 100;
               }
-            } else if (isTransparentZero && v <= 0) {
-              /* zero value → transparent */
+            } else if (isTransparentZero && v <= zeroThreshold) {
+              /* at or below zero threshold → transparent */
             } else {
               let t;
               if (isLog) {
