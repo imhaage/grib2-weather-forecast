@@ -5,3 +5,6 @@ package-lock.json
 # External libraries (sources only, WASM already compiled)
 eccodes/
 libaec/
+
+# Git worktrees
+.worktrees/
