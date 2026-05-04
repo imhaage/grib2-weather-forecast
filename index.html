@@ -278,8 +278,6 @@
         align-items: center;
         gap: 10px;
         margin-bottom: 12px;
-        padding: 20px 24px;
-        border-top: 1px solid #e2e6ec;
       }
       #gv-name {
         font-size: 0.95rem;
@@ -450,13 +448,46 @@
 
 
       #arome-dl-panel {
-        padding: 20px 24px;
+        padding: 20px 0;
         border-top: 1px solid #e2e6ec;
       }
       #arome-dl-status {
         font-size: 0.88rem;
         color: #555e6d;
         margin-bottom: 16px;
+      }
+      #arome-dl-details {
+        margin-top: 12px;
+      }
+      #arome-dl-details > summary {
+        font-size: 0.8rem;
+        color: #8b919e;
+        cursor: pointer;
+        user-select: none;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      #arome-dl-details > summary::-webkit-details-marker { display: none; }
+      #arome-dl-details > summary::marker { display: none; }
+      #arome-dl-chevron {
+        font-size: 0.65rem;
+        transition: transform 0.15s;
+      }
+      #arome-dl-details[open] #arome-dl-chevron {
+        transform: rotate(180deg);
+      }
+      #arome-dl-file-list {
+        margin: 8px 0 0;
+        padding: 0;
+        list-style: none;
+        font-size: 0.78rem;
+        color: #555e6d;
+        font-family: monospace;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
       }
       #arome-dl-bars {
         display: grid;
@@ -487,6 +518,8 @@
         gap: 16px;
         margin-bottom: 22px;
         flex-wrap: wrap;
+        padding-top: 20px;
+        border-top: 1px solid #e2e6ec;
       }
       #arome-slider-wrap {
         display: flex;
@@ -586,12 +619,10 @@
         <div id="arome-dl-panel" style="display: none">
           <p id="arome-dl-status"></p>
           <div id="arome-dl-bars"></div>
-        </div>
-        <div id="gv-meta">
-          <div>
-            <div id="gv-name"></div>
-            <div id="gv-desc"></div>
-          </div>
+          <details id="arome-dl-details">
+            <summary>Files <span id="arome-dl-chevron">▼</span></summary>
+            <ul id="arome-dl-file-list"></ul>
+          </details>
         </div>
         <div id="grid-toolbar">
           <div id="grid-stats">
@@ -666,6 +697,12 @@
                 <option value="YlGnBu">YlGnBu</option>
               </optgroup>
             </select>
+          </div>
+          <div id="gv-meta">
+            <div>
+              <div id="gv-name"></div>
+              <div id="gv-desc"></div>
+            </div>
           </div>
           <div id="arome-slider-wrap">
             <span id="arome-hour-label">+01H</span>
@@ -1566,15 +1603,21 @@
         document.getElementById("arome-dl-status").textContent =
           `Downloading ${resources.length} ${packageKey} files…`;
 
-        // Build progress indicators
+        // Build progress indicators and file list
         const barsEl = document.getElementById("arome-dl-bars");
+        const fileListEl = document.getElementById("arome-dl-file-list");
         barsEl.innerHTML = "";
-        for (const { hour } of resources) {
+        fileListEl.innerHTML = "";
+        for (const { hour, url } of resources) {
           const item = document.createElement("div");
           item.className = "arome-dl-item";
           item.id = `dl-${hour}`;
           item.textContent = `${String(hour).padStart(2, "0")}H`;
           barsEl.appendChild(item);
+
+          const li = document.createElement("li");
+          li.textContent = url.split("/").pop();
+          fileListEl.appendChild(li);
         }
 
         let doneCount = 0;
