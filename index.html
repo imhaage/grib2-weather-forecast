@@ -1570,9 +1570,10 @@
             doneCount++;
             document.getElementById("arome-dl-status").textContent =
               `Downloading… ${doneCount} / ${resources.length} files`;
-            const currentIdx = parseInt(slider.value, 10);
-            if (resources[currentIdx]?.hour === hour && !gridState) {
-              aromeShowHour(currentIdx);
+            if (!gridState) {
+              const idx = resources.findIndex(r => r.hour === hour);
+              slider.value = idx;
+              aromeShowHour(idx);
             }
           }),
         );
