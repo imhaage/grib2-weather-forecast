@@ -12,10 +12,11 @@ export default defineConfig({
   plugins: [
     {
       name: 'copy-wasm-assets',
-      renderChunk(code) {
+      renderChunk(code, chunk) {
         // Rolldown rewrites the relative path from src/wasm/ to dist/, turning
         // './ccsds.js' into './wasm/ccsds.js'. Fix it back so it resolves to
         // the asset emitted next to the bundle.
+        if (chunk.fileName !== 'grib2-decoder.js') return null;
         const patched = code.replaceAll('./wasm/ccsds.js', './ccsds.js');
         if (patched === code)
           throw new Error('renderChunk: ./wasm/ccsds.js not found in output — check Rolldown path rewriting');
