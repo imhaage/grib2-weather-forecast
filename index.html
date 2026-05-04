@@ -1482,10 +1482,8 @@
         document.getElementById("gv-valid").textContent =
           count.toLocaleString();
         showColorScale(renderMin, renderMax, displayUnits);
-        document.getElementById("arome-valid-time").textContent = fmtValidTime(
-          header,
-          product,
-        );
+        document.getElementById("arome-valid-time").textContent =
+          `Forecast time: ${fmtValidTime(header, product)}`;
 
         } catch (err) {
           console.error('aromeShowHour:', err);

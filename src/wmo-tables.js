@@ -62,13 +62,23 @@ export const SCAN_MODE_BITS = {
 
 const _pad = n => String(n).padStart(2, '0');
 
+// Format a UTC Date as "Mon DD, YYYY HH:MM UTC" (e.g. "May 4, 2026 07:00 UTC").
+function _fmtUTC(d) {
+    const mon  = d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
+    const day  = d.getUTCDate();
+    const year = d.getUTCFullYear();
+    const hh   = _pad(d.getUTCHours());
+    const mm   = _pad(d.getUTCMinutes());
+    return `${mon} ${day}, ${year} ${hh}:${mm} UTC`;
+}
+
 /**
  * Format the reference datetime from a Section 1 header object.
- * Returns an ISO-8601 string (e.g. "2026-04-25T03:00:00Z").
+ * Returns a human-readable US date string (e.g. "Apr 25, 2026 03:00 UTC").
  */
 export function fmtRefTime(h) {
-    return `${h.year}-${_pad(h.month)}-${_pad(h.day)}`
-         + `T${_pad(h.hour)}:${_pad(h.minute)}:${_pad(h.second ?? 0)}Z`;
+    return _fmtUTC(new Date(Date.UTC(h.year, h.month - 1, h.day,
+                                     h.hour, h.minute, h.second ?? 0)));
 }
 
 /**
@@ -92,13 +102,13 @@ export function fmtForecast(p) {
 
 /**
  * Compute and format the valid time (reference time + forecast offset).
- * Returns an ISO-8601 string (e.g. "2026-04-25T04:00:00Z").
+ * Returns a human-readable US date string (e.g. "Apr 25, 2026 04:00 UTC").
  */
 export function fmtValidTime(header, product) {
     const refMs = Date.UTC(header.year, header.month - 1, header.day,
                            header.hour, header.minute, header.second ?? 0);
     const secs  = (TIME_UNIT_SECONDS[product.timeUnit] ?? 3600) * product.forecastTime;
-    return new Date(refMs + secs * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+    return _fmtUTC(new Date(refMs + secs * 1000));
 }
 
 /**
