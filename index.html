@@ -790,6 +790,8 @@
         srate: 'Intensity of snowfall (liquid equivalent), in mm/h. Even modest values can rapidly create dangerous road conditions and reduce visibility, especially at temperatures well below 0°C.',
       };
 
+      const AROME_BOUNDS = [[-12, 37.5], [16, 55.4]];
+
       // ── State ─────────────────────────────────────────────────────────────────────
       let fileState = null; // { messages: Array }
       let gridState = null; // { values, min, range, grid, product }
@@ -878,6 +880,12 @@
         tgrp:  { min: 0,    max: 15,  log: true, zeroThreshold: 0.005 },
       };
 
+      function displayUnitsFor(shortName, rawUnits) {
+        if (shortName === 't') return '°C';
+        if (shortName === 'p') return 'hPa';
+        return rawUnits;
+      }
+
       function applyDefaultPalette(shortName) {
         const pal = VARIABLE_PALETTES[shortName];
         if (!pal) return;
@@ -944,13 +952,11 @@
         } = grid;
         const lut = buildLUT(currentPalette);
         const sn = gridState.product?.shortName;
-        // Variables where zero value → transparent (no color shown for absence of phenomenon)
-        const isTransparentZero = sn === "rrate" || sn === "srate" || sn === "tgrp"
-                                || sn === "lcc"   || sn === "mcc"  || sn === "hcc";
         const isLog = gridState.staticScale?.log ?? false;
         // Log scale: normalize v ∈ [0.1, max] logarithmically → [0, 1]
         const logDenom = isLog ? Math.log(gridState.staticScale.max / 0.1) : 1;
         const zeroThreshold = gridState.staticScale?.zeroThreshold ?? 0;
+        const isTransparentZero = zeroThreshold > 0;
         const outW = heatCanvas.width; // = ni
         const outH = heatCanvas.height; // Mercator-proportional
         const ctx = heatCanvas.getContext("2d");
@@ -1469,10 +1475,8 @@
         }
 
         const { min: dataMin, max: dataMax, mean, count } = computeStats(displayValues);
-        let displayUnits = product.units;
-        if (product.shortName === "t") displayUnits = "°C";
-        else if (product.shortName === "p") displayUnits = "hPa";
-        else if (isAccumulation && !isFallback) displayUnits = "mm/h";
+        let displayUnits = displayUnitsFor(product.shortName, product.units);
+        if (isAccumulation && !isFallback) displayUnits = "mm/h";
         const staticScale = STATIC_SCALES[product.shortName] ?? null;
         const renderMin = staticScale ? staticScale.min : dataMin;
         const renderMax = staticScale ? staticScale.max : dataMax;
@@ -1511,7 +1515,7 @@
           [lo2, la2],
           [lo1, la2],
         ];
-        await initMap([[[-12, 37.5], [16, 55.4]], { padding: 20, animate: false }]);
+        await initMap([AROME_BOUNDS, { padding: 20, animate: false }]);
 
         // (Re)create source if canvas changed or source missing
         if (!map.getSource("grib2") || canvasChanged) {
@@ -1585,7 +1589,7 @@
 
         // Show base map, zoomed to AROME domain
         await initMap();
-        map.fitBounds([[-12, 37.5], [16, 55.4]], { padding: 20, animate: false });
+        map.fitBounds(AROME_BOUNDS, { padding: 20, animate: false });
 
         document.getElementById("arome-dl-status").textContent =
           "Fetching file list…";
@@ -1655,10 +1659,7 @@
                   const staticScale = STATIC_SCALES[aromeState.variable];
                   const varDef = pkgVars.find(v => v.shortName === aromeState.variable);
                   if (staticScale && varDef) {
-                    let displayUnits = varDef.units;
-                    if (aromeState.variable === 't') displayUnits = '°C';
-                    else if (aromeState.variable === 'p') displayUnits = 'hPa';
-                    showColorScale(staticScale.min, staticScale.max, displayUnits);
+                    showColorScale(staticScale.min, staticScale.max, displayUnitsFor(aromeState.variable, varDef.units));
                   }
                   break;
                 }
