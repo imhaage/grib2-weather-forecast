@@ -628,7 +628,7 @@
           <button class="btn-back" id="arome-back-btn">← Home</button>
           <select id="arome-var-select"></select>
           <div id="arome-slider-wrap">
-            <span id="arome-hour-label">+00H</span>
+            <span id="arome-hour-label">+01H</span>
             <input type="range" id="arome-slider" min="0" step="1" value="0" />
             <span id="arome-valid-time"></span>
           </div>
@@ -1249,7 +1249,7 @@
               filesize: r.filesize,
             };
           })
-          .filter((r) => r.hour >= 0)
+          .filter((r) => r.hour >= 1)
           .sort((a, b) => a.hour - b.hour);
       }
 
@@ -1366,7 +1366,7 @@
             isFallback = true;
           }
         }
-        // idx === 0: displayValues = raw cumulative (equals first-hour increment since model starts at 0).
+        // idx === 0 (01H): raw cumulative value equals the 1H increment (model accumulates from 0 at run start).
 
         if (product.shortName === "t") {
           const c = new Float64Array(displayValues.length);
@@ -1384,7 +1384,7 @@
         let displayUnits = product.units;
         if (product.shortName === "t") displayUnits = "°C";
         else if (product.shortName === "p") displayUnits = "hPa";
-        else if (isAccumulation && idx > 0 && !isFallback) displayUnits = "mm/h";
+        else if (isAccumulation && !isFallback) displayUnits = "mm/h";
         const staticScale = STATIC_SCALES[product.shortName] ?? null;
         const renderMin = staticScale ? staticScale.min : dataMin;
         const renderMax = staticScale ? staticScale.max : dataMax;
