@@ -1553,6 +1553,7 @@
         }
 
         let doneCount = 0;
+        let legendInitialized = false;
         await Promise.all(
           resources.map(async ({ hour, url, filesize }) => {
             const buffer = await downloadFileProg(
@@ -1570,10 +1571,34 @@
             doneCount++;
             document.getElementById("arome-dl-status").textContent =
               `Downloading… ${doneCount} / ${resources.length} files`;
-            if (!gridState) {
-              const idx = resources.findIndex(r => r.hour === hour);
-              slider.value = idx;
-              aromeShowHour(idx);
+
+            // On first arrival: populate legend/info from header (no CCSDS decode)
+            if (!legendInitialized) {
+              legendInitialized = true;
+              const data = new Uint8Array(buffer);
+              for (const msg of iterateGRIB2Messages(data)) {
+                if (msg.product?.shortName === aromeState.variable) {
+                  applyDefaultPalette(aromeState.variable);
+                  document.getElementById('gv-name').textContent = msg.product.name;
+                  document.getElementById('gv-sub').textContent =
+                    `${packageKey} · ${fmtLevel(msg.product)} · run ${fmtRefTime(msg.header)}`;
+                  const staticScale = STATIC_SCALES[aromeState.variable];
+                  const varDef = pkgVars.find(v => v.shortName === aromeState.variable);
+                  if (staticScale && varDef) {
+                    let displayUnits = varDef.units;
+                    if (aromeState.variable === 't') displayUnits = '°C';
+                    else if (aromeState.variable === 'p') displayUnits = 'hPa';
+                    showColorScale(staticScale.min, staticScale.max, displayUnits);
+                  }
+                  break;
+                }
+              }
+            }
+
+            // Render map only when the file matching the slider arrives
+            const currentIdx = parseInt(slider.value, 10);
+            if (resources[currentIdx]?.hour === hour && !gridState) {
+              aromeShowHour(currentIdx);
             }
           }),
         );
