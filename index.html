@@ -855,7 +855,9 @@
         } = grid;
         const lut = buildLUT(currentPalette);
         const sn = gridState.product?.shortName;
-        const isPrecip = sn === "rrate" || sn === "srate" || sn === "tgrp";
+        // Variables where zero value → transparent (no color shown for absence of phenomenon)
+        const isTransparentZero = sn === "rrate" || sn === "srate" || sn === "tgrp"
+                                || sn === "lcc"   || sn === "mcc"  || sn === "hcc";
         const isLog = gridState.staticScale?.log ?? false;
         // Log scale: normalize v ∈ [0.1, max] logarithmically → [0, 1]
         const logDenom = isLog ? Math.log(gridState.staticScale.max / 0.1) : 1;
@@ -884,12 +886,12 @@
             const off = (imgRow + col) * 4;
             const v = values[rowOff + col];
             if (v <= MISSING_VALUE) {
-              if (!isPrecip) {
+              if (!isTransparentZero) {
                 px[off] = px[off + 1] = px[off + 2] = 180;
                 px[off + 3] = 100;
               }
-            } else if (isPrecip && v <= 0) {
-              /* zero precipitation → transparent */
+            } else if (isTransparentZero && v <= 0) {
+              /* zero value → transparent */
             } else {
               let t;
               if (isLog) {
