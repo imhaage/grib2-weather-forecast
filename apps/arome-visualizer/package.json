@@ -1,0 +1,11 @@
+{
+  "name": "arome-visualizer",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "grib2-decoder": "*"
+  },
+  "scripts": {
+    "serve": "npx serve ../../"
+  }
+}

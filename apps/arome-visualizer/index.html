@@ -717,6 +717,13 @@
       </optgroup>
     </template>
 
+    <script type="importmap">
+      {
+        "imports": {
+          "grib2-decoder": "/packages/grib2-decoder/dist/grib2-decoder.js"
+        }
+      }
+    </script>
     <script type="module">
       import maplibregl from "https://esm.sh/maplibre-gl@4";
       import chroma from "https://esm.sh/chroma-js@2.4.2";
@@ -724,15 +731,13 @@
         iterateGRIB2Messages,
         decodeGRIB2,
         MISSING_VALUE,
-      } from "./src/index.js";
-      import { computeStats } from "./src/stats.js";
-      import {
+        computeStats,
         CENTRES,
         GENERATING_PROCESS,
         fmtRefTime,
         fmtLevel,
         fmtValidTime,
-      } from "./src/wmo-tables.js";
+      } from "grib2-decoder";
 
       // Populate all palette selects from the shared template
       const paletteTemplate = document.getElementById("palette-options");
