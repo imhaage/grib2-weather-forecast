@@ -253,6 +253,7 @@
         flex-wrap: wrap;
       }
 
+
       .btn-back {
         background: #fff;
         border: 1px solid #c5cad4;
@@ -262,6 +263,7 @@
         font-size: 0.84rem;
         color: #555e6d;
         flex-shrink: 0;
+        margin-bottom: 14px;
         transition:
           background 0.12s,
           border-color 0.12s;
@@ -276,15 +278,22 @@
         align-items: center;
         gap: 10px;
         margin-bottom: 12px;
+        padding: 20px 24px;
+        border-top: 1px solid #e2e6ec;
       }
       #gv-name {
         font-size: 0.95rem;
         font-weight: 600;
       }
+      #gv-desc {
+        font-size: 0.75rem;
+        margin-top: 4px;
+        line-height: 1.45;
+      }
       #gv-sub {
         font-size: 0.78rem;
-        color: #8b919e;
-        margin-top: 2px;
+        font-weight: 600;
+        margin-bottom: 14px;
       }
 
       #grid-stats {
@@ -459,7 +468,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 0.25rem 0;
+        padding: 0;
         border-radius: 4px;
         color: #555e6d;
         background: linear-gradient(to right, #93c5fd var(--pct, 0%), #e2e6ec var(--pct, 0%));
@@ -571,14 +580,20 @@
 ══════════════════════════════════════════════════════ -->
     <div id="view-grid">
       <main>
+        <button class="btn-back" id="back-btn" style="display: none">← Variables</button>
+        <button class="btn-back" id="arome-back-btn" style="display: none">← Home</button>
+        <div id="gv-sub"></div>
+        <div id="arome-dl-panel" style="display: none">
+          <p id="arome-dl-status"></p>
+          <div id="arome-dl-bars"></div>
+        </div>
         <div id="gv-meta">
           <div>
             <div id="gv-name"></div>
-            <div id="gv-sub"></div>
+            <div id="gv-desc"></div>
           </div>
         </div>
         <div id="grid-toolbar">
-          <button class="btn-back" id="back-btn">← Variables</button>
           <div id="grid-stats">
             <div class="stat-item">
               <span class="stat-label">Min</span>
@@ -598,7 +613,7 @@
             </div>
           </div>
           <div id="palette-ctrl">
-            <label for="palette-select">Palette</label>
+            <label for="palette-select">Color scale</label>
             <select id="palette-select">
               <optgroup label="Custom">
                 <option value="TempC">TempC (Temperature)</option>
@@ -626,10 +641,9 @@
 
         <!-- AROME player toolbar (shown instead of #grid-toolbar in AROME mode) -->
         <div id="arome-player-toolbar" style="display: none">
-          <button class="btn-back" id="arome-back-btn">← Home</button>
           <select id="arome-var-select"></select>
           <div id="palette-ctrl-arome" class="palette-ctrl-shared">
-            <label for="palette-select-arome">Palette</label>
+            <label for="palette-select-arome">Color scale</label>
             <select id="palette-select-arome" class="palette-select-el">
               <optgroup label="Custom">
                 <option value="TempC">TempC (Temperature)</option>
@@ -672,10 +686,6 @@
           <span id="cs-unit"></span>
         </div>
 
-        <div id="arome-dl-panel" style="display: none">
-          <p id="arome-dl-status"></p>
-          <div id="arome-dl-bars"></div>
-        </div>
       </main>
     </div>
 
@@ -724,6 +734,23 @@
             { shortName: "srate", name: "Snow precipitation",                   units: "mm/h",   level: "Ground surface"    },
           ],
         },
+      };
+
+      const PARAM_DESCRIPTIONS = {
+        t:     'Air temperature measured 2m above ground. The standard reference for what people feel outdoors. Key for assessing frost risk, heatwaves, and thermal comfort.',
+        r:     'Moisture content of the air relative to its saturation point, at 2m above ground. Values above 80% indicate damp, foggy, or precipitation-prone conditions. Below 30%, the air is dry — increasing wildfire risk and discomfort.',
+        u:     'East–west component of wind speed at 10m above ground. Positive = blowing eastward, negative = blowing westward. Combined with the V component, you can derive actual wind speed and direction.',
+        v:     'North–south component of wind speed at 10m above ground. Positive = blowing northward, negative = southward. Combined with the U component, you can derive actual wind speed and direction.',
+        ugust: 'East–west component of the maximum wind gust at 10m. Gusts are brief, intense bursts significantly stronger than the average wind. Combined with vgust, reveals the direction and peak intensity — critical for storm safety assessments.',
+        vgust: 'North–south component of the maximum wind gust at 10m. Combined with ugust, reveals the direction and peak intensity — critical for storm safety assessments.',
+        p:     'Atmospheric pressure at ground level, in hPa. High pressure (>1013 hPa) is typically associated with fair weather; low pressure signals approaching fronts or storms. Useful for tracking large-scale weather systems.',
+        cape:  "Convective Available Potential Energy: a measure of the atmosphere's fuel for thunderstorm development. Values above 500 J/kg suggest moderate storm potential; above 2500 J/kg, severe weather with large hail and strong winds becomes likely.",
+        lcc:   'Fraction of the sky covered by low-altitude clouds (below ~2km), such as stratus and fog layers. Directly affects visibility, sunlight at ground level, and daytime heating.',
+        mcc:   'Fraction of the sky covered by mid-level clouds (~2–6km), often associated with frontal systems and stratiform precipitation.',
+        hcc:   'Fraction of the sky covered by high-altitude clouds (above ~6km), such as cirrus. These thin ice clouds rarely produce rain directly but can indicate an approaching weather system.',
+        tgrp:  'Rate of falling graupel (soft hail / snow pellets), in mm/h. Graupel forms inside convective clouds and is often a precursor to larger hail or intense thunderstorms.',
+        rrate: 'Intensity of liquid precipitation at a given moment, in mm/h. Below 1 mm/h is light rain; 1–10 mm/h is moderate; above 10 mm/h is heavy. Key for flash flood risk and outdoor planning.',
+        srate: 'Intensity of snowfall (liquid equivalent), in mm/h. Even modest values can rapidly create dangerous road conditions and reduce visibility, especially at temperatures well below 0°C.',
       };
 
       // ── State ─────────────────────────────────────────────────────────────────────
@@ -1147,8 +1174,9 @@
 
         // Populate toolbar
         document.getElementById("gv-name").textContent = p.name;
+        document.getElementById("gv-desc").textContent = PARAM_DESCRIPTIONS[p.shortName] ?? '';
         document.getElementById("gv-sub").textContent =
-          `${fmtLevel(p)} · ${fmtValidTime(msg.header, p)}`;
+          fmtValidTime(msg.header, p);
 
         // Reset stats
         for (const id of ["gv-min", "gv-max", "gv-mean", "gv-valid"]) {
@@ -1414,8 +1442,9 @@
         gridState = { values: displayValues, min: renderMin, range, grid, product, displayUnits, staticScale };
 
         document.getElementById('gv-name').textContent  = product.name;
+        document.getElementById('gv-desc').textContent  = PARAM_DESCRIPTIONS[product.shortName] ?? '';
         document.getElementById('gv-sub').textContent   =
-          `${aromeState.packageKey} · ${fmtLevel(product)} · run ${fmtRefTime(header)}`
+          `${aromeState.packageKey} · run ${fmtRefTime(header)}`
           + (isFallback ? ' · (cumulative — prev not loaded)' : '');
 
         // Create/resize offscreen canvas only when needed
@@ -1576,8 +1605,9 @@
                 if (msg.product?.shortName === aromeState.variable) {
                   applyDefaultPalette(aromeState.variable);
                   document.getElementById('gv-name').textContent = msg.product.name;
+                  document.getElementById('gv-desc').textContent = PARAM_DESCRIPTIONS[aromeState.variable] ?? '';
                   document.getElementById('gv-sub').textContent =
-                    `${packageKey} · ${fmtLevel(msg.product)} · run ${fmtRefTime(msg.header)}`;
+                    `${packageKey} · run ${fmtRefTime(msg.header)}`;
                   const staticScale = STATIC_SCALES[aromeState.variable];
                   const varDef = pkgVars.find(v => v.shortName === aromeState.variable);
                   if (staticScale && varDef) {
@@ -1613,14 +1643,17 @@
         const hash = location.hash;
         if (hash.startsWith("#grid/")) {
           showView("view-grid");
+          document.getElementById("back-btn").style.display = "block";
+          document.getElementById("arome-back-btn").style.display = "none";
           document.getElementById("grid-toolbar").style.display = "flex";
-          document.getElementById("arome-player-toolbar").style.display =
-            "none";
+          document.getElementById("arome-player-toolbar").style.display = "none";
           showGridView(decodeURIComponent(hash.slice(6)));
         } else if (hash.startsWith("#arome/")) {
           const packageKey = hash.slice(7);
           if (!PACKAGES[packageKey]) { location.hash = ""; return; }
           showView("view-grid");
+          document.getElementById("back-btn").style.display = "none";
+          document.getElementById("arome-back-btn").style.display = "block";
           document.getElementById("grid-toolbar").style.display = "none";
           document.getElementById("arome-player-toolbar").style.display = "flex";
           document.getElementById("arome-dl-panel").style.display = "block";

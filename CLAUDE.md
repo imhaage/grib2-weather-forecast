@@ -16,6 +16,10 @@ Basé sur la spec WMO FM-92 GRIB Edition 2. Décompression CCSDS via WebAssembly
 - `docs/cli.md` — Outils CLI et scripts npm
 - `docs/external-resources.md` — Spécifications WMO et références externes
 
+## Language
+
+All generated content in this project must be in **English**: variable names, function names, comments, UI text, descriptions, commit messages.
+
 ## Commandes utiles
 
 ```bash
