@@ -839,6 +839,7 @@
       // Static color scale ranges for AROME variables (enables timestep comparison).
       const DECODED_CACHE_SIZE = 5;
       const LOG_SCALE_FLOOR = 0.1;
+      const RASTER_OPACITY = 0.8;
 
       // Precipitation uses log:true — values are log-normalized between LOG_SCALE_FLOOR and max.
       const STATIC_SCALES = {
@@ -1126,9 +1127,7 @@
           map.removeSource("grib2");
         }
         gridState = null;
-        document.getElementById("cs-min").style.visibility = "hidden";
-        document.getElementById("cs-max").style.visibility = "hidden";
-        document.getElementById("cs-unit").style.visibility = "hidden";
+        hideColorScale();
       }
 
       // Populate and show the color scale legend bar.
@@ -1136,10 +1135,43 @@
         document.getElementById("cs-min").textContent = fmtNum(min, 2);
         document.getElementById("cs-max").textContent = fmtNum(max, 2);
         document.getElementById("cs-unit").textContent = units;
-        document.getElementById("cs-min").style.visibility = "visible";
-        document.getElementById("cs-max").style.visibility = "visible";
-        document.getElementById("cs-unit").style.visibility = "visible";
         document.getElementById("colorscale").style.display = "flex";
+      }
+
+      function hideColorScale() {
+        hideColorScale();
+      }
+
+      function applyToValues(values, fn) {
+        const out = new Float64Array(values.length);
+        for (let i = 0; i < values.length; i++)
+          out[i] = values[i] <= MISSING_VALUE ? MISSING_VALUE : fn(values[i]);
+        return out;
+      }
+
+      function gridCorners({ latitudeOfFirstPoint: la1, longitudeOfFirstPoint: lo1,
+                             latitudeOfLastPoint: la2, longitudeOfLastPoint: lo2 }) {
+        return [[lo1, la1], [lo2, la1], [lo2, la2], [lo1, la2]];
+      }
+
+      function setMapLayer(canvas, corners) {
+        if (map.getSource("grib2")) {
+          map.removeLayer("grib2-layer");
+          map.removeSource("grib2");
+        }
+        map.addSource("grib2", { type: "canvas", canvas, coordinates: corners, animate: true });
+        map.addLayer({ id: "grib2-layer", type: "raster", source: "grib2",
+          paint: { "raster-opacity": RASTER_OPACITY, "raster-resampling": "nearest" } });
+      }
+
+      async function decodeVariableFromBuffer(buffer, shortName) {
+        for (const msg of iterateGRIB2Messages(buffer)) {
+          if (msg.product.shortName === shortName) {
+            const dec = await decodeGRIB2(msg.buffer);
+            return { values: dec.values, grid: dec.grid, product: dec.product, header: dec.header };
+          }
+        }
+        return null;
       }
 
       // Create the MapLibre map once. fitBoundsArgs is optional [bounds, options].
@@ -1204,7 +1236,7 @@
         for (const id of ["gv-min", "gv-max", "gv-mean", "gv-valid"]) {
           document.getElementById(id).textContent = "—";
         }
-        document.getElementById("colorscale").style.display = "none";
+        hideColorScale();
 
         // Switch view
         document.getElementById("view-home").style.display = "none";
@@ -1243,55 +1275,12 @@
         heatCanvas.width = gr.ni;
         heatCanvas.height = mercatorCanvasHeight(gr);
 
-        // Geographic corners [lng, lat] — clockwise from top-left
-        const {
-          latitudeOfFirstPoint: la1,
-          longitudeOfFirstPoint: lo1,
-          latitudeOfLastPoint: la2,
-          longitudeOfLastPoint: lo2,
-        } = gr;
-        const corners = [
-          [lo1, la1],
-          [lo2, la1],
-          [lo2, la2],
-          [lo1, la2],
-        ];
-
-        // Render heatmap into offscreen canvas
+        const corners = gridCorners(gr);
         renderHeatmap();
-
-        // Init MapLibre once
         await initMap();
-
-        // Replace raster source + layer
-        if (map.getSource("grib2")) {
-          map.removeLayer("grib2-layer");
-          map.removeSource("grib2");
-        }
-        map.addSource("grib2", {
-          type: "canvas",
-          canvas: heatCanvas,
-          coordinates: corners,
-          animate: true,
-        });
-        map.addLayer({
-          id: "grib2-layer",
-          type: "raster",
-          source: "grib2",
-          paint: {
-            "raster-opacity": 0.8,
-            "raster-resampling": "nearest",
-          },
-        });
-
-        // Fit map to grid bounds
-        map.fitBounds(
-          [
-            [lo1, la2],
-            [lo2, la1],
-          ],
-          { padding: 20, animate: false },
-        );
+        setMapLayer(heatCanvas, corners);
+        map.fitBounds([[corners[3][0], corners[2][1]], [corners[1][0], corners[0][1]]],
+          { padding: 20, animate: false });
 
         // Show color scale
         showColorScale(min, max, p.units);
@@ -1355,16 +1344,12 @@
         if (decoded.has(prevHour)) return decoded.get(prevHour).values;
         const prevBuffer = buffers.get(prevHour);
         if (!prevBuffer) return null;
-        let prevMsg = null;
-        for (const msg of iterateGRIB2Messages(prevBuffer)) {
-          if (msg.product.shortName === variable) { prevMsg = msg; break; }
-        }
-        if (!prevMsg) return null;
         if (decodedOrder.length >= DECODED_CACHE_SIZE) decoded.delete(decodedOrder.shift());
-        const prevDec = await decodeGRIB2(prevMsg.buffer);
-        decoded.set(prevHour, { values: prevDec.values, grid: prevDec.grid, product: prevDec.product, header: prevDec.header });
+        const data = await decodeVariableFromBuffer(prevBuffer, variable);
+        if (!data) return null;
+        decoded.set(prevHour, data);
         decodedOrder.push(prevHour);
-        return prevDec.values;
+        return data.values;
       }
 
       async function aromeShowHour(idx) {
@@ -1385,30 +1370,9 @@
         } else {
           if (decodedOrder.length >= DECODED_CACHE_SIZE) decoded.delete(decodedOrder.shift());
           const buffer = buffers.get(hour);
-          if (!buffer) {
-            clearMapLayer();
-            isDecoding = false;
-            return;
-          }
-          let targetMsg = null;
-          for (const msg of iterateGRIB2Messages(buffer)) {
-            if (msg.product.shortName === variable) {
-              targetMsg = msg;
-              break;
-            }
-          }
-          if (!targetMsg) {
-            clearMapLayer();
-            isDecoding = false;
-            return;
-          }
-          const dec = await decodeGRIB2(targetMsg.buffer);
-          data = {
-            values: dec.values,
-            grid: dec.grid,
-            product: dec.product,
-            header: dec.header,
-          };
+          if (!buffer) { clearMapLayer(); return; }
+          data = await decodeVariableFromBuffer(buffer, variable);
+          if (!data) { clearMapLayer(); return; }
           decoded.set(hour, data);
           decodedOrder.push(hour);
         }
@@ -1440,17 +1404,10 @@
         }
         // idx === 0 (01H): raw cumulative value equals the 1H increment (model accumulates from 0 at run start).
 
-        if (product.shortName === "t") {
-          const c = new Float64Array(displayValues.length);
-          for (let i = 0; i < displayValues.length; i++)
-            c[i] = displayValues[i] <= MISSING_VALUE ? MISSING_VALUE : displayValues[i] - 273.15;
-          displayValues = c;
-        } else if (product.shortName === "p") {
-          const c = new Float64Array(displayValues.length);
-          for (let i = 0; i < displayValues.length; i++)
-            c[i] = displayValues[i] <= MISSING_VALUE ? MISSING_VALUE : displayValues[i] / 100;
-          displayValues = c;
-        }
+        if (product.shortName === "t")
+          displayValues = applyToValues(displayValues, v => v - 273.15);
+        else if (product.shortName === "p")
+          displayValues = applyToValues(displayValues, v => v / 100);
 
         const { min: dataMin, max: dataMax, mean, count } = computeStats(displayValues);
         let displayUnits = displayUnitsFor(product.shortName, product.units);
@@ -1480,40 +1437,9 @@
         }
         renderHeatmap();
 
-        // Init map once
-        const {
-          latitudeOfFirstPoint: la1,
-          longitudeOfFirstPoint: lo1,
-          latitudeOfLastPoint: la2,
-          longitudeOfLastPoint: lo2,
-        } = grid;
-        const corners = [
-          [lo1, la1],
-          [lo2, la1],
-          [lo2, la2],
-          [lo1, la2],
-        ];
+        const corners = gridCorners(grid);
         await initMap([AROME_BOUNDS, { padding: 20, animate: false }]);
-
-        // (Re)create source if canvas changed or source missing
-        if (!map.getSource("grib2") || canvasChanged) {
-          if (map.getSource("grib2")) {
-            map.removeLayer("grib2-layer");
-            map.removeSource("grib2");
-          }
-          map.addSource("grib2", {
-            type: "canvas",
-            canvas: heatCanvas,
-            coordinates: corners,
-            animate: true,
-          });
-          map.addLayer({
-            id: "grib2-layer",
-            type: "raster",
-            source: "grib2",
-            paint: { "raster-opacity": 0.8, "raster-resampling": "nearest" },
-          });
-        }
+        if (!map.getSource("grib2") || canvasChanged) setMapLayer(heatCanvas, corners);
         // Update stats + colorscale + valid time
         document.getElementById("gv-min").textContent =
           fmtNum(dataMin, 3) + " " + displayUnits;
