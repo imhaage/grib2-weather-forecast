@@ -29,24 +29,14 @@
 
 import { ccsdsDecodeBuffer, AEC_FLAGS_LE } from './wasm/ccsds-loader.js';
 import { lookupParameter } from './parameters.js';
+import { MISSING_VALUE, u8, u16, u32, sm16, f32be, readBits } from './byte-helpers.js';
 
 /** Sentinel written into the values array for missing / bitmap-masked grid points. */
-export const MISSING_VALUE = -1e100;
+export { MISSING_VALUE } from './byte-helpers.js';
 
-// ─── Byte helpers ─────────────────────────────────────────────────────────────
+// ─── Byte helpers (local only) ────────────────────────────────────────────────
 
-const u8  = (d, i) => d[i];
-const u16 = (d, i) => (d[i] << 8) | d[i + 1];
-const u32 = (d, i) => (((d[i] << 24) | (d[i + 1] << 16) | (d[i + 2] << 8) | d[i + 3]) >>> 0);
 const i32 = (d, i) => { const v = u32(d, i); return v >= 0x80000000 ? v - 0x100000000 : v; };
-// Signed 16-bit using "sign-magnitude" encoding (GRIB2 scale factors):
-// bit 15 = sign, bits 14-0 = magnitude.
-const sm16 = (d, i) => {
-    const raw = u16(d, i);
-    return (raw & 0x8000) ? -(raw & 0x7FFF) : raw;
-};
-// IEEE 754 single-precision big-endian
-const f32be = (d, i) => new DataView(d.buffer, d.byteOffset + i, 4).getFloat32(0, false);
 
 // ─── Section walker ───────────────────────────────────────────────────────────
 
@@ -427,19 +417,6 @@ function parseSection6(data, dataStart, totalPoints) {
         }
     }
     return { hasBitmap: true, bitmap };
-}
-
-// ─── Simple packing bitstream reader ─────────────────────────────────────────
-
-function readBits(data, bitPos, nBits) {
-    let value = 0;
-    for (let i = 0; i < nBits; i++) {
-        const byteIdx = bitPos[0] >>> 3;
-        const bitIdx  = 7 - (bitPos[0] & 7);
-        value = (value << 1) | ((data[byteIdx] >> bitIdx) & 1);
-        bitPos[0]++;
-    }
-    return value >>> 0;
 }
 
 // ─── Sections helper ─────────────────────────────────────────────────────────
