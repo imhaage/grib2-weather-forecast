@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build":        "rolldown -c",
-    "test":         "node --test test/decoder.test.js test/e2e.test.js test/cross-decode.test.js",
+    "test":         "node --test test/decoder.test.js test/e2e.test.js test/cross-decode.test.js test/drt-complex.test.js test/drt-jpeg2000.test.js",
     "make-fixture": "node test/generate-fixture.js test/arome__001__SP1__01H__2026-04-25T03_00_00Z.grib2"
   },
   "license": "Apache-2.0",

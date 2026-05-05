@@ -1,13 +1,15 @@
-import * as drtConstant from './drt-constant.js';
-import * as drtSimple   from './drt-simple.js';
-import * as drtComplex  from './drt-complex.js';
-import * as drtCcsds    from './drt-ccsds.js';
-import * as drtIeee754  from './drt-ieee754.js';
+import * as drtConstant  from './drt-constant.js';
+import * as drtSimple    from './drt-simple.js';
+import * as drtComplex   from './drt-complex.js';
+import * as drtJpeg2000  from './drt-jpeg2000.js';
+import * as drtCcsds     from './drt-ccsds.js';
+import * as drtIeee754   from './drt-ieee754.js';
 
 const TEMPLATES = {
     0:   drtSimple,
     2:   drtComplex,
     3:   drtComplex,
+    40:  drtJpeg2000,
     42:  drtCcsds,
     254: drtIeee754,
     255: drtConstant,
