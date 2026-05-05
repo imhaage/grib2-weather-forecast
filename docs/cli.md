@@ -7,7 +7,7 @@ npm test                                                        # 98 tests (dél
 npm run build                                                   # build decoder → packages/grib2-decoder/dist/
 npm run info  -- <file.grib2> [output.txt]                      # rapport métadonnées
 npm run export -- <file.grib2> --variable <shortName> [out.csv] # export CSV
-npm run serve                                                   # npx serve . → http://localhost:3000/apps/arome-visualizer/
+npm run serve                                                   # npx serve . → http://localhost:3000/apps/arome-visualizer/ (via serve.json)
 ```
 
 ---
@@ -51,3 +51,11 @@ Format CSV : `lat,lon,value` — une ligne par point valide (points manquants om
 
 Utilise `iterateGRIB2Messages()` pour lister, `decodeGRIB2()` pour décoder,
 `computeStats()` pour les stats, `indexToLatLon()` pour les coordonnées.
+
+---
+
+## serve.json
+
+Fichier de configuration pour `npx serve` (Vercel) situé à la racine. Redirige `/` vers
+`/apps/arome-visualizer/` afin qu'`npm run serve` ouvre directement l'application au lieu
+d'afficher un listing de fichiers. Miroir local du redirect défini dans `netlify.toml`.
