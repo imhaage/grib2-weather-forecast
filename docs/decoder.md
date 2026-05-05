@@ -134,9 +134,34 @@ Spec: [NCEP Template 5.2](https://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_doc
 
 ### DRT 40 — JPEG 2000 code stream
 
-Section 5 parameters identical to DRT 0 (R, E, D, bitsPerValue). Section 7 contains a raw J2C
-(JPEG 2000 code stream) blob. Decoding: pass the blob to an OpenJPEG decoder; the output is a
-2D integer array which is then scaled the same way as DRT 0.
+Reference implementation: [NCEP g2clib `jpcunpack.c`](https://github.com/NOAA-EMC/NCEPLIBS-g2c).
+Spec: [NCEP Template 5.40](https://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_doc/grib2_temp5-40.shtml).
+
+#### Section 5 parameters (after the 6-byte generic header)
+
+| Octets | Field | Notes |
+|--------|-------|-------|
+| +0..3 | R — reference value (float32 BE) | |
+| +4..5 | E — binary scale factor (sign-magnitude int16) | |
+| +6..7 | D — decimal scale factor (sign-magnitude int16) | |
+| +8 | bitsPerValue | 0 = constant field (all values = R) |
+| +9 | typeOfOriginalFieldValues | Code Table 5.1, ignored for decoding |
+| +10 | typeOfCompressionUsed | Code Table 5.40: 0=lossless, 1=lossy |
+| +11 | targetCompressionRatio | Lossy only; 255 = missing (lossless) |
+
+#### Decoding algorithm
+
+```
+1. If bitsPerValue = 0: constant field, all values = R. Done.
+2. Otherwise: Section 7 is a raw J2C codestream (JPEG 2000 Part-1, ISO/IEC 15444-1).
+   Pass the entire Section 7 blob to OpenJPEG; output is an integer array ifld[].
+   OpenJPEG handles lossless and lossy internally — typeOfCompressionUsed is not needed.
+3. Physical value: Y[i] = (R + ifld[i] × 2^E) × 10^(-D)   (identical to DRT 0)
+```
+
+> **Note:** The existing decoder incorrectly treats all DRT 40 data as constant fields
+> (forces bitsPerValue=0). Any real GFS JPEG 2000 field will fail to decode until DRT 40
+> is properly implemented.
 
 Used by: GFS (NOAA operational NWP).
 
