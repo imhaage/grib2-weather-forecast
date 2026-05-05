@@ -195,3 +195,35 @@ describe('parseGRIB2Header', () => {
     // "does not decode values" test removed — the assertions (header !== undefined,
     // grid !== undefined, dataOffset > 0) were already covered by the preceding tests.
 });
+
+// ─── ICON-D2 (DRT 3) End-to-End ──────────────────────────────────────────────
+
+import { existsSync } from 'node:fs';
+import { iterateGRIB2Messages } from '../src/index.js';
+
+const ICON_FILE = new URL('../test/icon_d2_t2m.grib2', import.meta.url);
+
+describe('DRT 3 — ICON-D2 real file', { skip: !existsSync(ICON_FILE) }, () => {
+    let result;
+
+    before(async () => {
+        const buf  = readFileSync(ICON_FILE);
+        const data = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+        for (const msg of iterateGRIB2Messages(data)) {
+            result = await decodeGRIB2(msg.buffer);
+            break;
+        }
+    });
+
+    it('decodes without error', () => assert.ok(result));
+    it('values array has expected length', () =>
+        assert.equal(result.values.length, result.grid.totalPoints));
+    it('values are physically plausible for temperature (200K–330K)', () => {
+        let min = Infinity, max = -Infinity;
+        for (const v of result.values) {
+            if (v > -1e99) { if (v < min) min = v; if (v > max) max = v; }
+        }
+        assert.ok(min > 200 && max < 330,
+            `Temperature out of range: min=${min.toFixed(2)}, max=${max.toFixed(2)}`);
+    });
+});
