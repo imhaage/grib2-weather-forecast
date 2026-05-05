@@ -7,12 +7,12 @@ describe('drt-complex — DRT 2 basic decode (no missing values)', () => {
     it('decodes 4 values from 1 group', async () => {
         // 1 group, bitsPerValue=6 (gref bits), W=6, L=4
         // gref[0]=0, values=[10,20,30,40] packed as 6-bit unsigned offsets
-        // Bitstream (30 bits → 4 bytes):
-        //   gref: 000000 (6 bits)
-        //   X2:   001010 010100 011110 101000
-        // Bytes: 0x00, 0xA5, 0x1E, 0xA0  (last 2 bits padding)
+        // WMO requires byte-boundary between each array section:
+        //   gref: 000000 (6 bits) + 00 padding → byte boundary
+        //   X2:   001010 010100 011110 101000 (24 bits, 4 values × 6 bits)
+        // Bytes: 0x00, 0x29, 0x47, 0xA8
         const { decode } = await import('../src/templates/drt-complex.js');
-        const data = new Uint8Array([0x00, 0xA5, 0x1E, 0xA0]);
+        const data = new Uint8Array([0x00, 0x29, 0x47, 0xA8]);
         const s5 = {
             templateNumber: 2,
             numberOfPackedValues: 4,
@@ -39,12 +39,12 @@ describe('drt-complex — DRT 2 primary missing values', () => {
         // 1 group, bitsPerValue=4, W=4, L=4, missingValueManagement=1
         // gref[0]=5, values: X2=[3, 7, 15(missing), 2]
         // ifld = [8, 12, missing, 7]
-        // Bitstream (20 bits):
-        //   gref: 0101 (=5)
-        //   X2:   0011 0111 1111 0010
-        // Bytes: 0x53, 0x7F, 0x20
+        // WMO requires byte-boundary: gref(4 bits) + 4 padding bits → byte boundary
+        //   byte 0: 0101_0000 = 0x50 (gref=5=0101, padding=0000)
+        //   byte 1: 0011_0111 = 0x37 (raw[0]=3, raw[1]=7)
+        //   byte 2: 1111_0010 = 0xF2 (raw[2]=15=missing, raw[3]=2)
         const { decode } = await import('../src/templates/drt-complex.js');
-        const data = new Uint8Array([0x53, 0x7F, 0x20]);
+        const data = new Uint8Array([0x50, 0x37, 0xF2]);
         const s5 = {
             templateNumber: 2, numberOfPackedValues: 4,
             referenceValue: 0, binaryScaleFactor: 0, decimalScaleFactor: 0,

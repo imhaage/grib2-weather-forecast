@@ -732,24 +732,31 @@ async function decode$3(data, dataStart, _dataLen, s5, totalPoints, bitmap) {
 	}
 	const gref = new Int32Array(NG);
 	for (let g = 0; g < NG; g++) gref[g] = readBits(data, bitPos, bpv);
+	bitPos[0] = bitPos[0] + 7 & -8;
 	const gwidth = new Uint8Array(NG);
 	for (let g = 0; g < NG; g++) gwidth[g] = Wref + (nBitsW > 0 ? readBits(data, bitPos, nBitsW) : 0);
+	bitPos[0] = bitPos[0] + 7 & -8;
 	const glen = new Int32Array(NG);
 	for (let g = 0; g < NG; g++) glen[g] = Lref + (nBitsL > 0 ? readBits(data, bitPos, nBitsL) : 0) * deltaL;
 	if (NG > 0) glen[NG - 1] = lastGroupLength;
+	bitPos[0] = bitPos[0] + 7 & -8;
 	const N = s5.numberOfPackedValues;
 	const ifld = new Int32Array(N);
 	const ifldmiss = new Uint8Array(N);
 	let n = 0;
+	const bpvMsng1 = (1 << bpv) - 1;
+	const bpvMsng2 = bpvMsng1 - 1;
 	for (let g = 0; g < NG; g++) {
 		const W = gwidth[g];
 		const L = glen[g];
-		const msng1 = W > 0 ? (1 << W) - 1 : -1;
-		const msng2 = W > 1 ? (1 << W) - 2 : -1;
-		for (let k = 0; k < L && n < N; k++, n++) {
-			const raw = W > 0 ? readBits(data, bitPos, W) : 0;
+		for (let k = 0; k < L && n < N; k++, n++) if (W === 0) if (missVal >= 1 && gref[g] === bpvMsng1) ifldmiss[n] = 1;
+		else if (missVal === 2 && gref[g] === bpvMsng2) ifldmiss[n] = 2;
+		else ifld[n] = gref[g];
+		else {
+			const raw = readBits(data, bitPos, W);
+			const msng1 = (1 << W) - 1;
 			if (missVal >= 1 && raw === msng1) ifldmiss[n] = 1;
-			else if (missVal === 2 && raw === msng2) ifldmiss[n] = 2;
+			else if (missVal === 2 && raw === msng1 - 1) ifldmiss[n] = 2;
 			else ifld[n] = raw + gref[g];
 		}
 	}
@@ -779,13 +786,29 @@ async function decode$3(data, dataStart, _dataLen, s5, totalPoints, bitmap) {
 /**
 * Lazy loader for the OpenJPEG WASM module (@cornerstonejs/codec-openjpeg).
 * Provides jp2DecodeBuffer() — decodes a raw J2C codestream to integer samples.
+*
+* openjpegwasm_decode.js is a CJS/UMD Emscripten build that uses require() and
+* __dirname internally. Strategy:
+*   - Node.js: load via createRequire() so the CJS context is available (require,
+*     __dirname, module.exports). The file then sets up readBinary/readAsync and
+*     finds the WASM relative to its own __dirname — no extra options needed.
+*   - Browser: load via dynamic import() using the export default we added to the
+*     file, and override locateFile so the WASM URL is resolved correctly (the
+*     file sets scriptDirectory="" for ESM dynamic imports where currentScript is null).
 */
+const _wasmUrl = new URL("./openjpegwasm_decode.wasm", import.meta.url);
 let _modulePromise$1 = null;
-async function loadJP2Module(wasmUrl) {
+async function loadJP2Module() {
 	if (!_modulePromise$1) {
-		const { default: createJP2Module } = await import("./openjpegwasm_decode.js");
+		let createJP2Module;
 		const opts = {};
-		if (wasmUrl) opts.locateFile = (filename) => filename.endsWith(".wasm") ? wasmUrl.toString() : filename;
+		if (typeof process !== "undefined" && process.versions?.node) {
+			const { createRequire } = await import("node:module");
+			createJP2Module = createRequire(import.meta.url)("./openjpegwasm_decode.cjs");
+		} else {
+			({default: createJP2Module} = await import("./openjpegwasm_decode.js"));
+			opts.locateFile = (filename) => filename.endsWith(".wasm") ? _wasmUrl.href : filename;
+		}
 		_modulePromise$1 = createJP2Module(opts);
 	}
 	return _modulePromise$1;

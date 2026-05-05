@@ -20,3 +20,4 @@ if (typeof exports === 'object' && typeof module === 'object') {
   module.exports.default = OpenJPEGWASM;
 } else if (typeof define === 'function' && define['amd'])
   define([], () => OpenJPEGWASM);
+export default OpenJPEGWASM;

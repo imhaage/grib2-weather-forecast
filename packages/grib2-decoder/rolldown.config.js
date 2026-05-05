@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 
 export default defineConfig({
   input: 'src/index.js',
-  external: (id) => id.endsWith('/ccsds.js') || id.endsWith('/openjpegwasm_decode.js'),
+  external: (id) => id.endsWith('/ccsds.js') || id.endsWith('/openjpegwasm_decode.js') || id.endsWith('/openjpegwasm_decode.cjs'),
   output: {
     file: 'dist/grib2-decoder.js',
     format: 'es',
@@ -19,7 +19,10 @@ export default defineConfig({
         let patched = code
           .replaceAll('./wasm/ccsds.js', './ccsds.js')
           .replaceAll('./wasm/jpeg2000/openjpegwasm_decode.js', './openjpegwasm_decode.js')
-          .replaceAll('./jpeg2000/openjpegwasm_decode.js', './openjpegwasm_decode.js');
+          .replaceAll('./jpeg2000/openjpegwasm_decode.js', './openjpegwasm_decode.js')
+          .replaceAll('./wasm/jpeg2000/openjpegwasm_decode.cjs', './openjpegwasm_decode.cjs')
+          .replaceAll('./jpeg2000/openjpegwasm_decode.cjs', './openjpegwasm_decode.cjs')
+          .replaceAll('./jpeg2000/openjpegwasm_decode.wasm', './openjpegwasm_decode.wasm');
         return patched === code ? null : patched;
       },
       generateBundle() {
@@ -27,6 +30,7 @@ export default defineConfig({
           ['ccsds.js',                'src/wasm/ccsds.js'],
           ['ccsds.wasm',              'src/wasm/ccsds.wasm'],
           ['openjpegwasm_decode.js',  'src/wasm/jpeg2000/openjpegwasm_decode.js'],
+          ['openjpegwasm_decode.cjs', 'src/wasm/jpeg2000/openjpegwasm_decode.cjs'],
           ['openjpegwasm_decode.wasm','src/wasm/jpeg2000/openjpegwasm_decode.wasm'],
         ];
         for (const [fileName, srcPath] of assets) {

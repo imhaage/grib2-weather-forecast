@@ -3,7 +3,7 @@
 ## Scripts npm
 
 ```bash
-npm test                                                        # 98 tests (délègue à packages/grib2-decoder)
+npm test                                                        # 115 tests (délègue à packages/grib2-decoder)
 npm run build                                                   # build decoder → packages/grib2-decoder/dist/
 npm run info  -- <file.grib2> [output.txt]                      # rapport métadonnées
 npm run export -- <file.grib2> --variable <shortName> [out.csv] # export CSV

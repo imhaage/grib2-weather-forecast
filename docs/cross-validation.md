@@ -13,7 +13,7 @@ c'est la preuve la plus solide possible de l'exactitude du décodage.
 
 ## Ce que les autres tests ne couvrent pas
 
-Les 98 tests unitaires vérifient :
+Les tests unitaires vérifient :
 - le parsing des sections 0–5 (en-têtes, grille, représentation)
 - la formule de décompression CCSDS : min = R, max cohérent avec 16 bits
 - les plages physiques plausibles (température entre 254 K et 320 K)

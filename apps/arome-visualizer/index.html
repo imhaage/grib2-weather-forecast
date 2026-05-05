@@ -940,8 +940,8 @@
           longitudeOfFirstPoint: lo1,
           longitudeOfLastPoint: lo2,
         } = grid;
-        const spanY = mercatorY(la1) - mercatorY(la2);
-        const spanX = ((lo2 - lo1) * Math.PI) / 180;
+        const spanY = Math.abs(mercatorY(la1) - mercatorY(la2));
+        const spanX = Math.abs((lo2 - lo1) * Math.PI) / 180;
         return Math.round((ni * spanY) / spanX);
       }
 
@@ -970,18 +970,20 @@
         const img = ctx.createImageData(outW, outH);
         const px = img.data;
 
-        const my1 = mercatorY(la1);
-        const mySpan = my1 - mercatorY(la2);
+        // Support both N→S (la1 > la2) and S→N (la1 < la2, scanningMode 0x40) grids.
+        const northLat = Math.max(la1, la2);
+        const southLat = Math.min(la1, la2);
+        const isStoN = la2 > la1;
+        const myNorth = mercatorY(northLat);
+        const mySpan = myNorth - mercatorY(southLat); // always positive
 
         for (let py = 0; py < outH; py++) {
-          // Map output row → Mercator Y → geographic latitude
-          const lat = invMercatorY(my1 - (py / outH) * mySpan);
-          if (lat > la1 || lat < la2) continue;
+          // Map output row → Mercator Y → geographic latitude (north=py0, south=pyMax)
+          const lat = invMercatorY(myNorth - (py / outH) * mySpan);
+          if (lat > northLat || lat < southLat) continue;
 
-          const row = Math.min(
-            Math.max(Math.round((la1 - lat) / dj), 0),
-            nj - 1,
-          );
+          const rowFromNorth = Math.min(Math.max(Math.round((northLat - lat) / dj), 0), nj - 1);
+          const row = isStoN ? nj - 1 - rowFromNorth : rowFromNorth;
           const rowOff = row * ni;
           const imgRow = py * outW;
 
@@ -1039,14 +1041,19 @@
             dj,
           } = grid;
 
+          const northLat = Math.max(la1, la2);
+          const southLat = Math.min(la1, la2);
+          const isStoN = la2 > la1;
+
           // Outside domain
-          if (lat > la1 || lat < la2 || lng < lo1 || lng > lo2) {
+          if (lat > northLat || lat < southLat || lng < lo1 || lng > lo2) {
             tooltip.hidden = true;
             mapCanvas.style.cursor = "";
             return;
           }
 
-          const row = Math.round((la1 - lat) / dj);
+          const rowFromNorth = Math.round((northLat - lat) / dj);
+          const row = isStoN ? (grid.nj - 1 - rowFromNorth) : rowFromNorth;
           const col = Math.round((lng - lo1) / di);
           const idx = row * ni + col;
           const val =
@@ -1192,7 +1199,11 @@
 
       function gridCorners({ latitudeOfFirstPoint: la1, longitudeOfFirstPoint: lo1,
                              latitudeOfLastPoint: la2, longitudeOfLastPoint: lo2 }) {
-        return [[lo1, la1], [lo2, la1], [lo2, la2], [lo1, la2]];
+        const north = Math.max(la1, la2);
+        const south = Math.min(la1, la2);
+        const west  = Math.min(lo1, lo2);
+        const east  = Math.max(lo1, lo2);
+        return [[west, north], [east, north], [east, south], [west, south]];
       }
 
       function setMapLayer(canvas, corners) {
@@ -1559,6 +1570,7 @@
           fileListEl.appendChild(li);
         }
 
+        const downloadKey = aromeState;
         let doneCount = 0;
         let legendInitialized = false;
         await Promise.all(
@@ -1567,14 +1579,16 @@
               url,
               filesize,
               (loaded, total) => {
-                document.getElementById(`dl-${hour}`).style.setProperty(
+                if (aromeState !== downloadKey) return;
+                document.getElementById(`dl-${hour}`)?.style.setProperty(
                   "--pct", Math.round((loaded / total) * 100) + "%"
                 );
               },
             );
+            if (aromeState !== downloadKey) return;
             aromeState.buffers.set(hour, buffer);
 
-            document.getElementById(`dl-${hour}`).classList.add("done");
+            document.getElementById(`dl-${hour}`)?.classList.add("done");
             doneCount++;
             document.getElementById("arome-dl-status").textContent =
               `Downloading… ${doneCount} / ${resources.length} files`;

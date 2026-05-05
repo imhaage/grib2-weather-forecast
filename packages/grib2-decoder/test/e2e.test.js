@@ -228,6 +228,41 @@ describe('DRT 3 — ICON-D2 real file', { skip: !existsSync(ICON_FILE) }, () => 
     });
 });
 
+// ─── EWAM (DRT 40) End-to-End ─────────────────────────────────────────────────
+
+const EWAM_DRT40_FILE = new URL('../test/fixtures/ewam_drt40_sample.grib2', import.meta.url);
+
+describe('DRT 40 — JPEG 2000 real file', { skip: !existsSync(EWAM_DRT40_FILE) }, () => {
+    let result;
+
+    before(async () => {
+        const buf  = readFileSync(EWAM_DRT40_FILE);
+        const data = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+        result = await decodeGRIB2(data);
+    });
+
+    it('decodes without error', () => assert.ok(result));
+    it('values array has expected length (910 grid points)', () =>
+        assert.equal(result.values.length, 910));
+    it('has 423 valid values (bitmap excludes land points)', () => {
+        const count = result.values.filter(v => v > -1e99).length;
+        assert.equal(count, 423);
+    });
+    it('values are physically plausible for wave direction (0–360°)', () => {
+        let min = Infinity, max = -Infinity;
+        for (const v of result.values) {
+            if (v > -1e99) { if (v < min) min = v; if (v > max) max = v; }
+        }
+        assert.ok(min >= 0 && max <= 360,
+            `Wave direction out of range: min=${min.toFixed(2)}, max=${max.toFixed(2)}`);
+    });
+    it('minimum value ≈ 10.34° (reference from OpenJPEG decode)', () => {
+        const vals = [...result.values].filter(v => v > -1e99).sort((a, b) => a - b);
+        assert.ok(Math.abs(vals[0] - 10.34177001953125) < 0.001,
+            `min ${vals[0]} ≠ 10.342°`);
+    });
+});
+
 // ─── GFS (DRT 3) End-to-End ───────────────────────────────────────────────────
 
 const GFS_FILE = new URL('../test/gfs_sample.grib2', import.meta.url);

@@ -7,9 +7,12 @@ packages/grib2-decoder/
 ├── package.json         — name: "grib2-decoder", exports → dist/grib2-decoder.js
 ├── rolldown.config.js   — builds src/ → dist/ (ESM bundle + WASM assets)
 ├── dist/                — committed; no build step required after clone
-│   ├── grib2-decoder.js — bundle
-│   ├── ccsds.js         — Emscripten glue (dynamically imported at runtime)
-│   └── ccsds.wasm       — compiled WASM
+│   ├── grib2-decoder.js         — bundle
+│   ├── ccsds.js                 — CCSDS Emscripten glue (dynamically imported)
+│   ├── ccsds.wasm               — compiled WASM
+│   ├── openjpegwasm_decode.js   — OpenJPEG Emscripten glue (browser, ESM dynamic import)
+│   ├── openjpegwasm_decode.cjs  — same module as CJS (Node.js, loaded via createRequire)
+│   └── openjpegwasm_decode.wasm — compiled WASM
 └── src/
     ├── decoder.js       — parsers de sections + API publique
     ├── parameters.js    — table de paramètres WMO (discipline:catégorie:numéro → shortName)
@@ -17,9 +20,16 @@ packages/grib2-decoder/
     ├── stats.js         — computeStats(values) : min/max/mean/stddev/count
     ├── wmo-tables.js    — tables WMO (CENTRES, TIME_UNIT, TYPE_OF_LEVEL…) + helpers de formatage
     ├── index.js         — re-exporte tous les symboles publics
+    ├── templates/
+    │   ├── drt-complex.js   — DRT 2/3 decoder (complex packing + spatial differencing)
+    │   └── drt-jpeg2000.js  — DRT 40 decoder (JPEG 2000 via OpenJPEG WASM)
     └── wasm/
-        ├── ccsds-loader.js  — chargement lazy du module WASM
+        ├── ccsds-loader.js  — chargement lazy du module WASM CCSDS
         ├── ccsds.js / .wasm — module Emscripten compilé depuis libaec
+        ├── jpeg2000/
+        │   ├── openjpegwasm_decode.js   — module Emscripten OpenJPEG (ESM, browser)
+        │   ├── openjpegwasm_decode.cjs  — same module as CJS (Node.js via createRequire)
+        │   └── openjpegwasm_decode.wasm
         └── ccsds_wrapper.c  — wrapper C autour de libaec
 ```
 
@@ -49,10 +59,8 @@ Les sections 2 et 8 ne sont pas parsées. Plusieurs messages peuvent se suivre d
 
 - **Section 3 :** template 0 (grille lat/lon régulière)
 - **Section 4 :** template 0 (analyse/prévision de surface)
-- **Section 5 :** template 42 (CCSDS), 0 (simple packing), 254 (IEEE 754 big-endian), 255 (missing)
-
-Planned additions: DRT 2 (complex packing), DRT 3 (complex packing + spatial differencing, used by
-ICON-D2/ICON-EU/ICON-global), DRT 40 (JPEG 2000, used by GFS/NOAA).
+- **Section 5 :** template 0 (simple packing), 2 (complex packing), 3 (complex packing + spatial
+  differencing), 40 (JPEG 2000), 42 (CCSDS), 254 (IEEE 754 big-endian), 255 (constant field)
 
 ---
 
@@ -65,7 +73,8 @@ Physical value: `Y = (R + X × 2^E) × 10^(-D)` where X is the packed unsigned i
 ### DRT 2 — Complex packing
 ### DRT 3 — Complex packing with spatial differencing
 
-Reference implementation: [NCEP g2clib `comunpack.c`](https://github.com/NOAA-EMC/NCEPLIBS-g2c).
+Reference implementations: [NCEP g2clib `comunpack.c`](https://github.com/NOAA-EMC/NCEPLIBS-g2c),
+[ecCodes `DataG22OrderPacking.cc`](https://github.com/ecmwf/eccodes/blob/develop/src/eccodes/accessor/DataG22OrderPacking.cc).
 Spec: [NCEP Template 5.2](https://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_doc/grib2_temp5-2.shtml),
 [NCEP Template 5.3](https://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_doc/grib2_temp5-3.shtml).
 
@@ -159,11 +168,7 @@ Spec: [NCEP Template 5.40](https://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_do
 3. Physical value: Y[i] = (R + ifld[i] × 2^E) × 10^(-D)   (identical to DRT 0)
 ```
 
-> **Note:** The existing decoder incorrectly treats all DRT 40 data as constant fields
-> (forces bitsPerValue=0). Any real GFS JPEG 2000 field will fail to decode until DRT 40
-> is properly implemented.
-
-Used by: GFS (NOAA operational NWP).
+Used by: GFS (NOAA operational NWP), ICON-D2 EWAM (DWD ocean wave model).
 
 ### DRT 42 — CCSDS lossless compression
 
@@ -222,9 +227,15 @@ Helpers de formatage : `fmtRefTime(header)`, `fmtValidTime(header, product)`,
 ## Tests
 
 ```bash
-npm test   # node --test decoder.test.js e2e.test.js cross-decode.test.js (via packages/grib2-decoder)
+npm test   # node --test (5 test files, via packages/grib2-decoder)
 ```
 
-98 tests couvrant : walkSections, parseSection1/3/5/6, decodeGRIB2 (valeurs physiques,
+115 tests couvrant : walkSections, parseSection1/3/5/6, decodeGRIB2 (valeurs physiques,
 bitmap, formule de décompression CCSDS), parseGRIB2Header, lookupParameter (régressions
-sur les indices WMO : cape/cin, LW radiation, slhf/sshf), validation croisée JS vs eccodes.
+sur les indices WMO : cape/cin, LW radiation, slhf/sshf), validation croisée JS vs eccodes,
+DRT 2/3 (complex packing: no missing, primary missing, DRT 3 first-order/second-order/negative
+GMIN spatial differencing), DRT 40 (JPEG 2000 constant field + real EWAM file), DRT 3 real-file
+tests (ICON-D2, GFS).
+
+Test files: `decoder.test.js`, `e2e.test.js`, `cross-decode.test.js`, `drt-complex.test.js`,
+`drt-jpeg2000.test.js`.

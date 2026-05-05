@@ -7,7 +7,9 @@ Basé sur la spec WMO FM-92 GRIB Edition 2. Décompression CCSDS via WebAssembly
 
 **Fichier de test :** `packages/grib2-decoder/test/arome__001__SP1__01H__2026-04-25T03_00_00Z.grib2` (~24 MB, AROME, Météo-France)
 
-**État :** Entièrement fonctionnel — 98 tests passent, décodage CCSDS validé sur données réelles.
+**État :** Entièrement fonctionnel — 115 tests passent, décodage CCSDS/JPEG2000 validé sur données réelles.
+Supporte DRT 0 (simple packing), DRT 2/3 (complex packing + spatial differencing, ICON-D2/GFS),
+DRT 40 (JPEG 2000, OpenJPEG WASM), DRT 42 (CCSDS, AROME/ARPEGE), DRT 254 (IEEE 754).
 
 ## Structure de la documentation
 
@@ -23,7 +25,7 @@ All generated content in this project must be in **English**: variable names, fu
 ## Commandes utiles
 
 ```bash
-npm test                                          # 98 tests (runs in packages/grib2-decoder)
+npm test                                          # 115 tests (runs in packages/grib2-decoder)
 npm run build                                     # build decoder → packages/grib2-decoder/dist/
 npm run info -- <file.grib2>                      # rapport métadonnées
 npm run export -- <file.grib2> --variable <name>  # export CSV
