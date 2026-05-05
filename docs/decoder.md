@@ -51,6 +51,109 @@ Les sections 2 et 8 ne sont pas parsées. Plusieurs messages peuvent se suivre d
 - **Section 4 :** template 0 (analyse/prévision de surface)
 - **Section 5 :** template 42 (CCSDS), 0 (simple packing), 254 (IEEE 754 big-endian), 255 (missing)
 
+Planned additions: DRT 2 (complex packing), DRT 3 (complex packing + spatial differencing, used by
+ICON-D2/ICON-EU/ICON-global), DRT 40 (JPEG 2000, used by GFS/NOAA).
+
+---
+
+## Data Representation Templates — Algorithm Reference
+
+### DRT 0 — Simple packing
+
+Physical value: `Y = (R + X × 2^E) × 10^(-D)` where X is the packed unsigned integer (bitsPerValue bits).
+
+### DRT 2 — Complex packing
+### DRT 3 — Complex packing with spatial differencing
+
+Reference implementation: [NCEP g2clib `comunpack.c`](https://github.com/NOAA-EMC/NCEPLIBS-g2c).
+Spec: [NCEP Template 5.2](https://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_doc/grib2_temp5-2.shtml),
+[NCEP Template 5.3](https://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_doc/grib2_temp5-3.shtml).
+
+#### Section 5 parameters (after the 10-byte common header)
+
+| Offset | Size | Field |
+|--------|------|-------|
+| +0 | 2 | group splitting method (Code Table 5.4) |
+| +2 | 1 | missing value management: 0=none, 1=primary, 2=primary+secondary |
+| +3 | 4 | primary missing value substitute (float32 or int32) |
+| +7 | 4 | secondary missing value substitute |
+| +11 | 4 | NG — number of groups |
+| +15 | 1 | Wref — reference for group widths |
+| +16 | 1 | nBitsW — bits used for each group width |
+| +17 | 4 | Lref — reference for group lengths |
+| +21 | 1 | ΔL — length increment |
+| +22 | 4 | true length of last group |
+| +26 | 1 | nBitsL — bits used for scaled group lengths |
+| +27 *(DRT 3 only)* | 1 | order of spatial differencing (1=first, 2=second) — Code Table 5.6 |
+| +28 *(DRT 3 only)* | 1 | ww — number of extra descriptor bytes in Section 7 |
+
+#### Section 7 bitstream layout
+
+```
+[DRT 3 only — spatial differencing extra descriptors]
+  ww×8 bits   : ival1  (first original integer value, unsigned)
+  ww×8 bits   : ival2  (second, only if order = 2)
+  1 bit        : sign of GMIN  (0 = positive, 1 = negative)
+  ww×8−1 bits : magnitude of GMIN
+
+[Common — DRT 2 and 3]
+  NG × bitsPerValue bits : group reference values gref[g]  (unsigned)
+  NG × nBitsW bits       : group width offsets;  W[g] = Wref + offset[g]
+  NG × nBitsL bits       : group length offsets; L[g] = Lref + offset[g] × ΔL
+                           (last group uses "true last group length" from Section 5)
+  For each group g (0..NG-1):
+    L[g] × W[g] bits : packed offsets X2[i]  (unsigned)
+```
+
+#### Decoding algorithm
+
+```
+1. Integer value within group g:
+     ifld[i] = X2[i] + gref[g]
+   Missing value detection (before adding gref):
+     W[g] > 0 and X2[i] = 2^W[g] - 1  → primary missing
+     W[g] > 0 and X2[i] = 2^W[g] - 2  → secondary missing (if missVal management = 2)
+     W[g] = 0: all L[g] values equal gref[g] (check gref[g] against all-ones sentinel)
+
+2. Spatial differencing recovery (DRT 3 only, applied on non-missing values):
+     ifld[0] = ival1
+     First order (order = 1):
+       for n = 1..N-1:  ifld[n] = ifld[n] + GMIN + ifld[n-1]
+     Second order (order = 2):
+       ifld[1] = ival2
+       for n = 2..N-1:  ifld[n] = ifld[n] + GMIN + 2×ifld[n-1] − ifld[n-2]
+
+3. Physical value:
+     Y[i] = (R + ifld[i] × 2^E) × 10^(-D)
+```
+
+> **Note:** GMIN can be negative (stored as sign + magnitude). The sentinel check for missing
+> values uses `W[g]` (the per-group bit width), not the global `bitsPerValue`. When `W[g] = 0`
+> all values in the group share the same reference `gref[g]`; check `gref[g]` against
+> `2^bitsPerValue - 1` for missing.
+
+### DRT 40 — JPEG 2000 code stream
+
+Section 5 parameters identical to DRT 0 (R, E, D, bitsPerValue). Section 7 contains a raw J2C
+(JPEG 2000 code stream) blob. Decoding: pass the blob to an OpenJPEG decoder; the output is a
+2D integer array which is then scaled the same way as DRT 0.
+
+Used by: GFS (NOAA operational NWP).
+
+### DRT 42 — CCSDS lossless compression
+
+Section 5 adds three CCSDS-specific parameters after the common 10 bytes: flags (uint8, strip
+bits 1 and 2 for little-endian environments per eccodes `modify_aec_flags`), block size (uint8),
+reference sample interval RSI (uint16 BE). Decompression via libaec compiled to WebAssembly.
+
+Used by: AROME, ARPEGE (Météo-France).
+
+### DRT 254 — IEEE 754 float32
+
+Section 7 contains bitsPerValue/8-byte big-endian float32 values. No scaling applied.
+
+---
+
 ## API publique (`src/index.js`)
 
 ```js
