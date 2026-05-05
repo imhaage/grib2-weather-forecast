@@ -1475,8 +1475,13 @@
         // Update stats + colorscale + valid time
         updateStats(dataMin, dataMax, mean, count, displayUnits);
         showColorScale(renderMin, renderMax, displayUnits);
+        // PDT 4.8 accumulations always have forecastTime=0 (start of interval);
+        // use the file's hour offset as the end-of-interval valid time instead.
+        const validTimeProduct = isAccumulation
+          ? { ...product, forecastTime: hour, timeUnit: 1 }
+          : product;
         document.getElementById("arome-valid-time").textContent =
-          `Forecast time: ${fmtValidTime(header, product)}`;
+          `Forecast time: ${fmtValidTime(header, validTimeProduct)}`;
 
         } catch (err) {
           console.error('aromeShowHour:', err);
