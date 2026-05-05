@@ -27,9 +27,9 @@
  *   [5…]          — section-specific content
  */
 
-import { ccsdsDecodeBuffer, AEC_FLAGS_LE } from './wasm/ccsds-loader.js';
 import { lookupParameter } from './parameters.js';
-import { MISSING_VALUE, u8, u16, u32, sm16, f32be, readBits } from './byte-helpers.js';
+import { MISSING_VALUE, u8, u16, u32 } from './byte-helpers.js';
+import { getTemplate } from './templates/registry.js';
 
 /** Sentinel written into the values array for missing / bitmap-masked grid points. */
 export { MISSING_VALUE } from './byte-helpers.js';
@@ -336,58 +336,22 @@ export function parseSection4(data, dataStart, discipline) {
  *   [12-13]CCSDS Reference Sample Interval (Uint16 BE)
  */
 function parseSection5(data, dataStart) {
-    const result = {
-        templateNumber:      0,
-        numberOfPackedValues: 0,
-        referenceValue:      0,
-        binaryScaleFactor:   0,
-        decimalScaleFactor:  0,
-        bitsPerValue:        8,
-        // CCSDS-specific
-        ccsdsFlags:     AEC_FLAGS_LE,
-        ccsdsBlockSize: 32,
-        ccsdsRsi:       128,
-    };
-
     const d = dataStart;
-    if (d + 6 > data.length) return result;
+    if (d + 6 > data.length) return { templateNumber: 0, numberOfPackedValues: 0 };
 
-    result.numberOfPackedValues = u32(data, d);
-    result.templateNumber       = u16(data, d + 4);
+    const numberOfPackedValues = u32(data, d);
+    const templateNumber       = u16(data, d + 4);
+    const t = d + 6;
 
-    const t = d + 6; // template-specific data
-
-    if (result.templateNumber === 0 || result.templateNumber === 42) {
-        if (t + 10 > data.length) return result;
-        result.referenceValue    = f32be(data, t);
-        result.binaryScaleFactor = sm16(data, t + 4);
-        result.decimalScaleFactor= sm16(data, t + 6);
-        result.bitsPerValue      = u8(data, t + 8);
+    let tmplParams = {};
+    try {
+        const mod = getTemplate(templateNumber);
+        tmplParams = mod.parseParams(data, t);
+    } catch {
+        // Unknown template — parseSection5 does not throw; decodeGRIB2 will
     }
 
-    if (result.templateNumber === 42) {
-        // CCSDS-specific parameters
-        if (t + 14 <= data.length) {
-            // Raw ccsdsFlags from template = LibAEC bitmask, but we must
-            // strip AEC_DATA_3BYTE (0x02) and AEC_DATA_MSB (0x04) for
-            // little-endian JS/WASM environment (mirrors eccodes modify_aec_flags).
-            const rawFlags       = u8(data, t + 10);
-            result.ccsdsFlags    = rawFlags & ~0x06; // strip 3BYTE and MSB
-            result.ccsdsBlockSize= u8(data, t + 11);
-            result.ccsdsRsi      = u16(data, t + 12);
-        }
-    } else if (result.templateNumber === 40) {
-        // Constant field (Template 5.0): only a reference value, no scale factors
-        if (t + 4 <= data.length) {
-            result.referenceValue = f32be(data, t);
-        }
-        result.bitsPerValue = 0;
-    } else if (result.templateNumber === 254) {
-        // IEEE 754 32-bit float grid (no scaling needed)
-        if (t + 5 <= data.length) result.bitsPerValue = u8(data, t + 4);
-    }
-
-    return result;
+    return { templateNumber, numberOfPackedValues, ...tmplParams };
 }
 
 // ─── Section 6: Bitmap ────────────────────────────────────────────────────────
@@ -475,8 +439,6 @@ export async function decodeGRIB2(buffer) {
         ? parseSection6(data, secs[6].dataStart, totalPoints)
         : { hasBitmap: false, bitmap: null };
 
-    // Output arrays
-    const values = new Float64Array(totalPoints).fill(MISSING_VALUE);
     const bitmap = s6.bitmap;
 
     // Section 7 data boundaries
@@ -484,72 +446,9 @@ export async function decodeGRIB2(buffer) {
     const dataStart = secs[7].dataStart;
     const dataLen   = secs[7].secLen - 5;
 
-    // 7. Decode values
-    const tmpl = s5.templateNumber;
-
-    if (s5.bitsPerValue === 0 || tmpl === 40) {
-        // Constant field — respect bitmap: only fill non-missing grid points
-        for (let i = 0; i < totalPoints; i++) {
-            if (!bitmap || bitmap[i] !== 0) values[i] = s5.referenceValue;
-        }
-
-    } else if (tmpl === 0) {
-        // Simple packing: Y(i) = (R + X(i) × 2^E) × 10^(-D)
-        const bpv    = s5.bitsPerValue;
-        const R      = s5.referenceValue;
-        const bScale = Math.pow(2, s5.binaryScaleFactor);
-        const dScale = Math.pow(10, -s5.decimalScaleFactor);
-        const bitPos = [dataStart * 8]; // bit offset from start of data buffer
-
-        let valIdx = 0;
-        for (let i = 0; i < totalPoints; i++) {
-            if (bitmap && bitmap[i] === 0) continue;
-            if (valIdx >= s5.numberOfPackedValues) break;
-            const coded  = readBits(data, bitPos, bpv);
-            values[i]    = (R + coded * bScale) * dScale;
-            valIdx++;
-        }
-
-    } else if (tmpl === 42) {
-        // CCSDS lossless compression
-        const compressed = data.slice(dataStart, dataStart + dataLen);
-        const decoded    = await ccsdsDecodeBuffer(
-            compressed,
-            s5.numberOfPackedValues,
-            s5.bitsPerValue,
-            s5.ccsdsBlockSize,
-            s5.ccsdsRsi,
-            s5.ccsdsFlags
-        );
-
-        const R      = s5.referenceValue;
-        const bScale = Math.pow(2, s5.binaryScaleFactor);
-        const dScale = Math.pow(10, -s5.decimalScaleFactor);
-
-        let valIdx = 0;
-        for (let i = 0; i < totalPoints; i++) {
-            if (bitmap && bitmap[i] === 0) continue;
-            if (valIdx >= s5.numberOfPackedValues) break;
-            values[i] = (R + decoded[valIdx] * bScale) * dScale;
-            valIdx++;
-        }
-
-    } else if (tmpl === 254) {
-        // IEEE 754 float32 big-endian
-        const view = new DataView(data.buffer);
-        for (let i = 0; i < s5.numberOfPackedValues; i++) {
-            const offset = dataStart + i * 4;
-            if (offset + 4 <= data.length) {
-                values[i] = view.getFloat32(offset, false);
-            }
-        }
-
-    } else if (tmpl === 255) {
-        // All values missing — already filled with -1e100
-
-    } else {
-        throw new Error(`Unsupported Data Representation Template: ${tmpl}`);
-    }
+    // 7. Decode values via template registry
+    const tmplMod = getTemplate(s5.templateNumber);
+    const values  = await tmplMod.decode(data, dataStart, dataLen, s5, totalPoints, bitmap);
 
     return {
         header:  { ...s1, discipline: walked.discipline, messageLength: walked.messageLength },
