@@ -47,7 +47,7 @@ export const GENERATING_PROCESS = {
 
 export const DATA_REPR_TEMPLATES = {
     0: 'Simple packing', 2: 'Complex packing', 3: 'Complex packing with spatial differencing',
-    40: 'Constant field', 41: 'PNG code stream', 42: 'CCSDS recommended lossless compression',
+    40: 'JPEG 2000 code stream format', 41: 'PNG code stream', 42: 'CCSDS recommended lossless compression',
     254: 'Grid point data – IEEE 754 floats', 255: 'All values missing',
 };
 
