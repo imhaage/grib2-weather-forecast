@@ -3,17 +3,24 @@
 ## Structure des fichiers
 
 ```
-src/
-├── decoder.js       — parsers de sections + API publique
-├── parameters.js    — table de paramètres WMO (discipline:catégorie:numéro → shortName)
-│                      Disciplines 0 (météo) et 2 (surface terrestre) — AROME SP/HP/IP + ARPEGE
-├── stats.js         — computeStats(values) : min/max/mean/stddev/count
-├── wmo-tables.js    — tables WMO (CENTRES, TIME_UNIT, TYPE_OF_LEVEL…) + helpers de formatage
-├── index.js         — re-exporte tous les symboles publics
-└── wasm/
-    ├── ccsds-loader.js  — chargement lazy du module WASM
-    ├── ccsds.js / .wasm — module Emscripten compilé depuis libaec
-    └── ccsds_wrapper.c  — wrapper C autour de libaec
+packages/grib2-decoder/
+├── package.json         — name: "grib2-decoder", exports → dist/grib2-decoder.js
+├── rolldown.config.js   — builds src/ → dist/ (ESM bundle + WASM assets)
+├── dist/                — committed; no build step required after clone
+│   ├── grib2-decoder.js — bundle
+│   ├── ccsds.js         — Emscripten glue (dynamically imported at runtime)
+│   └── ccsds.wasm       — compiled WASM
+└── src/
+    ├── decoder.js       — parsers de sections + API publique
+    ├── parameters.js    — table de paramètres WMO (discipline:catégorie:numéro → shortName)
+    │                      Disciplines 0 (météo) et 2 (surface terrestre) — AROME SP/HP/IP + ARPEGE
+    ├── stats.js         — computeStats(values) : min/max/mean/stddev/count
+    ├── wmo-tables.js    — tables WMO (CENTRES, TIME_UNIT, TYPE_OF_LEVEL…) + helpers de formatage
+    ├── index.js         — re-exporte tous les symboles publics
+    └── wasm/
+        ├── ccsds-loader.js  — chargement lazy du module WASM
+        ├── ccsds.js / .wasm — module Emscripten compilé depuis libaec
+        └── ccsds_wrapper.c  — wrapper C autour de libaec
 ```
 
 La source C de libaec est dans `libaec/` à la racine (dépôt : github.com/MathisRosenhauer/libaec).
@@ -50,8 +57,8 @@ Les sections 2 et 8 ne sont pas parsées. Plusieurs messages peuvent se suivre d
 import { decodeGRIB2, iterateGRIB2Messages, parseGRIB2Header,
          MISSING_VALUE, computeStats,
          CENTRES, TIME_UNIT, TYPE_OF_LEVEL, GENERATING_PROCESS,
-         fmtLevel, fmtForecast, fmtValidTime, fmtRefTime, fmtScanMode,
-         lookupParameter } from './src/index.js';
+         fmtLevel, fmtValidTime, fmtRefTime, fmtScanMode,
+         lookupParameter } from 'grib2-decoder';
 ```
 
 ### `decodeGRIB2(buffer)` — async
@@ -82,14 +89,14 @@ Exportées et utilisables dans les deux environnements (navigateur + Node.js) :
 `TIME_UNIT`, `GENERATING_PROCESS`, `DATA_REPR_TEMPLATES`, `SCAN_MODE_BITS`.
 
 Helpers de formatage : `fmtRefTime(header)`, `fmtValidTime(header, product)`,
-`fmtLevel(product)`, `fmtForecast(product)`, `fmtScanMode(mode)`.
+`fmtLevel(product)`, `fmtScanMode(mode)`.
 
 ## Tests
 
 ```bash
-npm test   # node --test test/decoder.test.js test/e2e.test.js
+npm test   # node --test decoder.test.js e2e.test.js cross-decode.test.js (via packages/grib2-decoder)
 ```
 
-101 tests couvrant : walkSections, parseSection1/3/5/6, decodeGRIB2 (valeurs physiques,
+98 tests couvrant : walkSections, parseSection1/3/5/6, decodeGRIB2 (valeurs physiques,
 bitmap, formule de décompression CCSDS), parseGRIB2Header, lookupParameter (régressions
-sur les indices WMO : cape/cin, LW radiation, slhf/sshf).
+sur les indices WMO : cape/cin, LW radiation, slhf/sshf), validation croisée JS vs eccodes.

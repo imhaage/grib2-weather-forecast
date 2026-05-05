@@ -13,7 +13,7 @@ c'est la preuve la plus solide possible de l'exactitude du décodage.
 
 ## Ce que les autres tests ne couvrent pas
 
-Les 93 tests unitaires vérifient :
+Les 98 tests unitaires vérifient :
 - le parsing des sections 0–5 (en-têtes, grille, représentation)
 - la formule de décompression CCSDS : min = R, max cohérent avec 16 bits
 - les plages physiques plausibles (température entre 254 K et 320 K)
@@ -27,12 +27,12 @@ Ils ne vérifient **pas** :
 
 ## Architecture du test
 
-### Fixture (`test/fixtures/arome_t_ref.json`)
+### Fixture (`packages/grib2-decoder/test/fixtures/arome_t_ref.json`)
 
-Généré une seule fois via `npm run make-fixture` (requiert `brew install eccodes`),
+Généré une seule fois via `npm run make-fixture -w packages/grib2-decoder` (requiert `brew install eccodes`),
 puis commité. Les tests n'ont pas besoin d'eccodes pour s'exécuter.
 
-Le script `test/generate-fixture.js` :
+Le script `packages/grib2-decoder/test/generate-fixture.js` :
 
 1. Lit les paramètres de grille depuis notre propre décodeur (`parseGRIB2Header`) :
    `ni`, `la1`, `lo1`, `di`, `dj`.
@@ -48,7 +48,7 @@ idx = row * ni + col
 
 5. Écrit 500 objets `{ idx, lat, lon, val }` dans le fixture.
 
-### Test (`test/cross-decode.test.js`)
+### Test (`packages/grib2-decoder/test/cross-decode.test.js`)
 
 Pour chaque point du fixture :
 ```
@@ -103,8 +103,8 @@ deux décodeurs appliquent la même formule et arrivent au même résultat.
 
 ```bash
 brew install eccodes   # une seule fois
-npm run make-fixture
+npm run make-fixture -w packages/grib2-decoder
 ```
 
-Le fichier `test/fixtures/arome_t_ref.json` est commité dans le dépôt.
+Le fichier `packages/grib2-decoder/test/fixtures/arome_t_ref.json` est commité dans le dépôt.
 `npm test` n'a pas besoin d'eccodes.

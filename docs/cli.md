@@ -3,10 +3,11 @@
 ## Scripts npm
 
 ```bash
-npm test                                                       # 93 tests (node --test)
-npm run info  -- <file.grib2> [output.txt]                     # rapport métadonnées
-npm run export -- <file.grib2> --variable <shortName> [out.csv]# export CSV
-npm run serve                                                  # npx serve .
+npm test                                                        # 98 tests (délègue à packages/grib2-decoder)
+npm run build                                                   # build decoder → packages/grib2-decoder/dist/
+npm run info  -- <file.grib2> [output.txt]                      # rapport métadonnées
+npm run export -- <file.grib2> --variable <shortName> [out.csv] # export CSV
+npm run serve                                                   # npx serve . → http://localhost:3000/apps/arome-visualizer/
 ```
 
 ---
@@ -17,14 +18,16 @@ Rapport textuel des métadonnées d'un fichier GRIB2 (sections 0–7).
 N'invoque pas le WASM, ne décode pas les valeurs.
 
 ```bash
-node grib2-info.js test/arome....grib2            # stdout
-node grib2-info.js test/arome....grib2 meta.txt   # fichier
+npm run info -- <file.grib2>             # stdout (depuis la racine)
+npm run info -- <file.grib2> meta.txt   # vers un fichier
+# ou directement :
+node packages/grib2-decoder/grib2-info.js <file.grib2>
 ```
 
 Sections couvertes : indicateur, identification, définition de grille,
 représentation des données, bitmap, taille compressée/non-compressée.
 
-Importe les tables WMO et helpers depuis `src/wmo-tables.js`.
+Importe les tables WMO et helpers depuis `grib2-decoder` (via `src/wmo-tables.js`).
 
 ---
 
@@ -34,13 +37,14 @@ Liste les variables d'un fichier ou exporte une variable en CSV.
 
 ```bash
 # Lister les variables
-node grib2-export.js test/arome....grib2
+npm run export -- <file.grib2>
+# ou : node packages/grib2-decoder/grib2-export.js <file.grib2>
 
 # Stats + preview (sans écriture)
-node grib2-export.js test/arome....grib2 --variable t
+npm run export -- <file.grib2> --variable t
 
 # Export CSV (lat,lon,value)
-node grib2-export.js test/arome....grib2 --variable t output.csv
+npm run export -- <file.grib2> --variable t output.csv
 ```
 
 Format CSV : `lat,lon,value` — une ligne par point valide (points manquants omis).
