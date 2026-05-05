@@ -1,66 +1,14 @@
-let _modulePromise = null;
-/**
-* Load and initialise the WASM module. Safe to call multiple times —
-* returns the same cached module.
-*
-* @param {string|URL} [wasmUrl] - Optional explicit URL to ccsds.wasm.
-*   If omitted, the module tries to locate ccsds.wasm relative to this file.
-* @returns {Promise<object>} Emscripten module instance.
-*/
-async function loadCCSDSModule(wasmUrl) {
-	if (!_modulePromise) {
-		const { default: createCCSDSModule } = await import("./ccsds.js");
-		const opts = {};
-		if (wasmUrl) opts.locateFile = (filename) => filename.endsWith(".wasm") ? wasmUrl.toString() : filename;
-		_modulePromise = createCCSDSModule(opts);
-	}
-	return _modulePromise;
-}
-/**
-* Decode a CCSDS-compressed data block into an array of unsigned integers.
-*
-* @param {Uint8Array}  compressed      - Raw compressed bytes (Section 7 data)
-* @param {number}      nValues         - Number of values to decode
-* @param {number}      bitsPerSample   - Bits per decoded sample (e.g. 16)
-* @param {number}      blockSize       - AEC block size (e.g. 32)
-* @param {number}      rsi             - Reference Sample Interval (e.g. 128)
-* @param {number}      [flags]         - LibAEC flags (default: AEC_FLAGS_LE = 8)
-* @returns {Promise<Uint8Array|Uint16Array|Uint32Array>} decoded integer samples
-*/
-async function ccsdsDecodeBuffer(compressed, nValues, bitsPerSample, blockSize, rsi, flags = 8) {
-	const mod = await loadCCSDSModule();
-	let bytesPerSample;
-	if (bitsPerSample <= 8) bytesPerSample = 1;
-	else if (bitsPerSample <= 16) bytesPerSample = 2;
-	else bytesPerSample = 4;
-	const inLen = compressed.length;
-	const outLen = nValues * bytesPerSample;
-	const inPtr = mod._ccsds_malloc(inLen);
-	const outPtr = mod._ccsds_malloc(outLen);
-	if (!inPtr || !outPtr) {
-		if (inPtr) mod._ccsds_free(inPtr);
-		if (outPtr) mod._ccsds_free(outPtr);
-		throw new Error("CCSDS: WASM malloc failed");
-	}
-	try {
-		mod.HEAPU8.set(compressed, inPtr);
-		const rc = mod._ccsds_decode_buffer(inPtr, inLen, outPtr, outLen, bitsPerSample, blockSize, rsi, flags);
-		if (rc !== 0) throw new Error(`CCSDS: aec_buffer_decode failed with code ${rc}`);
-		let result;
-		if (bytesPerSample === 1) result = new Uint8Array(mod.HEAPU8.buffer, outPtr, nValues).slice();
-		else if (bytesPerSample === 2) {
-			const raw = mod.HEAPU8.slice(outPtr, outPtr + outLen);
-			result = new Uint16Array(raw.buffer);
-		} else {
-			const raw = mod.HEAPU8.slice(outPtr, outPtr + outLen);
-			result = new Uint32Array(raw.buffer);
-		}
-		return result;
-	} finally {
-		mod._ccsds_free(inPtr);
-		mod._ccsds_free(outPtr);
-	}
-}
+//#region \0rolldown/runtime.js
+var __defProp = Object.defineProperty;
+var __exportAll = (all, no_symbols) => {
+	let target = {};
+	for (var name in all) __defProp(target, name, {
+		get: all[name],
+		enumerable: true
+	});
+	if (!no_symbols) __defProp(target, Symbol.toStringTag, { value: "Module" });
+	return target;
+};
 //#endregion
 //#region src/parameters.js
 /**
@@ -666,6 +614,389 @@ function lookupParameter(discipline, parameterCategory, parameterNumber) {
 	};
 }
 //#endregion
+//#region src/byte-helpers.js
+/** Sentinel value for missing / bitmap-masked grid points. */
+const MISSING_VALUE = -1e100;
+const u8 = (d, i) => d[i];
+const u16 = (d, i) => d[i] << 8 | d[i + 1];
+const u32 = (d, i) => (d[i] << 24 | d[i + 1] << 16 | d[i + 2] << 8 | d[i + 3]) >>> 0;
+const sm16 = (d, i) => {
+	const r = u16(d, i);
+	return r & 32768 ? -(r & 32767) : r;
+};
+const f32be = (d, i) => new DataView(d.buffer, d.byteOffset + i, 4).getFloat32(0, false);
+/**
+* Read nBits bits from data starting at bitPos[0] (MSB first).
+* bitPos is a single-element array used as a mutable reference.
+*/
+function readBits(data, bitPos, nBits) {
+	let value = 0;
+	for (let i = 0; i < nBits; i++) {
+		const byteIdx = bitPos[0] >>> 3;
+		const bitIdx = 7 - (bitPos[0] & 7);
+		value = value << 1 | data[byteIdx] >> bitIdx & 1;
+		bitPos[0]++;
+	}
+	return value >>> 0;
+}
+//#endregion
+//#region src/templates/drt-constant.js
+var drt_constant_exports = /* @__PURE__ */ __exportAll({
+	decode: () => decode$5,
+	parseParams: () => parseParams$5
+});
+function parseParams$5(_data, _t) {
+	return {};
+}
+async function decode$5(_data, _dataStart, _dataLen, _s5, totalPoints, _bitmap) {
+	return new Float64Array(totalPoints).fill(MISSING_VALUE);
+}
+//#endregion
+//#region src/templates/drt-simple.js
+var drt_simple_exports = /* @__PURE__ */ __exportAll({
+	decode: () => decode$4,
+	parseParams: () => parseParams$4
+});
+function parseParams$4(data, t) {
+	if (t + 10 > data.length) return {};
+	return {
+		referenceValue: f32be(data, t),
+		binaryScaleFactor: sm16(data, t + 4),
+		decimalScaleFactor: sm16(data, t + 6),
+		bitsPerValue: u8(data, t + 8)
+	};
+}
+async function decode$4(data, dataStart, _dataLen, s5, totalPoints, bitmap) {
+	const values = new Float64Array(totalPoints).fill(MISSING_VALUE);
+	if (s5.bitsPerValue === 0) {
+		for (let i = 0; i < totalPoints; i++) if (!bitmap || bitmap[i] !== 0) values[i] = s5.referenceValue;
+		return values;
+	}
+	const R = s5.referenceValue;
+	const bScale = Math.pow(2, s5.binaryScaleFactor);
+	const dScale = Math.pow(10, -s5.decimalScaleFactor);
+	const bitPos = [dataStart * 8];
+	let valIdx = 0;
+	for (let i = 0; i < totalPoints; i++) {
+		if (bitmap && bitmap[i] === 0) continue;
+		if (valIdx >= s5.numberOfPackedValues) break;
+		values[i] = (R + readBits(data, bitPos, s5.bitsPerValue) * bScale) * dScale;
+		valIdx++;
+	}
+	return values;
+}
+//#endregion
+//#region src/templates/drt-complex.js
+var drt_complex_exports = /* @__PURE__ */ __exportAll({
+	decode: () => decode$3,
+	parseParams: () => parseParams$3
+});
+function parseParams$3(data, t) {
+	if (t + 36 > data.length) return {};
+	const params = {
+		referenceValue: f32be(data, t),
+		binaryScaleFactor: sm16(data, t + 4),
+		decimalScaleFactor: sm16(data, t + 6),
+		bitsPerValue: u8(data, t + 8),
+		missingValueManagement: u8(data, t + 11),
+		numberOfGroups: u32(data, t + 20),
+		groupWidthRef: u8(data, t + 24),
+		nBitsGroupWidth: u8(data, t + 25),
+		groupLengthRef: u32(data, t + 26),
+		lengthIncrement: u8(data, t + 30),
+		lastGroupLength: u32(data, t + 31),
+		nBitsGroupLength: u8(data, t + 35),
+		orderOfSpatialDiff: 0,
+		nExtraDescriptorOctets: 0
+	};
+	if (t + 38 <= data.length) {
+		params.orderOfSpatialDiff = u8(data, t + 36);
+		params.nExtraDescriptorOctets = u8(data, t + 37);
+	}
+	return params;
+}
+async function decode$3(data, dataStart, _dataLen, s5, totalPoints, bitmap) {
+	const values = new Float64Array(totalPoints).fill(MISSING_VALUE);
+	const { referenceValue: R, binaryScaleFactor: E, decimalScaleFactor: D, bitsPerValue: bpv, missingValueManagement: missVal, numberOfGroups: NG, groupWidthRef: Wref, nBitsGroupWidth: nBitsW, groupLengthRef: Lref, lengthIncrement: deltaL, lastGroupLength, nBitsGroupLength: nBitsL, templateNumber, orderOfSpatialDiff: order, nExtraDescriptorOctets: ww } = s5;
+	const bScale = Math.pow(2, E);
+	const dScale = Math.pow(10, -D);
+	const bitPos = [dataStart * 8];
+	let ival1 = 0, ival2 = 0, gmin = 0;
+	if (templateNumber === 3 && ww > 0) {
+		const nBitsDesc = ww * 8;
+		ival1 = readBits(data, bitPos, nBitsDesc);
+		if (order === 2) ival2 = readBits(data, bitPos, nBitsDesc);
+		const sign = readBits(data, bitPos, 1);
+		const mag = readBits(data, bitPos, nBitsDesc - 1);
+		gmin = sign ? -mag : mag;
+	}
+	const gref = new Int32Array(NG);
+	for (let g = 0; g < NG; g++) gref[g] = readBits(data, bitPos, bpv);
+	const gwidth = new Uint8Array(NG);
+	for (let g = 0; g < NG; g++) gwidth[g] = Wref + (nBitsW > 0 ? readBits(data, bitPos, nBitsW) : 0);
+	const glen = new Int32Array(NG);
+	for (let g = 0; g < NG; g++) glen[g] = Lref + (nBitsL > 0 ? readBits(data, bitPos, nBitsL) : 0) * deltaL;
+	if (NG > 0) glen[NG - 1] = lastGroupLength;
+	const N = s5.numberOfPackedValues;
+	const ifld = new Int32Array(N);
+	const ifldmiss = new Uint8Array(N);
+	let n = 0;
+	for (let g = 0; g < NG; g++) {
+		const W = gwidth[g];
+		const L = glen[g];
+		const msng1 = W > 0 ? (1 << W) - 1 : -1;
+		const msng2 = W > 1 ? (1 << W) - 2 : -1;
+		for (let k = 0; k < L && n < N; k++, n++) {
+			const raw = W > 0 ? readBits(data, bitPos, W) : 0;
+			if (missVal >= 1 && raw === msng1) ifldmiss[n] = 1;
+			else if (missVal === 2 && raw === msng2) ifldmiss[n] = 2;
+			else ifld[n] = raw + gref[g];
+		}
+	}
+	if (templateNumber === 3 && ww > 0) {
+		const nonMiss = [];
+		for (let i = 0; i < N; i++) if (ifldmiss[i] === 0) nonMiss.push(i);
+		if (nonMiss.length > 0) ifld[nonMiss[0]] = ival1;
+		if (order === 2 && nonMiss.length > 1) ifld[nonMiss[1]] = ival2;
+		const start = order === 2 ? 2 : 1;
+		for (let k = start; k < nonMiss.length; k++) {
+			const i = nonMiss[k];
+			if (order === 1) ifld[i] = ifld[i] + gmin + ifld[nonMiss[k - 1]];
+			else ifld[i] = ifld[i] + gmin + 2 * ifld[nonMiss[k - 1]] - ifld[nonMiss[k - 2]];
+		}
+	}
+	let valIdx = 0;
+	for (let i = 0; i < totalPoints; i++) {
+		if (bitmap && bitmap[i] === 0) continue;
+		if (valIdx >= N) break;
+		if (ifldmiss[valIdx] === 0) values[i] = (R + ifld[valIdx] * bScale) * dScale;
+		valIdx++;
+	}
+	return values;
+}
+//#endregion
+//#region src/wasm/jpeg2000-loader.js
+/**
+* Lazy loader for the OpenJPEG WASM module (@cornerstonejs/codec-openjpeg).
+* Provides jp2DecodeBuffer() — decodes a raw J2C codestream to integer samples.
+*/
+let _modulePromise$1 = null;
+async function loadJP2Module(wasmUrl) {
+	if (!_modulePromise$1) {
+		const { default: createJP2Module } = await import("./openjpegwasm_decode.js");
+		const opts = {};
+		if (wasmUrl) opts.locateFile = (filename) => filename.endsWith(".wasm") ? wasmUrl.toString() : filename;
+		_modulePromise$1 = createJP2Module(opts);
+	}
+	return _modulePromise$1;
+}
+/**
+* Decode a raw JPEG 2000 J2C codestream into an array of integer samples.
+*
+* @param {Uint8Array} compressed - Raw J2C codestream bytes (Section 7 data)
+* @returns {Promise<Int32Array>} decoded integer sample values
+*/
+async function jp2DecodeBuffer(compressed) {
+	const decoder = new (await (loadJP2Module())).J2KDecoder();
+	try {
+		decoder.getEncodedBuffer(compressed.length).set(compressed);
+		decoder.decode();
+		const decodedBuffer = decoder.getDecodedBuffer();
+		const { width, height, bitsPerSample } = decoder.getFrameInfo();
+		const totalSamples = width * height;
+		const result = new Int32Array(totalSamples);
+		if (bitsPerSample <= 8) {
+			const view = new Uint8Array(decodedBuffer);
+			for (let i = 0; i < totalSamples; i++) result[i] = view[i];
+		} else if (bitsPerSample <= 16) {
+			const raw = new Uint8Array(decodedBuffer);
+			const view = new Uint16Array(raw.buffer, raw.byteOffset, totalSamples);
+			for (let i = 0; i < totalSamples; i++) result[i] = view[i];
+		} else {
+			const raw = new Uint8Array(decodedBuffer);
+			const view = new Int32Array(raw.buffer, raw.byteOffset, totalSamples);
+			for (let i = 0; i < totalSamples; i++) result[i] = view[i];
+		}
+		return result;
+	} finally {
+		decoder.delete();
+	}
+}
+//#endregion
+//#region src/templates/drt-jpeg2000.js
+var drt_jpeg2000_exports = /* @__PURE__ */ __exportAll({
+	decode: () => decode$2,
+	parseParams: () => parseParams$2
+});
+function parseParams$2(data, t) {
+	if (t + 10 > data.length) return {};
+	return {
+		referenceValue: f32be(data, t),
+		binaryScaleFactor: sm16(data, t + 4),
+		decimalScaleFactor: sm16(data, t + 6),
+		bitsPerValue: u8(data, t + 8)
+	};
+}
+async function decode$2(data, dataStart, dataLen, s5, totalPoints, bitmap) {
+	const values = new Float64Array(totalPoints).fill(MISSING_VALUE);
+	if (s5.bitsPerValue === 0) {
+		for (let i = 0; i < totalPoints; i++) if (!bitmap || bitmap[i] !== 0) values[i] = s5.referenceValue;
+		return values;
+	}
+	const decoded = await jp2DecodeBuffer(data.slice(dataStart, dataStart + dataLen));
+	const R = s5.referenceValue;
+	const bScale = Math.pow(2, s5.binaryScaleFactor);
+	const dScale = Math.pow(10, -s5.decimalScaleFactor);
+	let valIdx = 0;
+	for (let i = 0; i < totalPoints; i++) {
+		if (bitmap && bitmap[i] === 0) continue;
+		if (valIdx >= decoded.length) break;
+		values[i] = (R + decoded[valIdx] * bScale) * dScale;
+		valIdx++;
+	}
+	return values;
+}
+let _modulePromise = null;
+/**
+* Load and initialise the WASM module. Safe to call multiple times —
+* returns the same cached module.
+*
+* @param {string|URL} [wasmUrl] - Optional explicit URL to ccsds.wasm.
+*   If omitted, the module tries to locate ccsds.wasm relative to this file.
+* @returns {Promise<object>} Emscripten module instance.
+*/
+async function loadCCSDSModule(wasmUrl) {
+	if (!_modulePromise) {
+		const { default: createCCSDSModule } = await import("./ccsds.js");
+		const opts = {};
+		if (wasmUrl) opts.locateFile = (filename) => filename.endsWith(".wasm") ? wasmUrl.toString() : filename;
+		_modulePromise = createCCSDSModule(opts);
+	}
+	return _modulePromise;
+}
+/**
+* Decode a CCSDS-compressed data block into an array of unsigned integers.
+*
+* @param {Uint8Array}  compressed      - Raw compressed bytes (Section 7 data)
+* @param {number}      nValues         - Number of values to decode
+* @param {number}      bitsPerSample   - Bits per decoded sample (e.g. 16)
+* @param {number}      blockSize       - AEC block size (e.g. 32)
+* @param {number}      rsi             - Reference Sample Interval (e.g. 128)
+* @param {number}      [flags]         - LibAEC flags (default: AEC_FLAGS_LE = 8)
+* @returns {Promise<Uint8Array|Uint16Array|Uint32Array>} decoded integer samples
+*/
+async function ccsdsDecodeBuffer(compressed, nValues, bitsPerSample, blockSize, rsi, flags = 8) {
+	const mod = await loadCCSDSModule();
+	let bytesPerSample;
+	if (bitsPerSample <= 8) bytesPerSample = 1;
+	else if (bitsPerSample <= 16) bytesPerSample = 2;
+	else bytesPerSample = 4;
+	const inLen = compressed.length;
+	const outLen = nValues * bytesPerSample;
+	const inPtr = mod._ccsds_malloc(inLen);
+	const outPtr = mod._ccsds_malloc(outLen);
+	if (!inPtr || !outPtr) {
+		if (inPtr) mod._ccsds_free(inPtr);
+		if (outPtr) mod._ccsds_free(outPtr);
+		throw new Error("CCSDS: WASM malloc failed");
+	}
+	try {
+		mod.HEAPU8.set(compressed, inPtr);
+		const rc = mod._ccsds_decode_buffer(inPtr, inLen, outPtr, outLen, bitsPerSample, blockSize, rsi, flags);
+		if (rc !== 0) throw new Error(`CCSDS: aec_buffer_decode failed with code ${rc}`);
+		let result;
+		if (bytesPerSample === 1) result = new Uint8Array(mod.HEAPU8.buffer, outPtr, nValues).slice();
+		else if (bytesPerSample === 2) {
+			const raw = mod.HEAPU8.slice(outPtr, outPtr + outLen);
+			result = new Uint16Array(raw.buffer);
+		} else {
+			const raw = mod.HEAPU8.slice(outPtr, outPtr + outLen);
+			result = new Uint32Array(raw.buffer);
+		}
+		return result;
+	} finally {
+		mod._ccsds_free(inPtr);
+		mod._ccsds_free(outPtr);
+	}
+}
+//#endregion
+//#region src/templates/drt-ccsds.js
+var drt_ccsds_exports = /* @__PURE__ */ __exportAll({
+	decode: () => decode$1,
+	parseParams: () => parseParams$1
+});
+function parseParams$1(data, t) {
+	if (t + 10 > data.length) return {};
+	const result = {
+		referenceValue: f32be(data, t),
+		binaryScaleFactor: sm16(data, t + 4),
+		decimalScaleFactor: sm16(data, t + 6),
+		bitsPerValue: u8(data, t + 8),
+		ccsdsFlags: 8,
+		ccsdsBlockSize: 32,
+		ccsdsRsi: 128
+	};
+	if (t + 14 <= data.length) {
+		result.ccsdsFlags = u8(data, t + 10) & -7;
+		result.ccsdsBlockSize = u8(data, t + 11);
+		result.ccsdsRsi = u16(data, t + 12);
+	}
+	return result;
+}
+async function decode$1(data, dataStart, dataLen, s5, totalPoints, bitmap) {
+	const values = new Float64Array(totalPoints).fill(MISSING_VALUE);
+	if (s5.bitsPerValue === 0) {
+		for (let i = 0; i < totalPoints; i++) if (!bitmap || bitmap[i] !== 0) values[i] = s5.referenceValue;
+		return values;
+	}
+	const decoded = await ccsdsDecodeBuffer(data.slice(dataStart, dataStart + dataLen), s5.numberOfPackedValues, s5.bitsPerValue, s5.ccsdsBlockSize, s5.ccsdsRsi, s5.ccsdsFlags);
+	const R = s5.referenceValue;
+	const bScale = Math.pow(2, s5.binaryScaleFactor);
+	const dScale = Math.pow(10, -s5.decimalScaleFactor);
+	let valIdx = 0;
+	for (let i = 0; i < totalPoints; i++) {
+		if (bitmap && bitmap[i] === 0) continue;
+		if (valIdx >= s5.numberOfPackedValues) break;
+		values[i] = (R + decoded[valIdx] * bScale) * dScale;
+		valIdx++;
+	}
+	return values;
+}
+//#endregion
+//#region src/templates/drt-ieee754.js
+var drt_ieee754_exports = /* @__PURE__ */ __exportAll({
+	decode: () => decode,
+	parseParams: () => parseParams
+});
+function parseParams(_data, _t) {
+	return {};
+}
+async function decode(data, dataStart, _dataLen, s5, totalPoints, _bitmap) {
+	const values = new Float64Array(totalPoints).fill(MISSING_VALUE);
+	const view = new DataView(data.buffer, data.byteOffset);
+	for (let i = 0; i < s5.numberOfPackedValues; i++) {
+		const offset = dataStart + i * 4;
+		if (offset + 4 <= data.length) values[i] = view.getFloat32(offset, false);
+	}
+	return values;
+}
+//#endregion
+//#region src/templates/registry.js
+const TEMPLATES = {
+	0: drt_simple_exports,
+	2: drt_complex_exports,
+	3: drt_complex_exports,
+	40: drt_jpeg2000_exports,
+	42: drt_ccsds_exports,
+	254: drt_ieee754_exports,
+	255: drt_constant_exports
+};
+function getTemplate(n) {
+	const t = TEMPLATES[n];
+	if (!t) throw new Error(`Unsupported Data Representation Template: ${n}`);
+	return t;
+}
+//#endregion
 //#region src/decoder.js
 /**
 * GRIB2 Decoder — browser-compatible pure JavaScript implementation.
@@ -695,20 +1026,10 @@ function lookupParameter(discipline, parameterCategory, parameterNumber) {
 *   [4]   1 byte  — section number (1–7)
 *   [5…]          — section-specific content
 */
-/** Sentinel written into the values array for missing / bitmap-masked grid points. */
-const MISSING_VALUE = -1e100;
-const u8 = (d, i) => d[i];
-const u16 = (d, i) => d[i] << 8 | d[i + 1];
-const u32 = (d, i) => (d[i] << 24 | d[i + 1] << 16 | d[i + 2] << 8 | d[i + 3]) >>> 0;
 const i32 = (d, i) => {
 	const v = u32(d, i);
 	return v >= 2147483648 ? v - 4294967296 : v;
 };
-const sm16 = (d, i) => {
-	const raw = u16(d, i);
-	return raw & 32768 ? -(raw & 32767) : raw;
-};
-const f32be = (d, i) => new DataView(d.buffer, d.byteOffset + i, 4).getFloat32(0, false);
 /**
 * Parse Section 0 and walk Sections 1–7, returning their byte boundaries.
 *
@@ -961,42 +1282,23 @@ function parseSection4(data, dataStart, discipline) {
 *   [12-13]CCSDS Reference Sample Interval (Uint16 BE)
 */
 function parseSection5(data, dataStart) {
-	const result = {
-		templateNumber: 0,
-		numberOfPackedValues: 0,
-		referenceValue: 0,
-		binaryScaleFactor: 0,
-		decimalScaleFactor: 0,
-		bitsPerValue: 8,
-		ccsdsFlags: 8,
-		ccsdsBlockSize: 32,
-		ccsdsRsi: 128
-	};
 	const d = dataStart;
-	if (d + 6 > data.length) return result;
-	result.numberOfPackedValues = u32(data, d);
-	result.templateNumber = u16(data, d + 4);
+	if (d + 6 > data.length) return {
+		templateNumber: 0,
+		numberOfPackedValues: 0
+	};
+	const numberOfPackedValues = u32(data, d);
+	const templateNumber = u16(data, d + 4);
 	const t = d + 6;
-	if (result.templateNumber === 0 || result.templateNumber === 42) {
-		if (t + 10 > data.length) return result;
-		result.referenceValue = f32be(data, t);
-		result.binaryScaleFactor = sm16(data, t + 4);
-		result.decimalScaleFactor = sm16(data, t + 6);
-		result.bitsPerValue = u8(data, t + 8);
-	}
-	if (result.templateNumber === 42) {
-		if (t + 14 <= data.length) {
-			result.ccsdsFlags = u8(data, t + 10) & -7;
-			result.ccsdsBlockSize = u8(data, t + 11);
-			result.ccsdsRsi = u16(data, t + 12);
-		}
-	} else if (result.templateNumber === 40) {
-		if (t + 4 <= data.length) result.referenceValue = f32be(data, t);
-		result.bitsPerValue = 0;
-	} else if (result.templateNumber === 254) {
-		if (t + 5 <= data.length) result.bitsPerValue = u8(data, t + 4);
-	}
-	return result;
+	let tmplParams = {};
+	try {
+		tmplParams = getTemplate(templateNumber).parseParams(data, t);
+	} catch {}
+	return {
+		templateNumber,
+		numberOfPackedValues,
+		...tmplParams
+	};
 }
 /**
 * Parse Section 6 (Bitmap Section).
@@ -1026,16 +1328,6 @@ function parseSection6(data, dataStart, totalPoints) {
 		hasBitmap: true,
 		bitmap
 	};
-}
-function readBits(data, bitPos, nBits) {
-	let value = 0;
-	for (let i = 0; i < nBits; i++) {
-		const byteIdx = bitPos[0] >>> 3;
-		const bitIdx = 7 - (bitPos[0] & 7);
-		value = value << 1 | data[byteIdx] >> bitIdx & 1;
-		bitPos[0]++;
-	}
-	return value >>> 0;
 }
 const MISSING_PRODUCT = {
 	shortName: "unknown",
@@ -1079,50 +1371,14 @@ async function decodeGRIB2(buffer) {
 	if (!secs[5]) throw new Error("Section 5 (Data Representation) not found");
 	const s5 = parseSection5(data, secs[5].dataStart);
 	const totalPoints = s3.totalPoints || s5.numberOfPackedValues;
-	const s6 = secs[6] ? parseSection6(data, secs[6].dataStart, totalPoints) : {
+	const bitmap = (secs[6] ? parseSection6(data, secs[6].dataStart, totalPoints) : {
 		hasBitmap: false,
 		bitmap: null
-	};
-	const values = new Float64Array(totalPoints).fill(MISSING_VALUE);
-	const bitmap = s6.bitmap;
+	}).bitmap;
 	if (!secs[7]) throw new Error("Section 7 (Data) not found");
 	const dataStart = secs[7].dataStart;
 	const dataLen = secs[7].secLen - 5;
-	const tmpl = s5.templateNumber;
-	if (s5.bitsPerValue === 0 || tmpl === 40) {
-		for (let i = 0; i < totalPoints; i++) if (!bitmap || bitmap[i] !== 0) values[i] = s5.referenceValue;
-	} else if (tmpl === 0) {
-		const bpv = s5.bitsPerValue;
-		const R = s5.referenceValue;
-		const bScale = Math.pow(2, s5.binaryScaleFactor);
-		const dScale = Math.pow(10, -s5.decimalScaleFactor);
-		const bitPos = [dataStart * 8];
-		let valIdx = 0;
-		for (let i = 0; i < totalPoints; i++) {
-			if (bitmap && bitmap[i] === 0) continue;
-			if (valIdx >= s5.numberOfPackedValues) break;
-			values[i] = (R + readBits(data, bitPos, bpv) * bScale) * dScale;
-			valIdx++;
-		}
-	} else if (tmpl === 42) {
-		const decoded = await ccsdsDecodeBuffer(data.slice(dataStart, dataStart + dataLen), s5.numberOfPackedValues, s5.bitsPerValue, s5.ccsdsBlockSize, s5.ccsdsRsi, s5.ccsdsFlags);
-		const R = s5.referenceValue;
-		const bScale = Math.pow(2, s5.binaryScaleFactor);
-		const dScale = Math.pow(10, -s5.decimalScaleFactor);
-		let valIdx = 0;
-		for (let i = 0; i < totalPoints; i++) {
-			if (bitmap && bitmap[i] === 0) continue;
-			if (valIdx >= s5.numberOfPackedValues) break;
-			values[i] = (R + decoded[valIdx] * bScale) * dScale;
-			valIdx++;
-		}
-	} else if (tmpl === 254) {
-		const view = new DataView(data.buffer);
-		for (let i = 0; i < s5.numberOfPackedValues; i++) {
-			const offset = dataStart + i * 4;
-			if (offset + 4 <= data.length) values[i] = view.getFloat32(offset, false);
-		}
-	} else if (tmpl === 255) {} else throw new Error(`Unsupported Data Representation Template: ${tmpl}`);
+	const values = await getTemplate(s5.templateNumber).decode(data, dataStart, dataLen, s5, totalPoints, bitmap);
 	return {
 		header: {
 			...s1,
@@ -1326,7 +1582,7 @@ const DATA_REPR_TEMPLATES = {
 	0: "Simple packing",
 	2: "Complex packing",
 	3: "Complex packing with spatial differencing",
-	40: "Constant field",
+	40: "JPEG 2000 code stream format",
 	41: "PNG code stream",
 	42: "CCSDS recommended lossless compression",
 	254: "Grid point data – IEEE 754 floats",

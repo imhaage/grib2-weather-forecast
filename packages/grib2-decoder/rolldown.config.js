@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 
 export default defineConfig({
   input: 'src/index.js',
-  external: (id) => id.endsWith('ccsds.js') || id.endsWith('openjpegwasm_decode.js'),
+  external: (id) => id.endsWith('/ccsds.js') || id.endsWith('/openjpegwasm_decode.js'),
   output: {
     file: 'dist/grib2-decoder.js',
     format: 'es',
@@ -13,15 +13,14 @@ export default defineConfig({
     {
       name: 'copy-wasm-assets',
       renderChunk(code, chunk) {
-        // Rolldown rewrites the relative path from src/wasm/ to dist/, turning
-        // './ccsds.js' into './wasm/ccsds.js'. Fix it back so it resolves to
-        // the asset emitted next to the bundle.
         if (chunk.fileName !== 'grib2-decoder.js') return null;
-        let patched = code.replaceAll('./wasm/ccsds.js', './ccsds.js');
-        if (patched === code)
-          throw new Error('renderChunk: ./wasm/ccsds.js not found in output — check Rolldown path rewriting');
-        patched = patched.replaceAll('./wasm/jpeg2000/openjpegwasm_decode.js', './openjpegwasm_decode.js');
-        return patched;
+        // Rolldown may rewrite dynamic import paths; normalize both loaders
+        // so they resolve to assets emitted next to the bundle in dist/.
+        let patched = code
+          .replaceAll('./wasm/ccsds.js', './ccsds.js')
+          .replaceAll('./wasm/jpeg2000/openjpegwasm_decode.js', './openjpegwasm_decode.js')
+          .replaceAll('./jpeg2000/openjpegwasm_decode.js', './openjpegwasm_decode.js');
+        return patched === code ? null : patched;
       },
       generateBundle() {
         const assets = [
