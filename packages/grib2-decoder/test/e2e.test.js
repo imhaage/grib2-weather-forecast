@@ -227,3 +227,28 @@ describe('DRT 3 — ICON-D2 real file', { skip: !existsSync(ICON_FILE) }, () => 
             `Temperature out of range: min=${min.toFixed(2)}, max=${max.toFixed(2)}`);
     });
 });
+
+// ─── GFS (DRT 3) End-to-End ───────────────────────────────────────────────────
+
+const GFS_FILE = new URL('../test/gfs_sample.grib2', import.meta.url);
+
+describe('DRT 3 — GFS real file', { skip: !existsSync(GFS_FILE) }, () => {
+    let result;
+
+    before(async () => {
+        const buf  = readFileSync(GFS_FILE);
+        const data = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+        for (const msg of iterateGRIB2Messages(data)) {
+            result = await decodeGRIB2(msg.buffer);
+            break;
+        }
+    });
+
+    it('decodes without error', () => assert.ok(result));
+    it('values array has expected length', () =>
+        assert.equal(result.values.length, result.grid.totalPoints));
+    it('has at least some valid values', () => {
+        const valid = result.values.filter(v => v > -1e99);
+        assert.ok(valid.length > 0, 'No valid values decoded');
+    });
+});
