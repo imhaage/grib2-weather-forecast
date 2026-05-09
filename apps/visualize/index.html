@@ -456,6 +456,12 @@
         font-size: 0.78rem;
         color: var(--color-text-muted);
       }
+      .section-desc {
+        font-size: 0.9rem;
+        color: var(--color-text-2);
+        text-align: center;
+        margin-bottom: var(--space-md);
+      }
 
       #arome-dl-panel {
         padding: var(--space-lg) 0;
@@ -602,6 +608,10 @@
     <div id="view-home">
       <main>
         <div id="arome-shortcut">
+          <p class="section-desc">
+            Browse a complete forecast run — animate temperature, wind, rain and
+            more across all forecast hours on an interactive map.
+          </p>
           <button id="btn-sp1" class="btn-primary">
             Météo France AROME SP1 0.01° (last available run)
           </button>
@@ -611,6 +621,11 @@
         </div>
 
         <hr />
+
+        <p class="section-desc">
+          Drop any GRIB2 file to inspect its variables, grid metadata, and
+          decoded field values — one time step at a time.
+        </p>
 
         <div
           id="drop-zone"
