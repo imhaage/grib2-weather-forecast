@@ -1622,7 +1622,7 @@ function _fmtUTC(d) {
 	return `${d.toLocaleString("en-US", {
 		month: "short",
 		timeZone: "UTC"
-	})} ${d.getUTCDate()}, ${d.getUTCFullYear()} ${_pad(d.getUTCHours())}:${_pad(d.getUTCMinutes())} UTC`;
+	})} ${_pad(d.getUTCDate())}, ${d.getUTCFullYear()} ${_pad(d.getUTCHours())}:${_pad(d.getUTCMinutes())} UTC`;
 }
 /**
 * Format the reference datetime from a Section 1 header object.

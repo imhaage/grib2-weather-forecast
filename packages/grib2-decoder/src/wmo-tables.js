@@ -65,7 +65,7 @@ const _pad = n => String(n).padStart(2, '0');
 // Format a UTC Date as "Mon DD, YYYY HH:MM UTC" (e.g. "May 4, 2026 07:00 UTC").
 function _fmtUTC(d) {
     const mon  = d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
-    const day  = d.getUTCDate();
+    const day  = _pad(d.getUTCDate());
     const year = d.getUTCFullYear();
     const hh   = _pad(d.getUTCHours());
     const mm   = _pad(d.getUTCMinutes());

@@ -3,27 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Weather forecast (source: Météo France AROME)</title>
+    <title>Weather forecast visualizer</title>
     <link
       rel="stylesheet"
       href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css"
     />
     <style>
       :root {
-        --color-text:          #1a1d23;
-        --color-text-2:        #555e6d;
-        --color-text-muted:    #8b919e;
-        --color-surface:       #fff;
-        --color-bg:            #f5f6f8;
+        --color-text: #1a1d23;
+        --color-text-2: #555e6d;
+        --color-text-muted: #8b919e;
+        --color-surface: #fff;
+        --color-bg: #f5f6f8;
         --color-surface-hover: #f0f1f4;
-        --color-border:        #e2e6ec;
-        --color-border-2:      #c5cad4;
-        --color-text-hover:    #353b4a;
-        --color-accent:        #3b82f6;
-        --color-accent-bg:     #eff6ff;
-        --color-error:         #dc2626;
-        --color-success:       #22c55e;
-        --color-progress:      #93c5fd;
+        --color-border: #e2e6ec;
+        --color-border-2: #c5cad4;
+        --color-text-hover: #353b4a;
+        --color-accent: #3b82f6;
+        --color-accent-bg: #eff6ff;
+        --color-error: #dc2626;
+        --color-success: #22c55e;
+        --color-progress: #93c5fd;
         --space-xs: 4px;
         --space-sm: 8px;
         --space-md: 16px;
@@ -322,7 +322,7 @@
         margin-bottom: var(--space-sm);
       }
       #gv-name {
-        font-size: 0.95rem;
+        font-size: 1rem;
         font-weight: 600;
       }
       #gv-desc {
@@ -479,8 +479,12 @@
         align-items: center;
         gap: var(--space-xs);
       }
-      #arome-dl-details > summary::-webkit-details-marker { display: none; }
-      #arome-dl-details > summary::marker { display: none; }
+      #arome-dl-details > summary::-webkit-details-marker {
+        display: none;
+      }
+      #arome-dl-details > summary::marker {
+        display: none;
+      }
       #arome-dl-chevron {
         font-size: 0.65rem;
         transition: transform var(--transition-base);
@@ -516,7 +520,11 @@
         padding: 0;
         border-radius: var(--radius-sm);
         color: var(--color-text-2);
-        background: linear-gradient(to right, var(--color-progress) var(--pct, 0%), var(--color-border) var(--pct, 0%));
+        background: linear-gradient(
+          to right,
+          var(--color-progress) var(--pct, 0%),
+          var(--color-border) var(--pct, 0%)
+        );
       }
       .arome-dl-item.done {
         background: var(--color-success);
@@ -535,9 +543,28 @@
         padding-top: var(--space-lg);
         border-top: 1px solid var(--color-border);
       }
+      #arome-var-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: var(--space-md);
+        width: 100%;
+      }
+      #arome-var-select {
+        max-width: 100%;
+      }
+      .palette-ctrl-shared {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        font-size: 0.82rem;
+        color: var(--color-text-2);
+      }
       #arome-slider-wrap {
         display: flex;
         align-items: center;
+        flex-wrap: wrap;
         gap: var(--space-sm);
         width: 100%;
       }
@@ -554,16 +581,19 @@
         white-space: nowrap;
       }
       #arome-valid-time {
-        font-size: 0.76rem;
-        color: var(--color-text-muted);
+        width: 100%;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--color-text);
         white-space: nowrap;
+        font-variant-numeric: tabular-nums;
       }
     </style>
   </head>
   <body>
     <header>
-      <h1>Weather forecast</h1>
-      <span>Source: Météo France AROME</span>
+      <h1>Weather forecast visualizer</h1>
+      <span>GRIB2 files decoded in the browser</span>
     </header>
 
     <!-- ══════════════════════════════════════════════════════
@@ -572,8 +602,12 @@
     <div id="view-home">
       <main>
         <div id="arome-shortcut">
-          <button id="btn-sp1" class="btn-primary">Météo France AROME SP1 0.01° (last available run)</button>
-          <button id="btn-sp2" class="btn-primary">Météo France AROME SP2 0.01° (last available run)</button>
+          <button id="btn-sp1" class="btn-primary">
+            Météo France AROME SP1 0.01° (last available run)
+          </button>
+          <button id="btn-sp2" class="btn-primary">
+            Météo France AROME SP2 0.01° (last available run)
+          </button>
         </div>
 
         <hr />
@@ -627,8 +661,12 @@
 ══════════════════════════════════════════════════════ -->
     <div id="view-grid">
       <main>
-        <button class="btn-back" id="back-btn" style="display: none">← Variables</button>
-        <button class="btn-back" id="arome-back-btn" style="display: none">← Home</button>
+        <button class="btn-back" id="back-btn" style="display: none">
+          ← Variables
+        </button>
+        <button class="btn-back" id="arome-back-btn" style="display: none">
+          ← Home
+        </button>
         <div id="gv-sub"></div>
         <div id="arome-dl-panel" style="display: none">
           <p id="arome-dl-status"></p>
@@ -665,10 +703,12 @@
 
         <!-- AROME player toolbar (shown instead of #grid-toolbar in AROME mode) -->
         <div id="arome-player-toolbar" style="display: none">
-          <select id="arome-var-select" class="toolbar-select"></select>
-          <div id="palette-ctrl-arome" class="palette-ctrl-shared">
-            <label for="palette-select-arome">Color scale</label>
-            <select id="palette-select-arome" class="toolbar-select"></select>
+          <div id="arome-var-row">
+            <select id="arome-var-select" class="toolbar-select"></select>
+            <div id="palette-ctrl-arome" class="palette-ctrl-shared">
+              <label for="palette-select-arome">Color scale</label>
+              <select id="palette-select-arome" class="toolbar-select"></select>
+            </div>
           </div>
           <div id="gv-meta">
             <div>
@@ -677,9 +717,9 @@
             </div>
           </div>
           <div id="arome-slider-wrap">
+            <span id="arome-valid-time"></span>
             <span id="arome-hour-label">+01H</span>
             <input type="range" id="arome-slider" min="0" step="1" value="0" />
-            <span id="arome-valid-time"></span>
           </div>
         </div>
 
@@ -694,7 +734,6 @@
           <span id="cs-max"></span>
           <span id="cs-unit"></span>
         </div>
-
       </main>
     </div>
 
@@ -745,7 +784,9 @@
 
       // Populate all palette selects from the shared template
       const paletteTemplate = document.getElementById("palette-options");
-      for (const sel of document.querySelectorAll("#palette-select, #palette-select-arome")) {
+      for (const sel of document.querySelectorAll(
+        "#palette-select, #palette-select-arome",
+      )) {
         sel.appendChild(paletteTemplate.content.cloneNode(true));
         sel.value = "Plasma";
       }
@@ -756,48 +797,125 @@
           key: "SP1",
           label: "AROME SP1 0.01°",
           variables: [
-            { shortName: "t",     name: "Temperature",                          units: "°C",     level: "2 m above ground"  },
-            { shortName: "r",     name: "Relative humidity",                    units: "%",      level: "2 m above ground"  },
-            { shortName: "u",     name: "U-component of wind",                  units: "m s-1",  level: "10 m above ground" },
-            { shortName: "v",     name: "V-component of wind",                  units: "m s-1",  level: "10 m above ground" },
-            { shortName: "ugust", name: "U-component of wind (gust)",           units: "m s-1",  level: "10 m above ground" },
-            { shortName: "vgust", name: "V-component of wind (gust)",           units: "m s-1",  level: "10 m above ground" },
+            {
+              shortName: "t",
+              name: "Temperature",
+              units: "°C",
+              level: "2 m above ground",
+            },
+            {
+              shortName: "r",
+              name: "Relative humidity",
+              units: "%",
+              level: "2 m above ground",
+            },
+            {
+              shortName: "u",
+              name: "U-component of wind",
+              units: "m s-1",
+              level: "10 m above ground",
+            },
+            {
+              shortName: "v",
+              name: "V-component of wind",
+              units: "m s-1",
+              level: "10 m above ground",
+            },
+            {
+              shortName: "ugust",
+              name: "U-component of wind (gust)",
+              units: "m s-1",
+              level: "10 m above ground",
+            },
+            {
+              shortName: "vgust",
+              name: "V-component of wind (gust)",
+              units: "m s-1",
+              level: "10 m above ground",
+            },
           ],
         },
         SP2: {
           key: "SP2",
           label: "AROME SP2 0.01°",
           variables: [
-            { shortName: "p",     name: "Pressure",                             units: "hPa",    level: "Ground surface"    },
-            { shortName: "cape",  name: "Convective available potential energy", units: "J kg-1", level: "Ground surface"    },
-            { shortName: "lcc",   name: "Low cloud cover",                      units: "%",      level: "Ground surface"    },
-            { shortName: "mcc",   name: "Medium cloud cover",                   units: "%",      level: "Ground surface"    },
-            { shortName: "hcc",   name: "High cloud cover",                     units: "%",      level: "Ground surface"    },
-            { shortName: "tgrp",  name: "Graupel (snow pellets) precipitation", units: "mm/h",   level: "Ground surface"    },
-            { shortName: "rrate", name: "Rain precipitation",                   units: "mm/h",   level: "Ground surface"    },
-            { shortName: "srate", name: "Snow precipitation",                   units: "mm/h",   level: "Ground surface"    },
+            {
+              shortName: "p",
+              name: "Pressure",
+              units: "hPa",
+              level: "Ground surface",
+            },
+            {
+              shortName: "cape",
+              name: "Convective available potential energy",
+              units: "J kg-1",
+              level: "Ground surface",
+            },
+            {
+              shortName: "lcc",
+              name: "Low cloud cover",
+              units: "%",
+              level: "Ground surface",
+            },
+            {
+              shortName: "mcc",
+              name: "Medium cloud cover",
+              units: "%",
+              level: "Ground surface",
+            },
+            {
+              shortName: "hcc",
+              name: "High cloud cover",
+              units: "%",
+              level: "Ground surface",
+            },
+            {
+              shortName: "tgrp",
+              name: "Graupel (snow pellets) precipitation",
+              units: "mm/h",
+              level: "Ground surface",
+            },
+            {
+              shortName: "rrate",
+              name: "Rain precipitation",
+              units: "mm/h",
+              level: "Ground surface",
+            },
+            {
+              shortName: "srate",
+              name: "Snow precipitation",
+              units: "mm/h",
+              level: "Ground surface",
+            },
           ],
         },
       };
 
       const PARAM_DESCRIPTIONS = {
-        t:     'Air temperature measured 2m above ground. The standard reference for what people feel outdoors. Key for assessing frost risk, heatwaves, and thermal comfort.',
-        r:     'Moisture content of the air relative to its saturation point, at 2m above ground. Values above 80% indicate damp, foggy, or precipitation-prone conditions. Below 30%, the air is dry — increasing wildfire risk and discomfort.',
-        u:     'East–west component of wind speed at 10m above ground. Positive = blowing eastward, negative = blowing westward. Combined with the V component, you can derive actual wind speed and direction.',
-        v:     'North–south component of wind speed at 10m above ground. Positive = blowing northward, negative = southward. Combined with the U component, you can derive actual wind speed and direction.',
-        ugust: 'East–west component of the maximum wind gust at 10m. Gusts are brief, intense bursts significantly stronger than the average wind. Combined with vgust, reveals the direction and peak intensity — critical for storm safety assessments.',
-        vgust: 'North–south component of the maximum wind gust at 10m. Combined with ugust, reveals the direction and peak intensity — critical for storm safety assessments.',
-        p:     'Atmospheric pressure at ground level, in hPa. High pressure (>1013 hPa) is typically associated with fair weather; low pressure signals approaching fronts or storms. Useful for tracking large-scale weather systems.',
-        cape:  "Convective Available Potential Energy: a measure of the atmosphere's fuel for thunderstorm development. Values above 500 J/kg suggest moderate storm potential; above 2500 J/kg, severe weather with large hail and strong winds becomes likely.",
-        lcc:   'Fraction of the sky covered by low-altitude clouds (below ~2km), such as stratus and fog layers. Directly affects visibility, sunlight at ground level, and daytime heating.',
-        mcc:   'Fraction of the sky covered by mid-level clouds (~2–6km), often associated with frontal systems and stratiform precipitation.',
-        hcc:   'Fraction of the sky covered by high-altitude clouds (above ~6km), such as cirrus. These thin ice clouds rarely produce rain directly but can indicate an approaching weather system.',
-        tgrp:  'Rate of falling graupel (soft hail / snow pellets), in mm/h. Graupel forms inside convective clouds and is often a precursor to larger hail or intense thunderstorms.',
-        rrate: 'Intensity of liquid precipitation at a given moment, in mm/h. Below 1 mm/h is light rain; 1–10 mm/h is moderate; above 10 mm/h is heavy. Key for flash flood risk and outdoor planning.',
-        srate: 'Intensity of snowfall (liquid equivalent), in mm/h. Even modest values can rapidly create dangerous road conditions and reduce visibility, especially at temperatures well below 0°C.',
+        t: "Air temperature measured 2m above ground. The standard reference for what people feel outdoors. Key for assessing frost risk, heatwaves, and thermal comfort.",
+        r: "Moisture content of the air relative to its saturation point, at 2m above ground. Values above 80% indicate damp, foggy, or precipitation-prone conditions. Below 30%, the air is dry — increasing wildfire risk and discomfort.",
+        u: "East–west component of wind speed at 10m above ground. Positive = blowing eastward, negative = blowing westward. Combined with the V component, you can derive actual wind speed and direction.",
+        v: "North–south component of wind speed at 10m above ground. Positive = blowing northward, negative = southward. Combined with the U component, you can derive actual wind speed and direction.",
+        ugust:
+          "East–west component of the maximum wind gust at 10m. Gusts are brief, intense bursts significantly stronger than the average wind. Combined with vgust, reveals the direction and peak intensity — critical for storm safety assessments.",
+        vgust:
+          "North–south component of the maximum wind gust at 10m. Combined with ugust, reveals the direction and peak intensity — critical for storm safety assessments.",
+        p: "Atmospheric pressure at ground level, in hPa. High pressure (>1013 hPa) is typically associated with fair weather; low pressure signals approaching fronts or storms. Useful for tracking large-scale weather systems.",
+        cape: "A measure of the atmosphere's fuel for thunderstorm development. Values above 500 J/kg suggest moderate storm potential; above 2500 J/kg, severe weather with large hail and strong winds becomes likely.",
+        lcc: "Fraction of the sky covered by low-altitude clouds (below ~2km), such as stratus and fog layers. Directly affects visibility, sunlight at ground level, and daytime heating.",
+        mcc: "Fraction of the sky covered by mid-level clouds (~2–6km), often associated with frontal systems and stratiform precipitation.",
+        hcc: "Fraction of the sky covered by high-altitude clouds (above ~6km), such as cirrus. These thin ice clouds rarely produce rain directly but can indicate an approaching weather system.",
+        tgrp: "Rate of falling graupel (soft hail / snow pellets), in mm/h. Graupel forms inside convective clouds and is often a precursor to larger hail or intense thunderstorms.",
+        rrate:
+          "Intensity of liquid precipitation at a given moment, in mm/h. Below 1 mm/h is light rain; 1–10 mm/h is moderate; above 10 mm/h is heavy. Key for flash flood risk and outdoor planning.",
+        srate:
+          "Intensity of snowfall (liquid equivalent), in mm/h. Even modest values can rapidly create dangerous road conditions and reduce visibility, especially at temperatures well below 0°C.",
       };
 
-      const AROME_BOUNDS = [[-12, 37.5], [16, 55.4]];
+      const AROME_BOUNDS = [
+        [-12, 37.5],
+        [16, 55.4],
+      ];
 
       // ── State ─────────────────────────────────────────────────────────────────────
       let fileState = null; // { messages: Array }
@@ -840,32 +958,44 @@
         // T°C → t: (T + 25) / 75
         TempC: {
           colors: [
-            '#08306b', // t=0.000 → -25°C  deep navy
-            '#2166ac', // t=0.133 → -15°C  medium blue
-            '#92c5de', // t=0.267 →  -5°C  light blue
-            '#ffffff', // t=0.333 →   0°C  white (freezing)
-            '#ffc800', // t=0.567 →  17°C  warm amber yellow
-            '#ff6600', // t=0.733 →  30°C  orange
-            '#cc1100', // t=0.867 →  40°C  red
-            '#67000d', // t=1.000 →  50°C  dark red
+            "#08306b", // t=0.000 → -25°C  deep navy
+            "#2166ac", // t=0.133 → -15°C  medium blue
+            "#92c5de", // t=0.267 →  -5°C  light blue
+            "#ffffff", // t=0.333 →   0°C  white (freezing)
+            "#ffc800", // t=0.567 →  17°C  warm amber yellow
+            "#ff6600", // t=0.733 →  30°C  orange
+            "#cc1100", // t=0.867 →  40°C  red
+            "#67000d", // t=1.000 →  50°C  dark red
           ],
-          domain: [0.000, 0.133, 0.267, 0.333, 0.567, 0.733, 0.867, 1.000],
+          domain: [0.0, 0.133, 0.267, 0.333, 0.567, 0.733, 0.867, 1.0],
         },
       };
 
       const INVERTED_PALETTES = new Set([
-        "Plasma", "Viridis", "Magma", "Inferno", "Spectral", "RdBu", "RdYlBu",
+        "Plasma",
+        "Viridis",
+        "Magma",
+        "Inferno",
+        "Spectral",
+        "RdBu",
+        "RdYlBu",
       ]);
 
       const VARIABLE_PALETTES = {
-        t:     "TempC",
-        r:     "Blues",
-        u:     "Viridis",  v:     "Viridis",
-        ugust: "Viridis",  vgust: "Viridis",
-        p:     "Spectral",
-        cape:  "Spectral",
-        lcc:   "Viridis",  mcc:   "Viridis",  hcc:   "Viridis",
-        rrate: "Spectral", srate: "Spectral", tgrp: "Spectral",
+        t: "TempC",
+        r: "Blues",
+        u: "Viridis",
+        v: "Viridis",
+        ugust: "Viridis",
+        vgust: "Viridis",
+        p: "Spectral",
+        cape: "Spectral",
+        lcc: "Viridis",
+        mcc: "Viridis",
+        hcc: "Viridis",
+        rrate: "Spectral",
+        srate: "Spectral",
+        tgrp: "Spectral",
       };
 
       // Static color scale ranges for AROME variables (enables timestep comparison).
@@ -875,25 +1005,25 @@
 
       // Precipitation uses log:true — values are log-normalized between LOG_SCALE_FLOOR and max.
       const STATIC_SCALES = {
-        t:     { min: -25,  max: 50   },
-        r:     { min: 0,    max: 100  },
-        u:     { min: -30,  max: 30   },
-        v:     { min: -30,  max: 30   },
-        ugust: { min: 0,    max: 40   },
-        vgust: { min: 0,    max: 40   },
-        p:     { min: 950,  max: 1050 },
-        cape:  { min: 0,    max: 4000 },
-        lcc:   { min: 0, max: 100, zeroThreshold: 0.005 },
-        mcc:   { min: 0, max: 100, zeroThreshold: 0.005 },
-        hcc:   { min: 0, max: 100, zeroThreshold: 0.005 },
-        rrate: { min: 0,    max: 150, log: true, zeroThreshold: 0.005 },
-        srate: { min: 0,    max: 20,  log: true, zeroThreshold: 0.005 },
-        tgrp:  { min: 0,    max: 15,  log: true, zeroThreshold: 0.005 },
+        t: { min: -25, max: 50 },
+        r: { min: 0, max: 100 },
+        u: { min: -30, max: 30 },
+        v: { min: -30, max: 30 },
+        ugust: { min: 0, max: 40 },
+        vgust: { min: 0, max: 40 },
+        p: { min: 950, max: 1050 },
+        cape: { min: 0, max: 4000 },
+        lcc: { min: 0, max: 100, zeroThreshold: 0.005 },
+        mcc: { min: 0, max: 100, zeroThreshold: 0.005 },
+        hcc: { min: 0, max: 100, zeroThreshold: 0.005 },
+        rrate: { min: 0, max: 150, log: true, zeroThreshold: 0.005 },
+        srate: { min: 0, max: 20, log: true, zeroThreshold: 0.005 },
+        tgrp: { min: 0, max: 15, log: true, zeroThreshold: 0.005 },
       };
 
       function displayUnitsFor(shortName, rawUnits) {
-        if (shortName === 't') return '°C';
-        if (shortName === 'p') return 'hPa';
+        if (shortName === "t") return "°C";
+        if (shortName === "p") return "hPa";
         return rawUnits;
       }
 
@@ -912,7 +1042,9 @@
           return chroma.scale(entry.colors).domain(entry.domain);
         }
         const scale = chroma.scale(entry ?? chroma.brewer[paletteName]);
-        return INVERTED_PALETTES.has(paletteName) ? scale.domain([1, 0]) : scale;
+        return INVERTED_PALETTES.has(paletteName)
+          ? scale.domain([1, 0])
+          : scale;
       }
 
       function buildLUT(paletteName) {
@@ -965,7 +1097,9 @@
         const sn = gridState.product?.shortName;
         const isLog = gridState.staticScale?.log ?? false;
         // Log scale: normalize v ∈ [0.1, max] logarithmically → [0, 1]
-        const logDenom = isLog ? Math.log(gridState.staticScale.max / LOG_SCALE_FLOOR) : 1;
+        const logDenom = isLog
+          ? Math.log(gridState.staticScale.max / LOG_SCALE_FLOOR)
+          : 1;
         const zeroThreshold = gridState.staticScale?.zeroThreshold ?? 0;
         const isTransparentZero = zeroThreshold > 0;
         const outW = heatCanvas.width; // = ni
@@ -986,7 +1120,10 @@
           const lat = invMercatorY(myNorth - (py / outH) * mySpan);
           if (lat > northLat || lat < southLat) continue;
 
-          const rowFromNorth = Math.min(Math.max(Math.round((northLat - lat) / dj), 0), nj - 1);
+          const rowFromNorth = Math.min(
+            Math.max(Math.round((northLat - lat) / dj), 0),
+            nj - 1,
+          );
           const row = isStoN ? nj - 1 - rowFromNorth : rowFromNorth;
           const rowOff = row * ni;
           const imgRow = py * outW;
@@ -994,13 +1131,23 @@
           for (let col = 0; col < outW; col++) {
             const off = (imgRow + col) * 4;
             const v = values[rowOff + col];
-            if (v <= MISSING_VALUE || (isTransparentZero && v <= zeroThreshold)) {
+            if (
+              v <= MISSING_VALUE ||
+              (isTransparentZero && v <= zeroThreshold)
+            ) {
               /* transparent — createImageData initialises to rgba(0,0,0,0) */
             } else {
               let t;
               if (isLog) {
                 // log-normalize: v=0.1 → 0, v=max → 1; clamp to [0,1]
-                t = Math.max(0, Math.min(1, Math.log(Math.max(v, LOG_SCALE_FLOOR) / LOG_SCALE_FLOOR) / logDenom));
+                t = Math.max(
+                  0,
+                  Math.min(
+                    1,
+                    Math.log(Math.max(v, LOG_SCALE_FLOOR) / LOG_SCALE_FLOOR) /
+                      logDenom,
+                  ),
+                );
               } else {
                 t = Math.max(0, Math.min(1, (v - min) / range));
               }
@@ -1057,7 +1204,7 @@
           }
 
           const rowFromNorth = Math.round((northLat - lat) / dj);
-          const row = isStoN ? (grid.nj - 1 - rowFromNorth) : rowFromNorth;
+          const row = isStoN ? grid.nj - 1 - rowFromNorth : rowFromNorth;
           const col = Math.round((lng - lo1) / di);
           const idx = row * ni + col;
           const val =
@@ -1188,10 +1335,14 @@
       }
 
       function updateStats(min, max, mean, count, units) {
-        document.getElementById("gv-min").textContent = fmtNum(min, 3) + " " + units;
-        document.getElementById("gv-max").textContent = fmtNum(max, 3) + " " + units;
-        document.getElementById("gv-mean").textContent = fmtNum(mean, 3) + " " + units;
-        document.getElementById("gv-valid").textContent = count.toLocaleString();
+        document.getElementById("gv-min").textContent =
+          fmtNum(min, 3) + " " + units;
+        document.getElementById("gv-max").textContent =
+          fmtNum(max, 3) + " " + units;
+        document.getElementById("gv-mean").textContent =
+          fmtNum(mean, 3) + " " + units;
+        document.getElementById("gv-valid").textContent =
+          count.toLocaleString();
       }
 
       function applyToValues(values, fn) {
@@ -1201,13 +1352,22 @@
         return out;
       }
 
-      function gridCorners({ latitudeOfFirstPoint: la1, longitudeOfFirstPoint: lo1,
-                             latitudeOfLastPoint: la2, longitudeOfLastPoint: lo2 }) {
+      function gridCorners({
+        latitudeOfFirstPoint: la1,
+        longitudeOfFirstPoint: lo1,
+        latitudeOfLastPoint: la2,
+        longitudeOfLastPoint: lo2,
+      }) {
         const north = Math.max(la1, la2);
         const south = Math.min(la1, la2);
-        const west  = Math.min(lo1, lo2);
-        const east  = Math.max(lo1, lo2);
-        return [[west, north], [east, north], [east, south], [west, south]];
+        const west = Math.min(lo1, lo2);
+        const east = Math.max(lo1, lo2);
+        return [
+          [west, north],
+          [east, north],
+          [east, south],
+          [west, south],
+        ];
       }
 
       function setMapLayer(canvas, corners) {
@@ -1215,16 +1375,33 @@
           map.removeLayer("grib2-layer");
           map.removeSource("grib2");
         }
-        map.addSource("grib2", { type: "canvas", canvas, coordinates: corners, animate: true });
-        map.addLayer({ id: "grib2-layer", type: "raster", source: "grib2",
-          paint: { "raster-opacity": RASTER_OPACITY, "raster-resampling": "nearest" } });
+        map.addSource("grib2", {
+          type: "canvas",
+          canvas,
+          coordinates: corners,
+          animate: true,
+        });
+        map.addLayer({
+          id: "grib2-layer",
+          type: "raster",
+          source: "grib2",
+          paint: {
+            "raster-opacity": RASTER_OPACITY,
+            "raster-resampling": "nearest",
+          },
+        });
       }
 
       async function decodeVariableFromBuffer(buffer, shortName) {
         for (const msg of iterateGRIB2Messages(buffer)) {
           if (msg.product.shortName === shortName) {
             const dec = await decodeGRIB2(msg.buffer);
-            return { values: dec.values, grid: dec.grid, product: dec.product, header: dec.header };
+            return {
+              values: dec.values,
+              grid: dec.grid,
+              product: dec.product,
+              header: dec.header,
+            };
           }
         }
         return null;
@@ -1283,7 +1460,11 @@
         const p = msg.product;
 
         // Populate toolbar
-        updateParamInfo(p.name, PARAM_DESCRIPTIONS[p.shortName] ?? '', fmtValidTime(msg.header, p));
+        updateParamInfo(
+          p.name,
+          PARAM_DESCRIPTIONS[p.shortName] ?? "",
+          fmtValidTime(msg.header, p),
+        );
 
         // Reset stats
         for (const id of ["gv-min", "gv-max", "gv-mean", "gv-valid"]) {
@@ -1325,15 +1506,19 @@
         renderHeatmap();
         await initMap();
         setMapLayer(heatCanvas, corners);
-        map.fitBounds([[corners[3][0], corners[2][1]], [corners[1][0], corners[0][1]]],
-          { padding: 20, animate: false });
+        map.fitBounds(
+          [
+            [corners[3][0], corners[2][1]],
+            [corners[1][0], corners[0][1]],
+          ],
+          { padding: 20, animate: false },
+        );
 
         // Show color scale
         showColorScale(min, max, p.units);
       }
 
       // ── AROME live data ───────────────────────────────────────────────────────────
-
 
       async function fetchAromeResources(packageKey) {
         const resp = await fetch(
@@ -1383,14 +1568,13 @@
         return out;
       }
 
-
-
       async function decodePrevHourValues(prevHour) {
         const { decoded, decodedOrder, buffers, variable } = aromeState;
         if (decoded.has(prevHour)) return decoded.get(prevHour).values;
         const prevBuffer = buffers.get(prevHour);
         if (!prevBuffer) return null;
-        if (decodedOrder.length >= DECODED_CACHE_SIZE) decoded.delete(decodedOrder.shift());
+        if (decodedOrder.length >= DECODED_CACHE_SIZE)
+          decoded.delete(decodedOrder.shift());
         const data = await decodeVariableFromBuffer(prevBuffer, variable);
         if (!data) return null;
         decoded.set(prevHour, data);
@@ -1399,107 +1583,132 @@
       }
 
       async function aromeShowHour(idx) {
-        if (isDecoding) { pendingHourIdx = idx; return; }
+        if (isDecoding) {
+          pendingHourIdx = idx;
+          return;
+        }
         isDecoding = true;
         pendingHourIdx = null;
         try {
+          const { resources, buffers, decoded, decodedOrder, variable } =
+            aromeState;
+          const { hour } = resources[idx];
+          document.getElementById("arome-hour-label").textContent =
+            `+${String(hour).padStart(2, "0")}H`;
 
-        const { resources, buffers, decoded, decodedOrder, variable } =
-          aromeState;
-        const { hour } = resources[idx];
-        document.getElementById("arome-hour-label").textContent =
-          `+${String(hour).padStart(2, "0")}H`;
-
-        let data;
-        if (decoded.has(hour)) {
-          data = decoded.get(hour);
-        } else {
-          if (decodedOrder.length >= DECODED_CACHE_SIZE) decoded.delete(decodedOrder.shift());
-          const buffer = buffers.get(hour);
-          if (!buffer) { clearMapLayer(); return; }
-          data = await decodeVariableFromBuffer(buffer, variable);
-          if (!data) { clearMapLayer(); return; }
-          decoded.set(hour, data);
-          decodedOrder.push(hour);
-        }
-
-        aromeState.currentHour = hour;
-        const { values, grid, product, header } = data;
-
-        // Precipitation variables (PDT 4.8) are cumulative since H+00 — show hourly increment.
-        const isAccumulation = product.pdtNumber === 8;
-        let displayValues = values;
-        let isFallback = false;
-
-        if (isAccumulation && idx > 0) {
-          const prevHour = resources[idx - 1].hour;
-          const prevValues = await decodePrevHourValues(prevHour);
-          if (prevValues !== null) {
-            const diff = new Float64Array(values.length);
-            for (let i = 0; i < values.length; i++) {
-              if (values[i] <= MISSING_VALUE || prevValues[i] <= MISSING_VALUE) {
-                diff[i] = MISSING_VALUE;
-              } else {
-                diff[i] = Math.max(0, values[i] - prevValues[i]);
-              }
-            }
-            displayValues = diff;
+          let data;
+          if (decoded.has(hour)) {
+            data = decoded.get(hour);
           } else {
-            isFallback = true;
+            if (decodedOrder.length >= DECODED_CACHE_SIZE)
+              decoded.delete(decodedOrder.shift());
+            const buffer = buffers.get(hour);
+            if (!buffer) {
+              clearMapLayer();
+              return;
+            }
+            data = await decodeVariableFromBuffer(buffer, variable);
+            if (!data) {
+              clearMapLayer();
+              return;
+            }
+            decoded.set(hour, data);
+            decodedOrder.push(hour);
           }
-        }
-        // idx === 0 (01H): raw cumulative value equals the 1H increment (model accumulates from 0 at run start).
 
-        if (product.shortName === "t")
-          displayValues = applyToValues(displayValues, v => v - 273.15);
-        else if (product.shortName === "p")
-          displayValues = applyToValues(displayValues, v => v / 100);
+          aromeState.currentHour = hour;
+          const { values, grid, product, header } = data;
 
-        const { min: dataMin, max: dataMax, mean, count } = computeStats(displayValues);
-        let displayUnits = displayUnitsFor(product.shortName, product.units);
-        if (isAccumulation && !isFallback) displayUnits = "mm/h";
-        const staticScale = STATIC_SCALES[product.shortName] ?? null;
-        const renderMin = staticScale ? staticScale.min : dataMin;
-        const renderMax = staticScale ? staticScale.max : dataMax;
-        const range = renderMax - renderMin || 1;
-        gridState = { values: displayValues, min: renderMin, range, grid, product, displayUnits, staticScale };
+          // Precipitation variables (PDT 4.8) are cumulative since H+00 — show hourly increment.
+          const isAccumulation = product.pdtNumber === 8;
+          let displayValues = values;
+          let isFallback = false;
 
-        updateParamInfo(
-          product.name,
-          PARAM_DESCRIPTIONS[product.shortName] ?? '',
-          `${aromeState.packageKey} · run ${fmtRefTime(header)}`
-            + (isFallback ? ' · (cumulative — prev not loaded)' : ''),
-        );
+          if (isAccumulation && idx > 0) {
+            const prevHour = resources[idx - 1].hour;
+            const prevValues = await decodePrevHourValues(prevHour);
+            if (prevValues !== null) {
+              const diff = new Float64Array(values.length);
+              for (let i = 0; i < values.length; i++) {
+                if (
+                  values[i] <= MISSING_VALUE ||
+                  prevValues[i] <= MISSING_VALUE
+                ) {
+                  diff[i] = MISSING_VALUE;
+                } else {
+                  diff[i] = Math.max(0, values[i] - prevValues[i]);
+                }
+              }
+              displayValues = diff;
+            } else {
+              isFallback = true;
+            }
+          }
+          // idx === 0 (01H): raw cumulative value equals the 1H increment (model accumulates from 0 at run start).
 
-        // Create/resize offscreen canvas only when needed
-        const needH = mercatorCanvasHeight(grid);
-        const canvasChanged =
-          !heatCanvas ||
-          heatCanvas.width !== grid.ni ||
-          heatCanvas.height !== needH;
-        if (canvasChanged) {
-          heatCanvas = document.createElement("canvas");
-          heatCanvas.width = grid.ni;
-          heatCanvas.height = needH;
-        }
-        renderHeatmap();
+          if (product.shortName === "t")
+            displayValues = applyToValues(displayValues, (v) => v - 273.15);
+          else if (product.shortName === "p")
+            displayValues = applyToValues(displayValues, (v) => v / 100);
 
-        const corners = gridCorners(grid);
-        await initMap([AROME_BOUNDS, { padding: 20, animate: false }]);
-        if (!map.getSource("grib2") || canvasChanged) setMapLayer(heatCanvas, corners);
-        // Update stats + colorscale + valid time
-        updateStats(dataMin, dataMax, mean, count, displayUnits);
-        showColorScale(renderMin, renderMax, displayUnits);
-        // PDT 4.8 accumulations always have forecastTime=0 (start of interval);
-        // use the file's hour offset as the end-of-interval valid time instead.
-        const validTimeProduct = isAccumulation
-          ? { ...product, forecastTime: hour, timeUnit: 1 }
-          : product;
-        document.getElementById("arome-valid-time").textContent =
-          `Forecast time: ${fmtValidTime(header, validTimeProduct)}`;
+          const {
+            min: dataMin,
+            max: dataMax,
+            mean,
+            count,
+          } = computeStats(displayValues);
+          let displayUnits = displayUnitsFor(product.shortName, product.units);
+          if (isAccumulation && !isFallback) displayUnits = "mm/h";
+          const staticScale = STATIC_SCALES[product.shortName] ?? null;
+          const renderMin = staticScale ? staticScale.min : dataMin;
+          const renderMax = staticScale ? staticScale.max : dataMax;
+          const range = renderMax - renderMin || 1;
+          gridState = {
+            values: displayValues,
+            min: renderMin,
+            range,
+            grid,
+            product,
+            displayUnits,
+            staticScale,
+          };
 
+          updateParamInfo(
+            product.name,
+            PARAM_DESCRIPTIONS[product.shortName] ?? "",
+            `${aromeState.packageKey} · run ${fmtRefTime(header)}` +
+              (isFallback ? " · (cumulative — prev not loaded)" : ""),
+          );
+
+          // Create/resize offscreen canvas only when needed
+          const needH = mercatorCanvasHeight(grid);
+          const canvasChanged =
+            !heatCanvas ||
+            heatCanvas.width !== grid.ni ||
+            heatCanvas.height !== needH;
+          if (canvasChanged) {
+            heatCanvas = document.createElement("canvas");
+            heatCanvas.width = grid.ni;
+            heatCanvas.height = needH;
+          }
+          renderHeatmap();
+
+          const corners = gridCorners(grid);
+          await initMap([AROME_BOUNDS, { padding: 20, animate: false }]);
+          if (!map.getSource("grib2") || canvasChanged)
+            setMapLayer(heatCanvas, corners);
+          // Update stats + colorscale + valid time
+          updateStats(dataMin, dataMax, mean, count, displayUnits);
+          showColorScale(renderMin, renderMax, displayUnits);
+          // PDT 4.8 accumulations always have forecastTime=0 (start of interval);
+          // use the file's hour offset as the end-of-interval valid time instead.
+          const validTimeProduct = isAccumulation
+            ? { ...product, forecastTime: hour, timeUnit: 1 }
+            : product;
+          document.getElementById("arome-valid-time").textContent =
+            `Forecast time: ${fmtValidTime(header, validTimeProduct)}`;
         } catch (err) {
-          console.error('aromeShowHour:', err);
+          console.error("aromeShowHour:", err);
           clearMapLayer();
         } finally {
           isDecoding = false;
@@ -1529,7 +1738,10 @@
         aromeState.variable = pkgVars[0].shortName;
         applyDefaultPalette(pkgVars[0].shortName);
         varSelect.innerHTML = pkgVars
-          .map((v) => `<option value="${v.shortName}">${v.name}${v.level ? " · " + v.level : ""}${v.units ? " (" + v.units + ")" : ""}</option>`)
+          .map(
+            (v) =>
+              `<option value="${v.shortName}">${v.name}${v.level ? " · " + v.level : ""}${v.units ? " (" + v.units + ")" : ""}</option>`,
+          )
           .join("");
         varSelect.value = aromeState.variable;
 
@@ -1584,9 +1796,12 @@
               filesize,
               (loaded, total) => {
                 if (aromeState !== downloadKey) return;
-                document.getElementById(`dl-${hour}`)?.style.setProperty(
-                  "--pct", Math.round((loaded / total) * 100) + "%"
-                );
+                document
+                  .getElementById(`dl-${hour}`)
+                  ?.style.setProperty(
+                    "--pct",
+                    Math.round((loaded / total) * 100) + "%",
+                  );
               },
             );
             if (aromeState !== downloadKey) return;
@@ -1606,13 +1821,19 @@
                   applyDefaultPalette(aromeState.variable);
                   updateParamInfo(
                     msg.product.name,
-                    PARAM_DESCRIPTIONS[aromeState.variable] ?? '',
+                    PARAM_DESCRIPTIONS[aromeState.variable] ?? "",
                     `${packageKey} · run ${fmtRefTime(msg.header)}`,
                   );
                   const staticScale = STATIC_SCALES[aromeState.variable];
-                  const varDef = pkgVars.find(v => v.shortName === aromeState.variable);
+                  const varDef = pkgVars.find(
+                    (v) => v.shortName === aromeState.variable,
+                  );
                   if (staticScale && varDef) {
-                    showColorScale(staticScale.min, staticScale.max, displayUnitsFor(aromeState.variable, varDef.units));
+                    showColorScale(
+                      staticScale.min,
+                      staticScale.max,
+                      displayUnitsFor(aromeState.variable, varDef.units),
+                    );
                   }
                   break;
                 }
@@ -1626,7 +1847,6 @@
             }
           }),
         );
-
       }
 
       // ── Router (hash-based) ───────────────────────────────────────────────────────
@@ -1644,16 +1864,21 @@
           document.getElementById("back-btn").style.display = "block";
           document.getElementById("arome-back-btn").style.display = "none";
           document.getElementById("grid-toolbar").style.display = "flex";
-          document.getElementById("arome-player-toolbar").style.display = "none";
+          document.getElementById("arome-player-toolbar").style.display =
+            "none";
           showGridView(decodeURIComponent(hash.slice(6)));
         } else if (hash.startsWith("#arome/")) {
           const packageKey = hash.slice(7);
-          if (!PACKAGES[packageKey]) { location.hash = ""; return; }
+          if (!PACKAGES[packageKey]) {
+            location.hash = "";
+            return;
+          }
           showView("view-grid");
           document.getElementById("back-btn").style.display = "none";
           document.getElementById("arome-back-btn").style.display = "block";
           document.getElementById("grid-toolbar").style.display = "none";
-          document.getElementById("arome-player-toolbar").style.display = "flex";
+          document.getElementById("arome-player-toolbar").style.display =
+            "flex";
           document.getElementById("arome-dl-panel").style.display = "block";
           if (aromeState?.packageKey !== packageKey) {
             aromeState = null;
@@ -1713,8 +1938,12 @@
         document.getElementById("palette-select-arome").value = currentPalette;
         if (gridState) renderHeatmap();
       }
-      document.getElementById("palette-select").addEventListener("change", onPaletteChange);
-      document.getElementById("palette-select-arome").addEventListener("change", onPaletteChange);
+      document
+        .getElementById("palette-select")
+        .addEventListener("change", onPaletteChange);
+      document
+        .getElementById("palette-select-arome")
+        .addEventListener("change", onPaletteChange);
 
       // ── AROME events ──────────────────────────────────────────────────────────────
 
@@ -1755,7 +1984,9 @@
         aromeShowHour(idx);
       });
 
-      document.getElementById("palette-select-arome").addEventListener("change", onPaletteChange);
+      document
+        .getElementById("palette-select-arome")
+        .addEventListener("change", onPaletteChange);
     </script>
   </body>
 </html>
