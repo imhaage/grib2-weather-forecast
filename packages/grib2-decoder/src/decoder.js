@@ -5,10 +5,12 @@
  *
  * Supported data representation templates:
  *   0   – Simple packing
- *   40  – Constant field (all values equal)
+ *   2   – Complex packing
+ *   3   – Complex packing with spatial differencing
+ *   40  – JPEG 2000 code stream (OpenJPEG WASM)
  *   42  – CCSDS lossless compression (Golomb-Rice via libaec WASM)
- *   254 – Grid IEEE 754 (32-bit floats, big-endian)
- *   255 – All values missing
+ *   254 – IEEE 754 float32 (big-endian)
+ *   255 – Constant field (all values equal)
  *
  * GRIB2 message structure (per WMO FM-92):
  *   Section 0  (16 bytes) : "GRIB" + reserved + discipline + edition + 8-byte length

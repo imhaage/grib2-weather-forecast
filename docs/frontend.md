@@ -1,50 +1,51 @@
-# Application web — apps/visualize/index.html
+# Web application — apps/visualize/index.html
 
 ## Architecture
 
-SPA sans framework, un seul fichier. Deux modes d'utilisation :
-- **Fichier local** : drag-and-drop ou file input → messages GRIB2 parsés localement.
-- **AROME en ligne** : téléchargement de packages GRIB2 depuis un CDN (données Météo-France) avec animation temporelle.
+Single-file SPA with no framework. Two usage modes:
+- **Local file**: drag-and-drop or file input → GRIB2 messages parsed locally.
+- **AROME online**: download GRIB2 packages from a CDN (Météo-France data) with time animation.
 
-Servie statiquement depuis la racine du dépôt (`npm run serve` → `http://localhost:3000/apps/visualize/`).
+Served statically from the repository root (`npm run serve` → `http://localhost:3000/apps/visualize/`).
 
 ```
-#             → vue home  (#view-home)
-#grid/<name>  → vue grille (#view-grid)
+#             → home view  (#view-home)
+#grid/<name>  → grid view  (#view-grid)
 ```
 
-### État en mémoire
+### In-memory state
 
 ```js
-let fileState      = null; // { messages: Array } — messages parsés sans décodage WASM
+let fileState      = null; // { messages: Array } — parsed messages without WASM decoding
 let gridState      = null; // { values, min, range, grid, product [, displayUnits, staticScale] }
 let aromeState     = null; // { packageKey, resources, buffers, decoded, decodedOrder, variable, currentHour }
 let currentPalette = 'Plasma';
-let map            = null; // instance MapLibre (créée une fois, réutilisée)
-let heatCanvas     = null; // canvas offscreen pour le rendu heatmap
+let map            = null; // MapLibre instance (created once, reused)
+let heatCanvas     = null; // offscreen canvas for heatmap rendering
 let isDecoding     = false;
 let pendingHourIdx = null;
 ```
 
-`gridState` est conservé pour permettre de changer la palette sans relancer le WASM.
-`staticScale` est présent pour les paramètres avec une échelle fixe (ex. CAPE) ; sinon l'échelle est calculée dynamiquement à partir du min/max.
+`gridState` is kept so the palette can be changed without re-running WASM.
+`staticScale` is set for parameters with a fixed scale (e.g. CAPE); otherwise the scale is computed dynamically from min/max.
 
-`aromeState` est remplacé entièrement lors d'un nouveau téléchargement ; les callbacks de progression vérifient l'identité de référence (`downloadKey = aromeState`) pour ignorer les réponses d'un téléchargement annulé.
-
----
-
-## Vue home — Fichier local
-
-- Zone drag-and-drop / file input → `processFile(file)`
-- `iterateGRIB2Messages(buffer)` (synchrone, sans WASM) pour lister les variables
-- Bandeau de métadonnées : fichier, taille, centre, date de référence
-- Grille de cartes (une par variable) : paramètre, niveau, prévision, grille
+`aromeState` is replaced entirely on each new download; progress callbacks check reference identity
+(`downloadKey = aromeState`) to ignore responses from a cancelled download.
 
 ---
 
-## Vue home — AROME en ligne
+## Home view — Local file
 
-### Packages disponibles
+- Drag-and-drop / file input → `processFile(file)`
+- `iterateGRIB2Messages(buffer)` (synchronous, no WASM) to list variables
+- Metadata banner: file, size, centre, reference date
+- Card grid (one card per variable): parameter, level, forecast time, grid
+
+---
+
+## Home view — AROME online
+
+### Available packages
 
 ```js
 const PACKAGES = {
@@ -53,114 +54,116 @@ const PACKAGES = {
 };
 ```
 
-Chaque package définit une liste de variables (`shortName`, `name`, `units`, `level`) et une URL de base pour les fichiers GRIB2 par échéance.
+Each package defines a list of variables (`shortName`, `name`, `units`, `level`) and a base URL for GRIB2 files per time step.
 
-### Flux de téléchargement
+### Download flow
 
-`startAromeDownload(packageKey)` :
-1. Initialise `aromeState` (réinitialise l'état précédent) et calcule `downloadKey = aromeState`
-2. Affiche la liste des fichiers à télécharger avec barres de progression individuelles
-3. Lance `Promise.all(...)` sur toutes les échéances ; chaque callback de progression vérifie `aromeState !== downloadKey` avant de mettre à jour le DOM — évite les race conditions si un nouveau téléchargement est lancé entre-temps
-4. Au fur et à mesure, stocke les buffers dans `aromeState.buffers` et déclenche le décodage via `aromeShowHour()`
+`startAromeDownload(packageKey)`:
+1. Initialises `aromeState` (resets previous state) and sets `downloadKey = aromeState`
+2. Displays the list of files to download with individual progress bars
+3. Launches `Promise.all(...)` over all time steps; each progress callback checks `aromeState !== downloadKey` before updating the DOM — prevents race conditions if a new download starts mid-flight
+4. As buffers arrive, stores them in `aromeState.buffers` and triggers decoding via `aromeShowHour()`
 
-### Animation temporelle
+### Time animation
 
-`aromeShowHour(hour)` :
-- Décode le buffer GRIB2 pour l'échéance demandée (`decodeGRIB2`) si pas encore en cache dans `aromeState.decoded`
-- Met à jour `gridState` et relance `renderHeatmap()`
-- `isDecoding` / `pendingHourIdx` évitent les décodages simultanés (le slider peut avancer pendant qu'un décodage est en cours)
+`aromeShowHour(hour)`:
+- Decodes the GRIB2 buffer for the requested time step (`decodeGRIB2`) if not already cached in `aromeState.decoded`
+- Updates `gridState` and re-runs `renderHeatmap()`
+- `isDecoding` / `pendingHourIdx` prevent concurrent decoding (the slider can advance while a decode is in progress)
 
 ---
 
-## Vue grille
+## Grid view
 
-### Décodage
+### Decoding
 `showGridView(shortName)` → `decodeGRIB2(msg.buffer)` (WASM CCSDS/JPEG2000).
-Le résultat est stocké dans `gridState`.
+Result stored in `gridState`.
 
-### Rendu canvas
-Canvas offscreen (`heatCanvas`) pleine résolution (ex : 2801×1791 pour AROME), copié sur le canvas visible.
+### Canvas rendering
+Offscreen canvas (`heatCanvas`) at full resolution (e.g. 2801×1791 for AROME), copied to the visible canvas.
 
 ```js
-function buildLUT(paletteName)  // 256 entrées RGB, évite N appels chroma par pixel
-function renderHeatmap()         // lit gridState + currentPalette, repeint le canvas
-function computeOutHeight(grid)  // hauteur de sortie en pixels pour conserver le ratio Mercator
+function buildLUT(paletteName)  // 256 RGB entries, avoids N chroma calls per pixel
+function renderHeatmap()         // reads gridState + currentPalette, repaints the canvas
+function computeOutHeight(grid)  // output height in pixels to preserve Mercator ratio
 ```
 
-Points manquants (≤ MISSING_VALUE) → gris semi-transparent (180, 180, 180, α=100).
+Missing points (≤ MISSING_VALUE) → semi-transparent grey (180, 180, 180, α=100).
 
-Le rendu supporte les deux sens de balayage vertical :
-- **N→S** (`la1 > la2`, scanning mode standard) : `row = rowFromNorth`
-- **S→N** (`la2 > la1`, scanning mode 0x40) : `row = nj - 1 - rowFromNorth`
+Rendering supports both vertical scan directions:
+- **N→S** (`la1 > la2`, standard scanning mode): `row = rowFromNorth`
+- **S→N** (`la2 > la1`, scanning mode 0x40): `row = nj - 1 - rowFromNorth`
 
-### Projection Mercator
+### Mercator projection
 
-`computeOutHeight` et le mapping pixel→latitude utilisent la projection de Mercator :
+`computeOutHeight` and the pixel→latitude mapping use the Mercator projection:
 
 ```js
 const mercatorY    = lat => Math.log(Math.tan(Math.PI/4 + lat * Math.PI/360));
 const invMercatorY = y   => (Math.atan(Math.exp(y)) - Math.PI/4) * 360/Math.PI;
 ```
 
-La hauteur de sortie est calculée pour conserver le ratio géographique `spanY / spanX` en projection Mercator.
+Output height is computed to preserve the geographic ratio `spanY / spanX` in Mercator projection.
 
-### Carte MapLibre GL
+### MapLibre GL map
 
-Le canvas GRIB2 est superposé à une carte de fond via MapLibre GL :
+The GRIB2 canvas is overlaid on a base map via MapLibre GL:
 
 ```js
 import maplibregl from 'https://esm.sh/maplibre-gl@4';
 ```
 
-Le canvas est enregistré comme source `type: "canvas"` avec les coordonnées des coins de la grille :
+The canvas is registered as a `type: "canvas"` source with the grid corner coordinates:
 
 ```js
 function gridCorners(grid)
-// retourne [[west,north],[east,north],[east,south],[west,south]]
-// gère toutes les orientations (N→S/S→N, E→W/W→E) via Math.min/max
+// returns [[west,north],[east,north],[east,south],[west,south]]
+// handles all orientations (N→S/S→N, E→W/W→E) via Math.min/max
 ```
 
-Un écouteur `mousemove` lit les valeurs brutes depuis `gridState` et affiche un tooltip `lat/lon/valeur`.
+A `mousemove` listener reads raw values from `gridState` and shows a `lat/lon/value` tooltip.
 
-### Palette de couleurs (chroma-js)
-Chargé via ESM CDN : `https://esm.sh/chroma-js@2.4.2`
+### Color palettes (chroma-js)
+Loaded via ESM CDN: `https://esm.sh/chroma-js@2.4.2`
 
-11 palettes en 3 groupes (`<select>` dans la toolbar) :
-- **Perceptually uniform** : Plasma, Viridis, Magma, Inferno
-- **Diverging** : Spectral, RdBu, RdYlBu
-- **Sequential** : YlOrRd, OrRd, Blues, YlGnBu
+11 palettes in 3 groups (`<select>` in the toolbar):
+- **Perceptually uniform**: Plasma, Viridis, Magma, Inferno
+- **Diverging**: Spectral, RdBu, RdYlBu
+- **Sequential**: YlOrRd, OrRd, Blues, YlGnBu
 
-`Viridis` et les échelles ColorBrewer sont dans `chroma.brewer`.
-`Plasma`, `Magma`, `Inferno` sont absents du build ESM → définis comme tableaux hex
-dans `CUSTOM_SCALES` et passés directement à `chroma.scale([...])`.
+`Viridis` and ColorBrewer scales are in `chroma.brewer`.
+`Plasma`, `Magma`, `Inferno` are absent from the ESM build → defined as hex arrays
+in `CUSTOM_SCALES` and passed directly to `chroma.scale([...])`.
 
-Changement de palette → `renderHeatmap()` uniquement (pas de re-décodage WASM).
+Palette change → `renderHeatmap()` only (no WASM re-decode).
 
 ### CSS design tokens
 
-Toutes les couleurs, espacements, rayons et transitions sont définis comme custom properties dans `:root` :
+All colours, spacing, radii and transitions are defined as custom properties in `:root`:
 
-- `--color-*` — palette de couleurs (text, surface, bg, border, accent, error, success…)
-- `--space-xs/sm/md/lg/xl` — échelle d'espacement (4/8/16/24/32 px)
-- `--radius-sm/md/lg` — rayons de bordure (6/8/10 px)
-- `--transition-fast/base/slow` — durées de transition (0.12/0.15/0.2 s)
+- `--color-*` — colour palette (text, surface, bg, border, accent, error, success…)
+- `--space-xs/sm/md/lg/xl` — spacing scale (4/8/16/24/32 px)
+- `--radius-sm/md/lg` — border radii (6/8/10 px)
+- `--transition-fast/base/slow` — transition durations (0.12/0.15/0.2 s)
 
-### Helpers DOM
+### DOM helpers
 
 ```js
-function updateParamInfo(name, desc, sub)            // met à jour #gv-name, #gv-desc, #gv-sub
-function updateStats(min, max, mean, count, units)   // met à jour #gv-min, #gv-max, #gv-mean, #gv-valid
+function updateParamInfo(name, desc, sub)            // updates #gv-name, #gv-desc, #gv-sub
+function updateStats(min, max, mean, count, units)   // updates #gv-min, #gv-max, #gv-mean, #gv-valid
 ```
 
-### Légende couleur
-Dégradé CSS généré depuis la scale courante (8 stops via `sc(i/7).css()`),
-appliqué sur `#cs-bar`. Min/max affichés avec l'unité du paramètre.
+### Colour scale legend
+CSS gradient generated from the current scale (8 stops via `sc(i/7).css()`),
+applied to `#cs-bar`. Min/max displayed with the parameter unit.
 
 ---
 
-## Imports JS
+## JS imports
 
 ```html
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" />
+
 <script type="importmap">
   { "imports": { "grib2-decoder": "/packages/grib2-decoder/dist/grib2-decoder.js" } }
 </script>
@@ -176,4 +179,4 @@ import {
 } from 'grib2-decoder';
 ```
 
-L'import map doit précéder le `<script type="module">`. Le serveur est lancé depuis la racine du dépôt, ce qui rend le chemin absolu `/packages/...` résolvable.
+The import map must precede the `<script type="module">`. The server is started from the repository root, making the absolute path `/packages/...` resolvable.

@@ -1,6 +1,6 @@
-# Décodeur GRIB2 — modules src/
+# GRIB2 Decoder — src/ modules
 
-## Structure des fichiers
+## File structure
 
 ```
 packages/grib2-decoder/
@@ -14,52 +14,52 @@ packages/grib2-decoder/
 │   ├── openjpegwasm_decode.cjs  — same module as CJS (Node.js, loaded via createRequire)
 │   └── openjpegwasm_decode.wasm — compiled WASM
 └── src/
-    ├── decoder.js       — parsers de sections + API publique
-    ├── parameters.js    — table de paramètres WMO (discipline:catégorie:numéro → shortName)
-    │                      Disciplines 0 (météo) et 2 (surface terrestre) — AROME SP/HP/IP + ARPEGE
-    ├── stats.js         — computeStats(values) : min/max/mean/stddev/count
-    ├── wmo-tables.js    — tables WMO (CENTRES, TIME_UNIT, TYPE_OF_LEVEL…) + helpers de formatage
-    ├── index.js         — re-exporte tous les symboles publics
+    ├── decoder.js       — section parsers + public API
+    ├── parameters.js    — WMO parameter table (discipline:category:number → shortName)
+    │                      Disciplines 0 (meteorology) and 2 (land surface) — AROME SP/HP/IP + ARPEGE
+    ├── stats.js         — computeStats(values): min/max/mean/stddev/count
+    ├── wmo-tables.js    — WMO lookup tables (CENTRES, TIME_UNIT, TYPE_OF_LEVEL…) + format helpers
+    ├── index.js         — re-exports all public symbols
     ├── templates/
     │   ├── drt-complex.js   — DRT 2/3 decoder (complex packing + spatial differencing)
     │   └── drt-jpeg2000.js  — DRT 40 decoder (JPEG 2000 via OpenJPEG WASM)
     └── wasm/
-        ├── ccsds-loader.js  — chargement lazy du module WASM CCSDS
-        ├── ccsds.js / .wasm — module Emscripten compilé depuis libaec
+        ├── ccsds-loader.js  — lazy loader for the CCSDS WASM module
+        ├── ccsds.js / .wasm — Emscripten module compiled from libaec
         ├── jpeg2000/
-        │   ├── openjpegwasm_decode.js   — module Emscripten OpenJPEG (ESM, browser)
+        │   ├── openjpegwasm_decode.js   — OpenJPEG Emscripten module (ESM, browser)
         │   ├── openjpegwasm_decode.cjs  — same module as CJS (Node.js via createRequire)
         │   └── openjpegwasm_decode.wasm
-        └── ccsds_wrapper.c  — wrapper C autour de libaec
+        └── ccsds_wrapper.c  — C wrapper around libaec
 ```
 
-La source C de libaec est dans `libaec/` à la racine (dépôt : github.com/MathisRosenhauer/libaec).
+The libaec C source is in `libaec/` at the repository root (repo: github.com/MathisRosenhauer/libaec).
 
 ---
 
-## Format GRIB2
+## GRIB2 format
 
-Un message GRIB2 est une séquence de sections :
+A GRIB2 message is a sequence of sections:
 
-| Section | Contenu |
+| Section | Content |
 |---------|---------|
-| 0 | Indicateur : signature "GRIB", édition, discipline, longueur totale |
-| 1 | Identification : centre, sous-centre, date/heure de référence |
-| 2 | Usage local (optionnel, ignoré) |
-| 3 | Définition de grille : Ni, Nj, lat/lon, résolution, scanning mode |
-| 4 | Définition du produit : paramètre, niveau, temps de prévision |
-| 5 | Représentation des données : type de packing, R, E, D, bitsPerValue |
-| 6 | Bitmap (1 bit par point de grille) |
-| 7 | Données compressées |
-| 8 | Fin de message "7777" |
+| 0 | Indicator: "GRIB" signature, edition, discipline, total length |
+| 1 | Identification: centre, sub-centre, reference date/time |
+| 2 | Local use (optional, ignored) |
+| 3 | Grid definition: Ni, Nj, lat/lon, resolution, scanning mode |
+| 4 | Product definition: parameter, level, forecast time |
+| 5 | Data representation: packing type, R, E, D, bitsPerValue |
+| 6 | Bitmap (1 bit per grid point) |
+| 7 | Compressed data |
+| 8 | End-of-message "7777" |
 
-Les sections 2 et 8 ne sont pas parsées. Plusieurs messages peuvent se suivre dans un même fichier.
+Sections 2 and 8 are not parsed. Multiple messages may follow one another in the same file.
 
-## Templates supportés
+## Supported templates
 
-- **Section 3 :** template 0 (grille lat/lon régulière)
-- **Section 4 :** template 0 (analyse/prévision de surface)
-- **Section 5 :** template 0 (simple packing), 2 (complex packing), 3 (complex packing + spatial
+- **Section 3:** template 0 (regular lat/lon grid)
+- **Section 4:** template 0 (surface analysis/forecast)
+- **Section 5:** template 0 (simple packing), 2 (complex packing), 3 (complex packing + spatial
   differencing), 40 (JPEG 2000), 42 (CCSDS), 254 (IEEE 754 big-endian), 255 (constant field)
 
 ---
@@ -184,44 +184,54 @@ Section 7 contains bitsPerValue/8-byte big-endian float32 values. No scaling app
 
 ---
 
-## API publique (`src/index.js`)
+## Public API (`src/index.js`)
 
 ```js
-import { decodeGRIB2, iterateGRIB2Messages, parseGRIB2Header,
-         MISSING_VALUE, computeStats,
-         CENTRES, TIME_UNIT, TYPE_OF_LEVEL, GENERATING_PROCESS,
-         fmtLevel, fmtValidTime, fmtRefTime, fmtScanMode,
-         lookupParameter } from 'grib2-decoder';
+import {
+  // Core decode
+  decodeGRIB2, iterateGRIB2Messages, parseGRIB2Header,
+  MISSING_VALUE, computeStats,
+  // Low-level section parsers
+  walkSections, parseSection1, parseSection3, parseSection4, parseSection5, parseSection6,
+  // Parameter lookup
+  lookupParameter, PARAMETERS,
+  // WMO lookup tables
+  CENTRES, DISCIPLINES, REF_TIME_SIGNIFICANCE, TYPE_OF_DATA,
+  TYPE_OF_LEVEL, TIME_UNIT, GENERATING_PROCESS,
+  DATA_REPR_TEMPLATES, SCAN_MODE_BITS,
+  // Format helpers
+  fmtRefTime, fmtValidTime, fmtLevel, fmtScanMode,
+} from 'grib2-decoder';
 ```
 
 ### `decodeGRIB2(buffer)` — async
-Décode un message GRIB2 complet (Uint8Array ou ArrayBuffer).
-Invoque le WASM pour CCSDS. Retourne `{ header, product, grid, values, bitmap }`.
-- `values` : Float64Array, longueur = `grid.totalPoints`
-- Points manquants (bitmap=0) encodés comme `MISSING_VALUE` (-1e100)
+Decodes a complete GRIB2 message (Uint8Array or ArrayBuffer).
+Invokes WASM for CCSDS. Returns `{ header, product, grid, values, bitmap }`.
+- `values`: Float64Array, length = `grid.totalPoints`
+- Missing points (bitmap=0) encoded as `MISSING_VALUE` (-1e100)
 
-### `iterateGRIB2Messages(buffer)` — générateur synchrone
-Itère les messages d'un fichier multi-messages sans décoder les valeurs.
-Chaque message : `{ index, header, product, grid, buffer }`.
-Utilisé pour afficher la liste des variables sans déclencher le WASM.
+### `iterateGRIB2Messages(buffer)` — synchronous generator
+Iterates messages in a multi-message file without decoding values.
+Each message: `{ index, header, product, grid, buffer }`.
+Used to list variables without triggering WASM.
 
-### `parseGRIB2Header(buffer)` — synchrone
-Parse uniquement les sections 0–5 (pas de WASM, pas de valeurs).
-Retourne `{ header, product, grid, dataOffset, dataLength }`.
+### `parseGRIB2Header(buffer)` — synchronous
+Parses sections 0–5 only (no WASM, no values).
+Returns `{ header, product, grid, dataOffset, dataLength }`.
 
 ### `computeStats(values)`
-Calcule min/max/mean/stddev/count sur un Float64Array en ignorant `MISSING_VALUE`.
+Computes min/max/mean/stddev/count on a Float64Array, ignoring `MISSING_VALUE`.
 
 ### `MISSING_VALUE`
-Constante sentinelle pour les points manquants : `-1e100`.
+Sentinel constant for missing grid points: `-1e100`.
 
-## Tables WMO (`src/wmo-tables.js`)
+## WMO tables (`src/wmo-tables.js`)
 
-Exportées et utilisables dans les deux environnements (navigateur + Node.js) :
+Exported and usable in both environments (browser + Node.js):
 `CENTRES`, `DISCIPLINES`, `REF_TIME_SIGNIFICANCE`, `TYPE_OF_DATA`, `TYPE_OF_LEVEL`,
 `TIME_UNIT`, `GENERATING_PROCESS`, `DATA_REPR_TEMPLATES`, `SCAN_MODE_BITS`.
 
-Helpers de formatage : `fmtRefTime(header)`, `fmtValidTime(header, product)`,
+Format helpers: `fmtRefTime(header)`, `fmtValidTime(header, product)`,
 `fmtLevel(product)`, `fmtScanMode(mode)`.
 
 ## Tests
@@ -230,12 +240,11 @@ Helpers de formatage : `fmtRefTime(header)`, `fmtValidTime(header, product)`,
 npm test   # node --test (5 test files, via packages/grib2-decoder)
 ```
 
-115 tests couvrant : walkSections, parseSection1/3/5/6, decodeGRIB2 (valeurs physiques,
-bitmap, formule de décompression CCSDS), parseGRIB2Header, lookupParameter (régressions
-sur les indices WMO : cape/cin, LW radiation, slhf/sshf), validation croisée JS vs eccodes,
-DRT 2/3 (complex packing: no missing, primary missing, DRT 3 first-order/second-order/negative
-GMIN spatial differencing), DRT 40 (JPEG 2000 constant field + real EWAM file), DRT 3 real-file
-tests (ICON-D2, GFS).
+115 tests covering: walkSections, parseSection1/3/5/6, decodeGRIB2 (physical values,
+bitmap, CCSDS decompression formula), parseGRIB2Header, lookupParameter (WMO index regressions:
+cape/cin, LW radiation, slhf/sshf), JS vs eccodes cross-validation, DRT 2/3 (complex packing:
+no missing, primary missing, DRT 3 first-order/second-order/negative GMIN spatial differencing),
+DRT 40 (JPEG 2000 constant field + real EWAM file), DRT 3 real-file tests (ICON-D2, GFS).
 
 Test files: `decoder.test.js`, `e2e.test.js`, `cross-decode.test.js`, `drt-complex.test.js`,
 `drt-jpeg2000.test.js`.
