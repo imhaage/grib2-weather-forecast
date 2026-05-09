@@ -1,5 +1,5 @@
 {
-  "name": "arome-visualizer",
+  "name": "visualize",
   "private": true,
   "type": "module",
   "dependencies": {

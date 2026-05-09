@@ -1,5 +1,5 @@
 {
   "redirects": [
-    { "source": "/", "destination": "/apps/arome-visualizer/", "type": 301 }
+    { "source": "/", "destination": "/apps/visualize/", "type": 301 }
   ]
 }

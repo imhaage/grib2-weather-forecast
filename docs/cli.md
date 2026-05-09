@@ -7,7 +7,7 @@ npm test                                                        # 115 tests (dé
 npm run build                                                   # build decoder → packages/grib2-decoder/dist/
 npm run info  -- <file.grib2> [output.txt]                      # rapport métadonnées
 npm run export -- <file.grib2> --variable <shortName> [out.csv] # export CSV
-npm run serve                                                   # npx serve . → http://localhost:3000/apps/arome-visualizer/ (via serve.json)
+npm run serve                                                   # npx serve . → http://localhost:3000/apps/visualize/ (via serve.json)
 ```
 
 ---
@@ -57,5 +57,5 @@ Utilise `iterateGRIB2Messages()` pour lister, `decodeGRIB2()` pour décoder,
 ## serve.json
 
 Fichier de configuration pour `npx serve` (Vercel) situé à la racine. Redirige `/` vers
-`/apps/arome-visualizer/` afin qu'`npm run serve` ouvre directement l'application au lieu
+`/apps/visualize/` afin qu'`npm run serve` ouvre directement l'application au lieu
 d'afficher un listing de fichiers. Miroir local du redirect défini dans `netlify.toml`.

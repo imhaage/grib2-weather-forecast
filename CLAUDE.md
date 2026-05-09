@@ -29,5 +29,5 @@ npm test                                          # 115 tests (runs in packages/
 npm run build                                     # build decoder → packages/grib2-decoder/dist/
 npm run info -- <file.grib2>                      # rapport métadonnées
 npm run export -- <file.grib2> --variable <name>  # export CSV
-npm run serve                                     # serveur local → http://localhost:3000/apps/arome-visualizer/
+npm run serve                                     # serveur local → http://localhost:3000/apps/visualize/
 ```

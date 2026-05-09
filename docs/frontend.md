@@ -1,4 +1,4 @@
-# Application web — apps/arome-visualizer/index.html
+# Application web — apps/visualize/index.html
 
 ## Architecture
 
@@ -6,7 +6,7 @@ SPA sans framework, un seul fichier. Deux modes d'utilisation :
 - **Fichier local** : drag-and-drop ou file input → messages GRIB2 parsés localement.
 - **AROME en ligne** : téléchargement de packages GRIB2 depuis un CDN (données Météo-France) avec animation temporelle.
 
-Servie statiquement depuis la racine du dépôt (`npm run serve` → `http://localhost:3000/apps/arome-visualizer/`).
+Servie statiquement depuis la racine du dépôt (`npm run serve` → `http://localhost:3000/apps/visualize/`).
 
 ```
 #             → vue home  (#view-home)
