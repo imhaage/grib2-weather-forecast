@@ -501,9 +501,13 @@
       }
       #arome-dl-bars {
         display: grid;
-        grid-template-columns: repeat(24, 1fr);
+        grid-template-columns: repeat(24, minmax(max-content, 1fr));
         gap: var(--space-xs);
         font-size: 0.72rem;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        box-sizing: border-box;
       }
       .arome-dl-item {
         display: flex;
