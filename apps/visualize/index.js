@@ -1077,15 +1077,19 @@ function showView(name) {
       id === name ? "block" : "none";
 }
 
+function setToolbarMode(mode) {
+  const isGrid = mode === "grid";
+  document.getElementById("back-btn").style.display = isGrid ? "block" : "none";
+  document.getElementById("arome-back-btn").style.display = isGrid ? "none" : "block";
+  document.getElementById("grid-toolbar").style.display = isGrid ? "flex" : "none";
+  document.getElementById("arome-player-toolbar").style.display = isGrid ? "none" : "flex";
+}
+
 function route() {
   const hash = location.hash;
   if (hash.startsWith("#grid/")) {
     showView("view-grid");
-    document.getElementById("back-btn").style.display = "block";
-    document.getElementById("arome-back-btn").style.display = "none";
-    document.getElementById("grid-toolbar").style.display = "flex";
-    document.getElementById("arome-player-toolbar").style.display =
-      "none";
+    setToolbarMode("grid");
     showGridView(decodeURIComponent(hash.slice(6)));
   } else if (hash.startsWith("#arome/")) {
     const packageKey = hash.slice(7);
@@ -1094,11 +1098,7 @@ function route() {
       return;
     }
     showView("view-grid");
-    document.getElementById("back-btn").style.display = "none";
-    document.getElementById("arome-back-btn").style.display = "block";
-    document.getElementById("grid-toolbar").style.display = "none";
-    document.getElementById("arome-player-toolbar").style.display =
-      "flex";
+    setToolbarMode("arome");
     document.getElementById("arome-dl-panel").style.display = "block";
     if (aromeState?.packageKey !== packageKey) {
       aromeState = null;
