@@ -21,102 +21,58 @@ for (const sel of document.querySelectorAll(
   sel.value = "Plasma";
 }
 
-// ── AROME packages ────────────────────────────────────────────────────────────
+// ── Model packages ────────────────────────────────────────────────────────────
 const PACKAGES = {
-  SP1: {
-    key: "SP1",
+  AROME_SP1: {
+    model: "AROME",
     label: "AROME SP1 0.01°",
+    provider: "data-gouv",
+    datasetId: "65bd1247a6238f16e864fa80",
+    titlePattern: "__SP1__",
+    bounds: [[-12, 37.5], [16, 55.4]],
     variables: [
-      {
-        shortName: "t",
-        name: "Temperature",
-        units: "°C",
-        level: "2 m above ground",
-      },
-      {
-        shortName: "r",
-        name: "Relative humidity",
-        units: "%",
-        level: "2 m above ground",
-      },
-      {
-        shortName: "u",
-        name: "U-component of wind",
-        units: "m s-1",
-        level: "10 m above ground",
-      },
-      {
-        shortName: "v",
-        name: "V-component of wind",
-        units: "m s-1",
-        level: "10 m above ground",
-      },
-      {
-        shortName: "ugust",
-        name: "U-component of wind (gust)",
-        units: "m s-1",
-        level: "10 m above ground",
-      },
-      {
-        shortName: "vgust",
-        name: "V-component of wind (gust)",
-        units: "m s-1",
-        level: "10 m above ground",
-      },
+      { shortName: "t",     name: "Temperature",                units: "°C",    level: "2 m above ground" },
+      { shortName: "r",     name: "Relative humidity",          units: "%",     level: "2 m above ground" },
+      { shortName: "u",     name: "U-component of wind",        units: "m s-1", level: "10 m above ground" },
+      { shortName: "v",     name: "V-component of wind",        units: "m s-1", level: "10 m above ground" },
+      { shortName: "ugust", name: "U-component of wind (gust)", units: "m s-1", level: "10 m above ground" },
+      { shortName: "vgust", name: "V-component of wind (gust)", units: "m s-1", level: "10 m above ground" },
     ],
   },
-  SP2: {
-    key: "SP2",
+  AROME_SP2: {
+    model: "AROME",
     label: "AROME SP2 0.01°",
+    provider: "data-gouv",
+    datasetId: "65bd1247a6238f16e864fa80",
+    titlePattern: "__SP2__",
+    bounds: [[-12, 37.5], [16, 55.4]],
     variables: [
-      {
-        shortName: "p",
-        name: "Pressure",
-        units: "hPa",
-        level: "Ground surface",
-      },
-      {
-        shortName: "cape",
-        name: "Convective available potential energy",
-        units: "J kg-1",
-        level: "Ground surface",
-      },
-      {
-        shortName: "lcc",
-        name: "Low cloud cover",
-        units: "%",
-        level: "Ground surface",
-      },
-      {
-        shortName: "mcc",
-        name: "Medium cloud cover",
-        units: "%",
-        level: "Ground surface",
-      },
-      {
-        shortName: "hcc",
-        name: "High cloud cover",
-        units: "%",
-        level: "Ground surface",
-      },
-      {
-        shortName: "tgrp",
-        name: "Graupel (snow pellets) precipitation",
-        units: "mm/h",
-        level: "Ground surface",
-      },
-      {
-        shortName: "rrate",
-        name: "Rain precipitation",
-        units: "mm/h",
-        level: "Ground surface",
-      },
-      {
-        shortName: "srate",
-        name: "Snow precipitation",
-        units: "mm/h",
-        level: "Ground surface",
-      },
+      { shortName: "p",     name: "Pressure",                             units: "hPa",    level: "Ground surface" },
+      { shortName: "cape",  name: "Convective available potential energy", units: "J kg-1", level: "Ground surface" },
+      { shortName: "lcc",   name: "Low cloud cover",                      units: "%",      level: "Ground surface" },
+      { shortName: "mcc",   name: "Medium cloud cover",                   units: "%",      level: "Ground surface" },
+      { shortName: "hcc",   name: "High cloud cover",                     units: "%",      level: "Ground surface" },
+      { shortName: "tgrp",  name: "Graupel (snow pellets) precipitation", units: "mm/h",   level: "Ground surface" },
+      { shortName: "rrate", name: "Rain precipitation",                   units: "mm/h",   level: "Ground surface" },
+      { shortName: "srate", name: "Snow precipitation",                   units: "mm/h",   level: "Ground surface" },
+    ],
+  },
+  ARPEGE_SP1: {
+    model: "ARPEGE",
+    label: "ARPEGE SP1 0.1°",
+    provider: "data-gouv",
+    datasetId: "65bd13b2eb9e79ab309f6e63",
+    titlePattern: "__SP1__",
+    bounds: [[-180, -90], [180, 90]],
+    variables: [
+      { shortName: "t",    name: "Temperature",            units: "°C",    level: "2 m above ground" },
+      { shortName: "r",    name: "Relative humidity",      units: "%",     level: "2 m above ground" },
+      { shortName: "u",    name: "U-component of wind",    units: "m s-1", level: "10 m above ground" },
+      { shortName: "v",    name: "V-component of wind",    units: "m s-1", level: "10 m above ground" },
+      { shortName: "msl",  name: "Pressure reduced to MSL",units: "hPa",   level: "Mean sea level" },
+      { shortName: "tcc",  name: "Total cloud cover",      units: "%",     level: "Ground surface" },
+      { shortName: "wspd", name: "Wind speed",             units: "m s-1", level: "10 m above ground" },
+      { shortName: "wdir", name: "Wind direction",         units: "°",     level: "10 m above ground" },
     ],
   },
 };
@@ -142,10 +98,6 @@ const PARAM_DESCRIPTIONS = {
     "Intensity of snowfall (liquid equivalent), in mm/h. Even modest values can rapidly create dangerous road conditions and reduce visibility, especially at temperatures well below 0°C.",
 };
 
-const AROME_BOUNDS = [
-  [-12, 37.5],
-  [16, 55.4],
-];
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let fileState = null; // { messages: Array }
@@ -153,7 +105,7 @@ let gridState = null; // { values, min, range, grid, product }
 let currentPalette = "Plasma";
 let map = null; // MapLibre instance (created once, reused)
 let heatCanvas = null; // offscreen canvas for heatmap rendering
-let aromeState = null; // { resources, buffers, decoded, decodedOrder, variable }
+let modelState = null; // { packageKey, resources, buffers, messageIndex, hourList, decoded, decodedOrder, variable, currentHour, lastRunInfo }
 let isDecoding = false;
 let pendingHourIdx = null;
 
@@ -219,7 +171,7 @@ const VARIABLE_PALETTES = {
   v: "Viridis",
   ugust: "Viridis",
   vgust: "Viridis",
-  p: "Spectral",
+  p: "RdBu",
   cape: "Spectral",
   lcc: "Viridis",
   mcc: "Viridis",
@@ -227,6 +179,10 @@ const VARIABLE_PALETTES = {
   rrate: "Spectral",
   srate: "Spectral",
   tgrp: "Spectral",
+  msl:  "RdBu",
+  tcc:  "Viridis",
+  wspd: "Viridis",
+  wdir: "Plasma",
 };
 
 // Static color scale ranges for AROME variables (enables timestep comparison).
@@ -250,11 +206,16 @@ const STATIC_SCALES = {
   rrate: { min: 0, max: 150, log: true, zeroThreshold: 0.005 },
   srate: { min: 0, max: 20, log: true, zeroThreshold: 0.005 },
   tgrp: { min: 0, max: 15, log: true, zeroThreshold: 0.005 },
+  msl:  { min: 950, max: 1050 },
+  tcc:  { min: 0, max: 100, zeroThreshold: 0.005 },
+  wspd: { min: 0, max: 30 },
+  wdir: { min: 0, max: 360 },
 };
 
 function displayUnitsFor(shortName, rawUnits) {
-  if (shortName === "t") return "°C";
-  if (shortName === "p") return "hPa";
+  if (shortName === "t")   return "°C";
+  if (shortName === "p")   return "hPa";
+  if (shortName === "msl") return "hPa";
   return rawUnits;
 }
 
@@ -656,8 +617,8 @@ async function initMap(fitBoundsArgs) {
   setupHoverTooltip();
 }
 
-function resetAromeState() {
-  aromeState = null;
+function resetModelState() {
+  modelState = null;
   isDecoding = false;
   pendingHourIdx = null;
   gridState = null;
@@ -667,7 +628,7 @@ function resetAromeState() {
 
 function resetApp() {
   fileState = null;
-  resetAromeState();
+  resetModelState();
   clearMapLayer();
   setStatus("");
   document.getElementById("file-summary").style.display = "none";
@@ -756,29 +717,21 @@ async function showGridView(shortName) {
 
 // ── AROME live data ───────────────────────────────────────────────────────────
 
-async function fetchAromeResources(packageKey) {
-  const resp = await fetch(
-    "https://www.data.gouv.fr/api/1/datasets/65bd1247a6238f16e864fa80/",
-  );
+async function fetchDataGouvResources(datasetId, titlePattern) {
+  const resp = await fetch(`https://www.data.gouv.fr/api/1/datasets/${datasetId}/`);
   if (!resp.ok) throw new Error(`API ${resp.status}`);
   const data = await resp.json();
   return data.resources
-    .filter(
-      (r) =>
-        r.format === "grib2" &&
-        r.title &&
-        r.title.includes(`__${packageKey}__`),
-    )
+    .filter((r) => r.format === "grib2" && r.title?.includes(titlePattern))
     .map((r) => {
-      const m = r.title.match(/__(\d+)H__/);
-      return {
-        hour: m ? parseInt(m[1], 10) : -1,
-        url: r.url,
-        filesize: r.filesize,
-      };
+      const single = r.title.match(/__(\d+)H__/);
+      const range  = r.title.match(/__(\d+)H(\d+)H__/);
+      if (single) return { startHour: +single[1], endHour: +single[1], key: single[0].slice(2, -2), url: r.url, filesize: r.filesize };
+      if (range)  return { startHour: +range[1],  endHour: +range[2],  key: range[0].slice(2, -2),  url: r.url, filesize: r.filesize };
+      return null;
     })
-    .filter((r) => r.hour >= 1)
-    .sort((a, b) => a.hour - b.hour);
+    .filter(Boolean)
+    .sort((a, b) => a.startHour - b.startHour);
 }
 
 async function downloadFileProg(url, filesize, onProgress) {
@@ -805,17 +758,33 @@ async function downloadFileProg(url, filesize, onProgress) {
 }
 
 async function getCachedDecode(hour) {
-  const { decoded, decodedOrder, buffers, variable } = aromeState;
+  const { decoded, decodedOrder, resources, variable } = modelState;
   if (decoded.has(hour)) return decoded.get(hour);
-  const buffer = buffers.get(hour);
-  if (!buffer) return null;
-  if (decodedOrder.length >= DECODED_CACHE_SIZE)
-    decoded.delete(decodedOrder.shift());
-  const data = await decodeVariableFromBuffer(buffer, variable);
-  if (!data) return null;
+
+  const block = resources.find((r) => hour >= r.startHour && hour <= r.endHour);
+  if (!block || !modelState.buffers.has(block.key)) return null;
+
+  if (!modelState.messageIndex.has(block.key)) indexBlock(block.key);
+
+  const msgBuffer = modelState.messageIndex.get(block.key)?.get(`${hour}_${variable}`);
+  if (!msgBuffer) return null;
+
+  if (decodedOrder.length >= DECODED_CACHE_SIZE) decoded.delete(decodedOrder.shift());
+  const dec = await decodeGRIB2(msgBuffer);
+  const data = { values: dec.values, grid: dec.grid, product: dec.product, header: dec.header };
   decoded.set(hour, data);
   decodedOrder.push(hour);
   return data;
+}
+
+function indexBlock(blockKey) {
+  const buffer = modelState.buffers.get(blockKey);
+  const index = new Map();
+  for (const msg of iterateGRIB2Messages(buffer)) {
+    const { product } = msg;
+    index.set(`${product.forecastTime}_${product.shortName}`, msg.buffer);
+  }
+  modelState.messageIndex.set(blockKey, index);
 }
 
 async function decodePrevHourValues(prevHour) {
@@ -823,7 +792,7 @@ async function decodePrevHourValues(prevHour) {
   return data ? data.values : null;
 }
 
-async function aromeShowHour(idx) {
+async function showHour(idx) {
   if (isDecoding) {
     pendingHourIdx = idx;
     return;
@@ -831,8 +800,7 @@ async function aromeShowHour(idx) {
   isDecoding = true;
   pendingHourIdx = null;
   try {
-    const { resources } = aromeState;
-    const { hour } = resources[idx];
+    const hour = modelState.hourList[idx];
     document.getElementById("arome-hour-label").textContent =
       fmtHourLabel(hour);
 
@@ -842,7 +810,7 @@ async function aromeShowHour(idx) {
       return;
     }
 
-    aromeState.currentHour = hour;
+    modelState.currentHour = hour;
     const { values, grid, product, header } = data;
 
     // Precipitation variables (PDT 4.8) are cumulative since H+00 — show hourly increment.
@@ -851,7 +819,7 @@ async function aromeShowHour(idx) {
     let isFallback = false;
 
     if (isAccumulation && idx > 0) {
-      const prevHour = resources[idx - 1].hour;
+      const prevHour = modelState.hourList[idx - 1];
       const prevValues = await decodePrevHourValues(prevHour);
       if (prevValues !== null) {
         const diff = new Float64Array(values.length);
@@ -876,6 +844,10 @@ async function aromeShowHour(idx) {
       displayValues = applyToValues(displayValues, (v) => v - 273.15);
     else if (product.shortName === "p")
       displayValues = applyToValues(displayValues, (v) => v / 100);
+    else if (product.shortName === "msl")
+      displayValues = applyToValues(displayValues, (v) => v / 100);
+    else if (product.shortName === "tcc")
+      displayValues = applyToValues(displayValues, (v) => v * 100);
 
     const {
       min: dataMin,
@@ -899,11 +871,11 @@ async function aromeShowHour(idx) {
       staticScale,
     };
 
-    aromeState.lastRunInfo = `${aromeState.packageKey} · run ${fmtRefTime(header)}`;
+    modelState.lastRunInfo = `${modelState.packageKey} · run ${fmtRefTime(header)}`;
     updateParamInfo(
       product.name,
       PARAM_DESCRIPTIONS[product.shortName] ?? "",
-      aromeState.lastRunInfo + (isFallback ? " · (cumulative — prev not loaded)" : ""),
+      modelState.lastRunInfo + (isFallback ? " · (cumulative — prev not loaded)" : ""),
     );
 
     // Create/resize offscreen canvas only when needed
@@ -920,7 +892,7 @@ async function aromeShowHour(idx) {
     renderHeatmap();
 
     const corners = gridCorners(grid);
-    await initMap([AROME_BOUNDS, { padding: 20, animate: false }]);
+    await initMap([PACKAGES[modelState.packageKey].bounds, { padding: 20, animate: false }]);
     if (!map.getSource("grib2") || canvasChanged)
       setMapLayer(heatCanvas, corners);
     // Update stats + colorscale + valid time
@@ -934,35 +906,38 @@ async function aromeShowHour(idx) {
     document.getElementById("arome-valid-time").textContent =
       `Forecast time: ${fmtValidTime(header, validTimeProduct)}`;
   } catch (err) {
-    console.error("aromeShowHour:", err);
+    console.error("showHour:", err);
     clearMapLayer();
   } finally {
     isDecoding = false;
     if (pendingHourIdx !== null) {
       const next = pendingHourIdx;
       pendingHourIdx = null;
-      aromeShowHour(next);
+      showHour(next);
     }
   }
 }
 
-async function startAromeDownload(packageKey) {
-  // Init state + UI before fetch
-  aromeState = {
+async function startDownload(packageKey) {
+  const pkg = PACKAGES[packageKey];
+  modelState = {
     packageKey,
     resources: [],
     buffers: new Map(),
+    messageIndex: new Map(),
+    hourList: [],
     decoded: new Map(),
     decodedOrder: [],
     variable: null,
+    currentHour: null,
     lastRunInfo: null,
   };
 
   const varSelect = document.getElementById("arome-var-select");
   varSelect.innerHTML = "";
 
-  const pkgVars = PACKAGES[packageKey].variables;
-  aromeState.variable = pkgVars[0].shortName;
+  const pkgVars = pkg.variables;
+  modelState.variable = pkgVars[0].shortName;
   applyDefaultPalette(pkgVars[0].shortName);
   varSelect.innerHTML = pkgVars
     .map(
@@ -970,71 +945,77 @@ async function startAromeDownload(packageKey) {
         `<option value="${v.shortName}">${v.name}${v.level ? " · " + v.level : ""}${v.units ? " (" + v.units + ")" : ""}</option>`,
     )
     .join("");
-  varSelect.value = aromeState.variable;
+  varSelect.value = modelState.variable;
 
   const slider = document.getElementById("arome-slider");
   slider.value = 0;
 
-  // Show base map, zoomed to AROME domain
   await initMap();
-  map.fitBounds(AROME_BOUNDS, { padding: 20, animate: false });
+  map.fitBounds(pkg.bounds, { padding: 20, animate: false });
 
   document.getElementById("arome-dl-status").textContent =
     "Fetching file list…";
 
   let resources;
   try {
-    resources = await fetchAromeResources(packageKey);
+    resources = await fetchDataGouvResources(pkg.datasetId, pkg.titlePattern);
   } catch (e) {
     document.getElementById("arome-dl-status").textContent =
       "API error: " + e.message;
     return;
   }
 
-  aromeState.resources = resources;
-  slider.max = resources.length - 1;
+  modelState.resources = resources;
+
+  // Build hourList: expand each block's [startHour..endHour] range
+  const hourList = [];
+  for (const r of resources) {
+    for (let h = r.startHour; h <= r.endHour; h++) hourList.push(h);
+  }
+  modelState.hourList = hourList;
+  slider.max = hourList.length - 1;
+
   document.getElementById("arome-dl-status").textContent =
     `Downloading ${resources.length} ${packageKey} files…`;
 
-  // Build progress indicators and file list
   const barsEl = document.getElementById("arome-dl-bars");
   const fileListEl = document.getElementById("arome-dl-file-list");
   barsEl.innerHTML = "";
   fileListEl.innerHTML = "";
-  for (const { hour, url } of resources) {
+  for (const r of resources) {
     const item = document.createElement("div");
     item.className = "arome-dl-item";
-    item.id = `dl-${hour}`;
-    item.textContent = `${String(hour).padStart(2, "0")}H`;
+    item.id = `dl-${r.key}`;
+    item.textContent = `H+${String(r.startHour).padStart(3, "0")}`;
     barsEl.appendChild(item);
 
     const li = document.createElement("li");
-    li.textContent = url.split("/").pop();
+    li.textContent = r.url.split("/").pop();
     fileListEl.appendChild(li);
   }
 
-  const downloadKey = aromeState;
+  const downloadKey = modelState;
   let doneCount = 0;
   let legendInitialized = false;
   await Promise.all(
-    resources.map(async ({ hour, url, filesize }) => {
+    resources.map(async (block) => {
       const buffer = await downloadFileProg(
-        url,
-        filesize,
+        block.url,
+        block.filesize,
         (loaded, total) => {
-          if (aromeState !== downloadKey) return;
+          if (modelState !== downloadKey) return;
           document
-            .getElementById(`dl-${hour}`)
+            .getElementById(`dl-${block.key}`)
             ?.style.setProperty(
               "--pct",
               Math.round((loaded / total) * 100) + "%",
             );
         },
       );
-      if (aromeState !== downloadKey) return;
-      aromeState.buffers.set(hour, buffer);
+      if (modelState !== downloadKey) return;
+      modelState.buffers.set(block.key, buffer);
 
-      document.getElementById(`dl-${hour}`)?.classList.add("done");
+      document.getElementById(`dl-${block.key}`)?.classList.add("done");
       doneCount++;
       document.getElementById("arome-dl-status").textContent =
         `Downloading… ${doneCount} / ${resources.length} files`;
@@ -1042,25 +1023,24 @@ async function startAromeDownload(packageKey) {
       // On first arrival: populate legend/info from header (no CCSDS decode)
       if (!legendInitialized) {
         legendInitialized = true;
-        const data = new Uint8Array(buffer);
-        for (const msg of iterateGRIB2Messages(data)) {
-          if (msg.product?.shortName === aromeState.variable) {
-            aromeState.lastRunInfo = `${packageKey} · run ${fmtRefTime(msg.header)}`;
-            applyDefaultPalette(aromeState.variable);
+        for (const msg of iterateGRIB2Messages(buffer)) {
+          if (msg.product?.shortName === modelState.variable) {
+            modelState.lastRunInfo = `${packageKey} · run ${fmtRefTime(msg.header)}`;
+            applyDefaultPalette(modelState.variable);
             updateParamInfo(
               msg.product.name,
-              PARAM_DESCRIPTIONS[aromeState.variable] ?? "",
-              aromeState.lastRunInfo,
+              PARAM_DESCRIPTIONS[modelState.variable] ?? "",
+              modelState.lastRunInfo,
             );
-            const staticScale = STATIC_SCALES[aromeState.variable];
+            const staticScale = STATIC_SCALES[modelState.variable];
             const varDef = pkgVars.find(
-              (v) => v.shortName === aromeState.variable,
+              (v) => v.shortName === modelState.variable,
             );
             if (staticScale && varDef) {
               showColorScale(
                 staticScale.min,
                 staticScale.max,
-                displayUnitsFor(aromeState.variable, varDef.units),
+                displayUnitsFor(modelState.variable, varDef.units),
               );
             }
             break;
@@ -1068,10 +1048,11 @@ async function startAromeDownload(packageKey) {
         }
       }
 
-      // Render map only when the file matching the slider arrives
+      // Render map when the block containing the slider's current hour arrives
       const currentIdx = parseInt(slider.value, 10);
-      if (resources[currentIdx]?.hour === hour && !gridState) {
-        aromeShowHour(currentIdx);
+      const currentHour = hourList[currentIdx];
+      if (currentHour >= block.startHour && currentHour <= block.endHour && !gridState) {
+        showHour(currentIdx);
       }
     }),
   );
@@ -1108,14 +1089,35 @@ function route() {
     showView("view-grid");
     setToolbarMode("arome");
     document.getElementById("arome-dl-panel").style.display = "block";
-    if (aromeState?.packageKey !== packageKey) {
-      resetAromeState();
-      startAromeDownload(packageKey);
+    if (modelState?.packageKey !== packageKey) {
+      resetModelState();
+      startDownload(packageKey);
     }
   } else {
     showView("view-home");
   }
 }
+
+(function buildModelList() {
+  const container = document.getElementById("model-list");
+  const groups = {};
+  for (const [key, pkg] of Object.entries(PACKAGES)) {
+    if (!groups[pkg.model]) groups[pkg.model] = [];
+    groups[pkg.model].push({ key, pkg });
+  }
+  for (const [, entries] of Object.entries(groups)) {
+    const group = document.createElement("div");
+    group.className = "model-group";
+    for (const { key, pkg } of entries) {
+      const btn = document.createElement("button");
+      btn.className = "btn-primary";
+      btn.textContent = `${pkg.label} (last available run)`;
+      btn.addEventListener("click", () => { location.hash = `#arome/${key}`; });
+      group.appendChild(btn);
+    }
+    container.appendChild(group);
+  }
+})();
 
 window.addEventListener("hashchange", route);
 route();
@@ -1168,13 +1170,7 @@ document
   .getElementById("palette-select-arome")
   .addEventListener("change", onPaletteChange);
 
-// ── AROME events ──────────────────────────────────────────────────────────────
-
-for (const key of Object.keys(PACKAGES)) {
-  document.getElementById(`btn-${key.toLowerCase()}`).addEventListener("click", () => {
-    location.hash = `#arome/${key}`;
-  });
-}
+// ── Model player events ───────────────────────────────────────────────────────
 
 document
   .getElementById("arome-back-btn")
@@ -1183,31 +1179,31 @@ document
 document
   .getElementById("arome-var-select")
   .addEventListener("change", (e) => {
-    if (!aromeState) return;
+    if (!modelState) return;
     const shortName = e.target.value;
-    aromeState.variable = shortName;
+    modelState.variable = shortName;
     applyDefaultPalette(shortName);
-    aromeState.decoded.clear();
-    aromeState.decodedOrder = [];
+    modelState.decoded.clear();
+    modelState.decodedOrder = [];
 
     // Immediately sync gv-meta — the async decode may be delayed or queued.
-    const varDef = PACKAGES[aromeState.packageKey].variables.find(
+    const varDef = PACKAGES[modelState.packageKey].variables.find(
       (v) => v.shortName === shortName,
     );
     if (varDef) {
       updateParamInfo(
         varDef.name,
         PARAM_DESCRIPTIONS[shortName] ?? "",
-        aromeState.lastRunInfo ?? aromeState.packageKey,
+        modelState.lastRunInfo ?? modelState.packageKey,
       );
     }
 
     const idx = parseInt(document.getElementById("arome-slider").value, 10);
-    aromeShowHour(idx);
+    showHour(idx);
   });
 
 const aromeSlider = document.getElementById("arome-slider");
 aromeSlider.addEventListener("input", () => {
-  if (!aromeState) return;
-  aromeShowHour(parseInt(aromeSlider.value, 10));
+  if (!modelState) return;
+  showHour(parseInt(aromeSlider.value, 10));
 });

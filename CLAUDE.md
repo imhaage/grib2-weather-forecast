@@ -9,7 +9,8 @@ Based on the WMO FM-92 GRIB Edition 2 spec. CCSDS decompression via WebAssembly 
 
 **Status:** Fully functional — 115 tests pass, CCSDS/JPEG2000 decoding validated on real data.
 Supports DRT 0 (simple packing), DRT 2/3 (complex packing + spatial differencing, ICON-D2/GFS),
-DRT 40 (JPEG 2000, OpenJPEG WASM), DRT 42 (CCSDS, AROME/ARPEGE), DRT 254 (IEEE 754).
+DRT 4/254 (IEEE 754), DRT 40 (JPEG 2000, OpenJPEG WASM, EWAM), DRT 42 (CCSDS, AROME/ARPEGE),
+DRT 255 (constant field).
 
 ## Documentation structure
 

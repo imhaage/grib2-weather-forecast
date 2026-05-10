@@ -15,17 +15,24 @@ packages/grib2-decoder/
 │   └── openjpegwasm_decode.wasm — compiled WASM
 └── src/
     ├── decoder.js       — section parsers + public API
+    ├── byte-helpers.js  — big-endian readers (u8/u16/u32/sm16/f32be), readBits, MISSING_VALUE
     ├── parameters.js    — WMO parameter table (discipline:category:number → shortName)
     │                      Disciplines 0 (meteorology) and 2 (land surface) — AROME SP/HP/IP + ARPEGE
     ├── stats.js         — computeStats(values): min/max/mean/stddev/count
     ├── wmo-tables.js    — WMO lookup tables (CENTRES, TIME_UNIT, TYPE_OF_LEVEL…) + format helpers
     ├── index.js         — re-exports all public symbols
     ├── templates/
+    │   ├── registry.js      — template dispatch: getTemplate(n), registerTemplate(n, module)
+    │   ├── drt-simple.js    — DRT 0 decoder (simple packing)
     │   ├── drt-complex.js   — DRT 2/3 decoder (complex packing + spatial differencing)
-    │   └── drt-jpeg2000.js  — DRT 40 decoder (JPEG 2000 via OpenJPEG WASM)
+    │   ├── drt-jpeg2000.js  — DRT 40 decoder (JPEG 2000 via OpenJPEG WASM)
+    │   ├── drt-ccsds.js     — DRT 42 decoder (CCSDS via libaec WASM)
+    │   ├── drt-ieee754.js   — DRT 4/254 decoder (IEEE 754 float32 big-endian)
+    │   └── drt-constant.js  — DRT 255 decoder (constant field, always MISSING_VALUE)
     └── wasm/
-        ├── ccsds-loader.js  — lazy loader for the CCSDS WASM module
-        ├── ccsds.js / .wasm — Emscripten module compiled from libaec
+        ├── ccsds-loader.js      — lazy loader for the CCSDS WASM module
+        ├── jpeg2000-loader.js   — lazy loader for the OpenJPEG WASM module
+        ├── ccsds.js / .wasm     — Emscripten module compiled from libaec
         ├── jpeg2000/
         │   ├── openjpegwasm_decode.js   — OpenJPEG Emscripten module (ESM, browser)
         │   ├── openjpegwasm_decode.cjs  — same module as CJS (Node.js via createRequire)
@@ -60,7 +67,8 @@ Sections 2 and 8 are not parsed. Multiple messages may follow one another in the
 - **Section 3:** template 0 (regular lat/lon grid)
 - **Section 4:** template 0 (surface analysis/forecast)
 - **Section 5:** template 0 (simple packing), 2 (complex packing), 3 (complex packing + spatial
-  differencing), 40 (JPEG 2000), 42 (CCSDS), 254 (IEEE 754 big-endian), 255 (constant field)
+  differencing), 4 (IEEE 754 big-endian), 40 (JPEG 2000), 42 (CCSDS), 254 (IEEE 754 big-endian,
+  local-use alias), 255 (constant field)
 
 ---
 
@@ -168,7 +176,7 @@ Spec: [NCEP Template 5.40](https://www.nco.ncep.noaa.gov/pmb/docs/grib2/grib2_do
 3. Physical value: Y[i] = (R + ifld[i] × 2^E) × 10^(-D)   (identical to DRT 0)
 ```
 
-Used by: GFS (NOAA operational NWP), ICON-D2 EWAM (DWD ocean wave model).
+Used by: EWAM wave models (DWD). Note: GFS and ICON-D2 use DRT 3 (complex packing).
 
 ### DRT 42 — CCSDS lossless compression
 
@@ -237,14 +245,16 @@ Format helpers: `fmtRefTime(header)`, `fmtValidTime(header, product)`,
 ## Tests
 
 ```bash
-npm test   # node --test (5 test files, via packages/grib2-decoder)
+npm test   # node --test (6 test files, via packages/grib2-decoder)
 ```
 
 115 tests covering: walkSections, parseSection1/3/5/6, decodeGRIB2 (physical values,
 bitmap, CCSDS decompression formula), parseGRIB2Header, lookupParameter (WMO index regressions:
-cape/cin, LW radiation, slhf/sshf), JS vs eccodes cross-validation, DRT 2/3 (complex packing:
-no missing, primary missing, DRT 3 first-order/second-order/negative GMIN spatial differencing),
-DRT 40 (JPEG 2000 constant field + real EWAM file), DRT 3 real-file tests (ICON-D2, GFS).
+cape/cin, LW radiation, slhf/sshf), JS vs eccodes cross-validation, DRT 0 (simple packing:
+bitsPerValue=8, constant field, bitmap masking), DRT 2/3 (complex packing: no missing, primary
+missing, DRT 3 first-order/second-order/negative GMIN spatial differencing), DRT 40 (JPEG 2000
+constant field + real EWAM file), DRT 3 real-file tests (ICON-D2, GFS, Aarhus EWAM),
+DRT 4/254 (IEEE 754: normal decode, truncated data), DRT 255 (constant/missing).
 
 Test files: `decoder.test.js`, `e2e.test.js`, `cross-decode.test.js`, `drt-complex.test.js`,
-`drt-jpeg2000.test.js`.
+`drt-jpeg2000.test.js`, `drt-misc.test.js`.

@@ -4,13 +4,14 @@
 
 Single-file SPA with no framework. Two usage modes:
 - **Local file**: drag-and-drop or file input → GRIB2 messages parsed locally.
-- **AROME online**: download GRIB2 packages from a CDN (Météo-France data) with time animation.
+- **Model online**: download GRIB2 packages from data.gouv.fr (Météo-France) with time animation.
 
 Served statically from the repository root (`npm run serve` → `http://localhost:3000/apps/visualize/`).
 
 ```
 #             → home view  (#view-home)
 #grid/<name>  → grid view  (#view-grid)
+#arome/<key>  → player     (#view-grid in arome toolbar mode)
 ```
 
 ### In-memory state
@@ -18,7 +19,8 @@ Served statically from the repository root (`npm run serve` → `http://localhos
 ```js
 let fileState      = null; // { messages: Array } — parsed messages without WASM decoding
 let gridState      = null; // { values, min, range, grid, product [, displayUnits, staticScale] }
-let aromeState     = null; // { packageKey, resources, buffers, decoded, decodedOrder, variable, currentHour }
+let modelState     = null; // { packageKey, resources, buffers, messageIndex, hourList,
+                           //   decoded, decodedOrder, variable, currentHour, lastRunInfo }
 let currentPalette = 'Plasma';
 let map            = null; // MapLibre instance (created once, reused)
 let heatCanvas     = null; // offscreen canvas for heatmap rendering
@@ -29,8 +31,8 @@ let pendingHourIdx = null;
 `gridState` is kept so the palette can be changed without re-running WASM.
 `staticScale` is set for parameters with a fixed scale (e.g. CAPE); otherwise the scale is computed dynamically from min/max.
 
-`aromeState` is replaced entirely on each new download; progress callbacks check reference identity
-(`downloadKey = aromeState`) to ignore responses from a cancelled download.
+`modelState` is replaced entirely on each new download; progress callbacks check reference identity
+(`downloadKey = modelState`) to ignore responses from a cancelled download.
 
 ---
 
@@ -43,33 +45,99 @@ let pendingHourIdx = null;
 
 ---
 
-## Home view — AROME online
+## Home view — Multi-model online player
 
 ### Available packages
 
 ```js
 const PACKAGES = {
-  SP1: { label: "AROME SP1 0.01°", variables: [...] },  // t, r, u, v, ugust, vgust
-  SP2: { label: "AROME SP2 0.01°", variables: [...] },  // p, cape, lcc, mcc, hcc, tgrp, rrate, srate
+  AROME_SP1: {
+    model: "AROME", label: "AROME SP1 0.01°",
+    provider: "data-gouv", datasetId: "65bd1247a6238f16e864fa80",
+    titlePattern: "__SP1__",
+    bounds: [[-12, 37.5], [16, 55.4]],
+    variables: [...],  // t, r, u, v, ugust, vgust
+  },
+  AROME_SP2: {
+    model: "AROME", label: "AROME SP2 0.01°",
+    provider: "data-gouv", datasetId: "65bd1247a6238f16e864fa80",
+    titlePattern: "__SP2__",
+    bounds: [[-12, 37.5], [16, 55.4]],
+    variables: [...],  // p, cape, lcc, mcc, hcc, tgrp, rrate, srate
+  },
+  ARPEGE_SP1: {
+    model: "ARPEGE", label: "ARPEGE SP1 0.1°",
+    provider: "data-gouv", datasetId: "65bd13b2eb9e79ab309f6e63",
+    titlePattern: "__SP1__",
+    bounds: [[-180, -90], [180, 90]],
+    variables: [...],  // t, r, u, v, msl, tcc, wspd, wdir
+  },
 };
 ```
 
-Each package defines a list of variables (`shortName`, `name`, `units`, `level`) and a base URL for GRIB2 files per time step.
+Each package defines: `model` (group label), `provider`, `datasetId`, `titlePattern` (used to filter
+resources from the API), `bounds` (MapLibre fitBounds target), and `variables` array with
+`{ shortName, name, units, level }`.
+
+The home page model buttons are generated dynamically by `buildModelList()` — an IIFE that groups
+`PACKAGES` entries by `model` and appends `<button>` elements into `#model-list`. No button IDs
+are used; click handlers set `location.hash = #arome/${key}`.
+
+### File naming conventions
+
+data.gouv.fr files follow two patterns parsed by `fetchDataGouvResources`:
+
+| Pattern | Example | Match | Result |
+|---------|---------|-------|--------|
+| Single hour | `__01H__` | `/__(\d+)H__/` | `startHour=1, endHour=1, key="01H"` |
+| Hour range | `__000H012H__` | `/__(\d+)H(\d+)H__/` | `startHour=0, endHour=12, key="000H012H"` |
+
+AROME uses single-hour files (one per forecast hour). ARPEGE uses 12-hour range blocks (e.g. 9
+blocks for a 102-hour run).
 
 ### Download flow
 
-`startAromeDownload(packageKey)`:
-1. Initialises `aromeState` (resets previous state) and sets `downloadKey = aromeState`
-2. Displays the list of files to download with individual progress bars
-3. Launches `Promise.all(...)` over all time steps; each progress callback checks `aromeState !== downloadKey` before updating the DOM — prevents race conditions if a new download starts mid-flight
-4. As buffers arrive, stores them in `aromeState.buffers` and triggers decoding via `aromeShowHour()`
+`startDownload(packageKey)`:
+1. Initialises `modelState` (resets previous state) and sets `downloadKey = modelState`
+2. Calls `fetchDataGouvResources(pkg.datasetId, pkg.titlePattern)` to list available blocks
+3. Builds `hourList`: expands each block's `[startHour..endHour]` range into a flat array of all
+   forecast hours — e.g. `[0, 1, ..., 12, 13, ..., 24, ...]` for ARPEGE or `[0, 1, ..., 51]`
+   for AROME
+4. Sets `slider.max = hourList.length - 1`
+5. Renders one progress bar per block (labelled with `H+${startHour}`)
+6. Launches `Promise.all(...)` over blocks; each callback checks `modelState !== downloadKey` to
+   handle cancellation. On block arrival: stores in `modelState.buffers` (keyed by block key string),
+   optionally initialises the legend, and triggers `showHour()` if the slider's current hour
+   belongs to this block
+
+### Block indexing
+
+`indexBlock(blockKey)` is called lazily on first access to a block's data:
+- Iterates all messages in the block via `iterateGRIB2Messages(buffer)`
+- Builds a `Map<"${forecastTime}_${shortName}", Uint8Array>` for O(1) message lookup
+- Stores the index in `modelState.messageIndex.get(blockKey)`
+
+For AROME (single-hour files), the index has one entry per variable at that hour.
+For ARPEGE (12-hour blocks), the index has 13 hours × N variables entries.
 
 ### Time animation
 
-`aromeShowHour(hour)`:
-- Decodes the GRIB2 buffer for the requested time step (`decodeGRIB2`) if not already cached in `aromeState.decoded`
+`showHour(idx)` (slider index):
+- `const hour = modelState.hourList[idx]` — maps slider position to forecast hour
+- Calls `getCachedDecode(hour)` which finds the block containing `hour`, calls `indexBlock` if
+  needed, looks up `"${hour}_${variable}"` in the index, then calls `decodeGRIB2(msgBuffer)`
+- LRU decode cache (`DECODED_CACHE_SIZE = 5`) keyed by forecast hour
 - Updates `gridState` and re-runs `renderHeatmap()`
-- `isDecoding` / `pendingHourIdx` prevent concurrent decoding (the slider can advance while a decode is in progress)
+- `isDecoding` / `pendingHourIdx` prevent concurrent decoding
+
+Unit conversions applied in `showHour`:
+- `t` (temperature): K → °C (`v - 273.15`)
+- `p` or `msl` (pressure): Pa → hPa (`v / 100`)
+- `tcc` (total cloud cover): fraction → % (`v * 100`)
+- Accumulation variables (PDT 4.8): hourly increment computed as `H[n] − H[n-1]`
+
+Map bounds (`pkg.bounds`) passed to `initMap` / `map.fitBounds` on each package start,
+so the view recentres to the model's domain (France for AROME, global for ARPEGE).
 
 ---
 

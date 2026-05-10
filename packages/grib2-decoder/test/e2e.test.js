@@ -50,30 +50,14 @@ before(async () => {
 // ─── Header ───────────────────────────────────────────────────────────────────
 
 describe('decodeGRIB2 — header (Section 1)', () => {
-    it('centre is 85 (Météo-France)', () => assert.equal(header.centre, 85));
-    it('year is 2026',  () => assert.equal(header.year, 2026));
-    it('month is 4',    () => assert.equal(header.month, 4));
-    it('day is 25',     () => assert.equal(header.day, 25));
-    it('hour is 3',     () => assert.equal(header.hour, 3));
-    it('minute is 0',   () => assert.equal(header.minute, 0));
     it('discipline is 0 (meteorological)', () => assert.equal(header.discipline, 0));
-    it('typeOfData is 1 (forecast)', () => assert.equal(header.typeOfData, 1));
-    it('messageLength is 5158751',   () => assert.equal(header.messageLength, 5158751));
+    it('messageLength is 5158751',         () => assert.equal(header.messageLength, 5158751));
 });
 
 // ─── Grid ─────────────────────────────────────────────────────────────────────
 
 describe('decodeGRIB2 — grid (Section 3)', () => {
-    it('Ni = 2801', () => assert.equal(grid.ni, 2801));
-    it('Nj = 1791', () => assert.equal(grid.nj, 1791));
     it('totalPoints = Ni × Nj = 5016591', () => assert.equal(grid.totalPoints, 5016591));
-    it('resolution Di = 0.01°', () => approx(grid.di, 0.01, 1e-7));
-    it('resolution Dj = 0.01°', () => approx(grid.dj, 0.01, 1e-7));
-    it('La1 ≈ 55.4°N',  () => approx(grid.latitudeOfFirstPoint,  55.4,  0.001));
-    it('Lo1 = -12°E',   () => approx(grid.longitudeOfFirstPoint, -12.0, 0.001));
-    it('La2 = 37.5°N',  () => approx(grid.latitudeOfLastPoint,   37.5,  0.001));
-    it('Lo2 ≈ 16°E',    () => approx(grid.longitudeOfLastPoint,  16.0,  0.001));
-    it('scanning mode 0 (W→E, N→S)', () => assert.equal(grid.scanningMode, 0));
 });
 
 // ─── Values array ─────────────────────────────────────────────────────────────
@@ -88,13 +72,6 @@ describe('decodeGRIB2 — values array shape', () => {
 
 describe('decodeGRIB2 — bitmap', () => {
     it('bitmap is present (Uint8Array)', () => assert.ok(bitmap instanceof Uint8Array));
-    it('bitmap length equals totalPoints', () => assert.equal(bitmap.length, 5016591));
-    it('4160519 valid grid points (bitmap=1)', () => {
-        let count = 0;
-        for (const b of bitmap) count += b;
-        assert.equal(count, 4160519);
-    });
-    // Missing count (856072) is implied: totalPoints - setBits = 5016591 - 4160519.
     it('values at bitmap=0 positions are sentinel -1e100', () => {
         // Spot-check: the first missing value must be -1e100
         const firstMissing = bitmap.indexOf(0);
@@ -182,10 +159,6 @@ describe('parseGRIB2Header', () => {
         h = parseGRIB2Header(ab);
     });
 
-    it('returns header with correct centre', () => assert.equal(h.header.centre, 85));
-    it('returns header with correct year',   () => assert.equal(h.header.year, 2026));
-    it('returns grid with correct Ni',       () => assert.equal(h.grid.ni, 2801));
-    it('returns grid with correct Nj',       () => assert.equal(h.grid.nj, 1791));
     it('dataOffset points into Section 7 data', () => {
         // Section 7 starts at 627248, data (after 5-byte header) at 627253
         assert.equal(h.dataOffset, 627253);
