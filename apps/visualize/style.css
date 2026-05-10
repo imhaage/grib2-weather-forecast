@@ -426,24 +426,25 @@ header span {
 }
 
 /* ══════════════════════════════════════════════════════
- AROME SHORTCUT (home)
+ MODEL LIST (home)
     ══════════════════════════════════════════════════════ */
-#arome-shortcut {
+#model-list {
   margin-top: var(--space-lg);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-sm);
 }
-#btn-sp1,
-#btn-sp2 {
-  padding: var(--space-sm) var(--space-xl);
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-#arome-shortcut small {
+#model-list small {
   font-size: 0.78rem;
   color: var(--color-text-muted);
+}
+.model-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
 }
 .section-desc {
   font-size: 0.9rem;
