@@ -899,11 +899,11 @@ async function aromeShowHour(idx) {
       staticScale,
     };
 
+    aromeState.lastRunInfo = `${aromeState.packageKey} · run ${fmtRefTime(header)}`;
     updateParamInfo(
       product.name,
       PARAM_DESCRIPTIONS[product.shortName] ?? "",
-      `${aromeState.packageKey} · run ${fmtRefTime(header)}` +
-        (isFallback ? " · (cumulative — prev not loaded)" : ""),
+      aromeState.lastRunInfo + (isFallback ? " · (cumulative — prev not loaded)" : ""),
     );
 
     // Create/resize offscreen canvas only when needed
@@ -955,6 +955,7 @@ async function startAromeDownload(packageKey) {
     decoded: new Map(),
     decodedOrder: [],
     variable: null,
+    lastRunInfo: null,
   };
 
   const varSelect = document.getElementById("arome-var-select");
@@ -1044,11 +1045,12 @@ async function startAromeDownload(packageKey) {
         const data = new Uint8Array(buffer);
         for (const msg of iterateGRIB2Messages(data)) {
           if (msg.product?.shortName === aromeState.variable) {
+            aromeState.lastRunInfo = `${packageKey} · run ${fmtRefTime(msg.header)}`;
             applyDefaultPalette(aromeState.variable);
             updateParamInfo(
               msg.product.name,
               PARAM_DESCRIPTIONS[aromeState.variable] ?? "",
-              `${packageKey} · run ${fmtRefTime(msg.header)}`,
+              aromeState.lastRunInfo,
             );
             const staticScale = STATIC_SCALES[aromeState.variable];
             const varDef = pkgVars.find(
@@ -1182,14 +1184,25 @@ document
   .getElementById("arome-var-select")
   .addEventListener("change", (e) => {
     if (!aromeState) return;
-    aromeState.variable = e.target.value;
-    applyDefaultPalette(e.target.value);
+    const shortName = e.target.value;
+    aromeState.variable = shortName;
+    applyDefaultPalette(shortName);
     aromeState.decoded.clear();
     aromeState.decodedOrder = [];
-    const idx = parseInt(
-      document.getElementById("arome-slider").value,
-      10,
+
+    // Immediately sync gv-meta — the async decode may be delayed or queued.
+    const varDef = PACKAGES[aromeState.packageKey].variables.find(
+      (v) => v.shortName === shortName,
     );
+    if (varDef) {
+      updateParamInfo(
+        varDef.name,
+        PARAM_DESCRIPTIONS[shortName] ?? "",
+        aromeState.lastRunInfo ?? aromeState.packageKey,
+      );
+    }
+
+    const idx = parseInt(document.getElementById("arome-slider").value, 10);
     aromeShowHour(idx);
   });
 
