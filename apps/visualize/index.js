@@ -1168,13 +1168,11 @@ document
 
 // ── AROME events ──────────────────────────────────────────────────────────────
 
-document.getElementById("btn-sp1").addEventListener("click", () => {
-  location.hash = "#arome/SP1";
-});
-
-document.getElementById("btn-sp2").addEventListener("click", () => {
-  location.hash = "#arome/SP2";
-});
+for (const key of Object.keys(PACKAGES)) {
+  document.getElementById(`btn-${key.toLowerCase()}`).addEventListener("click", () => {
+    location.hash = `#arome/${key}`;
+  });
+}
 
 document
   .getElementById("arome-back-btn")
