@@ -373,8 +373,10 @@ header span {
   position: absolute;
   z-index: 10;
   pointer-events: none;
-  background: rgba(0, 0, 0, 0.72);
-  color: var(--color-surface);
+  background: #fff;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
   font-size: 0.78rem;
@@ -445,6 +447,11 @@ header span {
   align-items: center;
   gap: var(--space-sm);
   width: 100%;
+}
+.model-group .btn-primary {
+  padding: var(--space-sm) var(--space-xl);
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 .section-desc {
   font-size: 0.9rem;
