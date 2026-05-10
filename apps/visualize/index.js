@@ -160,6 +160,7 @@ let pendingHourIdx = null;
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const fmtNum = (v, d = 4) => v.toFixed(d);
+const fmtHourLabel = (h) => `+${String(h).padStart(2, "0")}H`;
 
 function fmtSize(b) {
   return b >= 1e6
@@ -828,7 +829,7 @@ async function aromeShowHour(idx) {
     const { resources } = aromeState;
     const { hour } = resources[idx];
     document.getElementById("arome-hour-label").textContent =
-      `+${String(hour).padStart(2, "0")}H`;
+      fmtHourLabel(hour);
 
     const data = await getCachedDecode(hour);
     if (!data) {
@@ -1197,9 +1198,5 @@ document
 const aromeSlider = document.getElementById("arome-slider");
 aromeSlider.addEventListener("input", () => {
   if (!aromeState) return;
-  const idx = parseInt(aromeSlider.value, 10);
-  const h = aromeState.resources[idx].hour;
-  document.getElementById("arome-hour-label").textContent =
-    `+${String(h).padStart(2, "0")}H`;
-  aromeShowHour(idx);
+  aromeShowHour(parseInt(aromeSlider.value, 10));
 });
