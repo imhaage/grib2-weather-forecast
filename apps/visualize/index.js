@@ -798,18 +798,23 @@ async function downloadFileProg(url, filesize, onProgress) {
   return out;
 }
 
-async function decodePrevHourValues(prevHour) {
+async function getCachedDecode(hour) {
   const { decoded, decodedOrder, buffers, variable } = aromeState;
-  if (decoded.has(prevHour)) return decoded.get(prevHour).values;
-  const prevBuffer = buffers.get(prevHour);
-  if (!prevBuffer) return null;
+  if (decoded.has(hour)) return decoded.get(hour);
+  const buffer = buffers.get(hour);
+  if (!buffer) return null;
   if (decodedOrder.length >= DECODED_CACHE_SIZE)
     decoded.delete(decodedOrder.shift());
-  const data = await decodeVariableFromBuffer(prevBuffer, variable);
+  const data = await decodeVariableFromBuffer(buffer, variable);
   if (!data) return null;
-  decoded.set(prevHour, data);
-  decodedOrder.push(prevHour);
-  return data.values;
+  decoded.set(hour, data);
+  decodedOrder.push(hour);
+  return data;
+}
+
+async function decodePrevHourValues(prevHour) {
+  const data = await getCachedDecode(prevHour);
+  return data ? data.values : null;
 }
 
 async function aromeShowHour(idx) {
@@ -820,30 +825,15 @@ async function aromeShowHour(idx) {
   isDecoding = true;
   pendingHourIdx = null;
   try {
-    const { resources, buffers, decoded, decodedOrder, variable } =
-      aromeState;
+    const { resources } = aromeState;
     const { hour } = resources[idx];
     document.getElementById("arome-hour-label").textContent =
       `+${String(hour).padStart(2, "0")}H`;
 
-    let data;
-    if (decoded.has(hour)) {
-      data = decoded.get(hour);
-    } else {
-      if (decodedOrder.length >= DECODED_CACHE_SIZE)
-        decoded.delete(decodedOrder.shift());
-      const buffer = buffers.get(hour);
-      if (!buffer) {
-        clearMapLayer();
-        return;
-      }
-      data = await decodeVariableFromBuffer(buffer, variable);
-      if (!data) {
-        clearMapLayer();
-        return;
-      }
-      decoded.set(hour, data);
-      decodedOrder.push(hour);
+    const data = await getCachedDecode(hour);
+    if (!data) {
+      clearMapLayer();
+      return;
     }
 
     aromeState.currentHour = hour;
