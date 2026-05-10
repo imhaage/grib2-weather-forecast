@@ -656,18 +656,23 @@ async function initMap(fitBoundsArgs) {
   setupHoverTooltip();
 }
 
-function resetApp() {
-  fileState = null;
+function resetAromeState() {
   aromeState = null;
   isDecoding = false;
   pendingHourIdx = null;
+  gridState = null;
+  document.getElementById("arome-dl-bars").innerHTML = "";
+  document.getElementById("arome-dl-file-list").innerHTML = "";
+}
+
+function resetApp() {
+  fileState = null;
+  resetAromeState();
   clearMapLayer();
   setStatus("");
   document.getElementById("file-summary").style.display = "none";
   document.getElementById("results").style.display = "none";
   document.getElementById("cards").innerHTML = "";
-  document.getElementById("arome-dl-bars").innerHTML = "";
-  document.getElementById("arome-dl-file-list").innerHTML = "";
   document.getElementById("arome-dl-panel").style.display = "none";
   location.hash = "";
 }
@@ -1102,12 +1107,7 @@ function route() {
     setToolbarMode("arome");
     document.getElementById("arome-dl-panel").style.display = "block";
     if (aromeState?.packageKey !== packageKey) {
-      aromeState = null;
-      isDecoding = false;
-      pendingHourIdx = null;
-      gridState = null;
-      document.getElementById("arome-dl-bars").innerHTML = "";
-      document.getElementById("arome-dl-file-list").innerHTML = "";
+      resetAromeState();
       startAromeDownload(packageKey);
     }
   } else {
