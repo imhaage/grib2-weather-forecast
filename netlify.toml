@@ -3,5 +3,5 @@
 
 [[redirects]]
   from = "/"
-  to   = "/apps/arome-visualizer/"
+  to   = "/apps/visualize/"
   status = 301
