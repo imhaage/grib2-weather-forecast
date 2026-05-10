@@ -537,12 +537,15 @@ function setStatus(msg, isError = false) {
   el.className = isError ? "error" : "";
 }
 
-// Remove the grib2 map layer/source and reset grid display state.
-function clearMapLayer() {
+function removeMapLayerIfExists() {
   if (map?.getSource("grib2")) {
     map.removeLayer("grib2-layer");
     map.removeSource("grib2");
   }
+}
+
+function clearMapLayer() {
+  removeMapLayerIfExists();
   gridState = null;
   hideColorScale();
 }
@@ -602,10 +605,7 @@ function gridCorners({
 }
 
 function setMapLayer(canvas, corners) {
-  if (map.getSource("grib2")) {
-    map.removeLayer("grib2-layer");
-    map.removeSource("grib2");
-  }
+  removeMapLayerIfExists();
   map.addSource("grib2", {
     type: "canvas",
     canvas,
