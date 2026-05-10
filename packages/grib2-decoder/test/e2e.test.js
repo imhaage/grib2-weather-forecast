@@ -287,3 +287,132 @@ describe('DRT 3 — GFS real file', { skip: !existsSync(GFS_FILE) }, () => {
         assert.ok(valid.length > 0, 'No valid values decoded');
     });
 });
+
+// ─── Aarhus ICON-D2 EWAM (DRT 3) End-to-End ──────────────────────────────────
+
+const AARHUS_FILE = new URL('../test/fixtures/Aarhus_ICON-D2_EWAM_20260505-00.grb2', import.meta.url);
+
+describe('DRT 3 — Aarhus ICON-D2 EWAM wave model', { skip: !existsSync(AARHUS_FILE) }, () => {
+    let result;
+
+    before(async () => {
+        const buf  = readFileSync(AARHUS_FILE);
+        const data = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+        for (const msg of iterateGRIB2Messages(data)) {
+            result = await decodeGRIB2(msg.buffer);
+            break;
+        }
+    });
+
+    it('decodes without error', () => assert.ok(result));
+    it('values array has expected length (11484 grid points)', () =>
+        assert.equal(result.values.length, 11484));
+    it('all grid points are valid (no bitmap)', () => {
+        const valid = result.values.filter(v => v > -1e99);
+        assert.equal(valid.length, 11484);
+    });
+    it('values are physically plausible for wave height (0–20 m)', () => {
+        let min = Infinity, max = -Infinity;
+        for (const v of result.values) {
+            if (v > -1e99) { if (v < min) min = v; if (v > max) max = v; }
+        }
+        assert.ok(min >= 0 && max < 20,
+            `Wave height out of range: min=${min.toFixed(2)}, max=${max.toFixed(2)}`);
+    });
+});
+
+// ─── DRT 0 — Simple packing End-to-End ───────────────────────────────────────
+
+const DRT0_FILE = new URL('../test/fixtures/two_bands_bitmap.grib2', import.meta.url);
+
+describe('DRT 0 — simple packing real file', { skip: !existsSync(DRT0_FILE) }, () => {
+    let result;
+
+    before(async () => {
+        const buf  = readFileSync(DRT0_FILE);
+        const data = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+        for (const msg of iterateGRIB2Messages(data)) {
+            result = await decodeGRIB2(msg.buffer);
+            break;
+        }
+    });
+
+    it('decodes without error', () => assert.ok(result));
+    it('values array has expected length (400 grid points)', () =>
+        assert.equal(result.values.length, 400));
+    it('all 400 points are valid', () => {
+        const valid = result.values.filter(v => v > -1e99);
+        assert.equal(valid.length, 400);
+    });
+    it('values are in expected range [74, 255]', () => {
+        let min = Infinity, max = -Infinity;
+        for (const v of result.values) {
+            if (v > -1e99) { if (v < min) min = v; if (v > max) max = v; }
+        }
+        assert.ok(min >= 74 && max <= 255,
+            `Range [${min}, ${max}] outside expected [74, 255]`);
+    });
+});
+
+// ─── DRT 2 — Complex packing End-to-End ──────────────────────────────────────
+
+const DRT2_FILE = new URL('../test/fixtures/drt2_complex.grib2', import.meta.url);
+
+describe('DRT 2 — complex packing real file', { skip: !existsSync(DRT2_FILE) }, () => {
+    let result;
+
+    before(async () => {
+        const buf  = readFileSync(DRT2_FILE);
+        const data = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+        for (const msg of iterateGRIB2Messages(data)) {
+            result = await decodeGRIB2(msg.buffer);
+            break;
+        }
+    });
+
+    it('decodes without error', () => assert.ok(result));
+    it('values array has expected length (400 grid points)', () =>
+        assert.equal(result.values.length, 400));
+    it('all 400 points are valid', () => {
+        const valid = result.values.filter(v => v > -1e99);
+        assert.equal(valid.length, 400);
+    });
+    it('values match DRT 0 range (same source data repacked)', () => {
+        let min = Infinity, max = -Infinity;
+        for (const v of result.values) {
+            if (v > -1e99) { if (v < min) min = v; if (v > max) max = v; }
+        }
+        assert.ok(min >= 74 && max <= 255,
+            `Range [${min}, ${max}] outside expected [74, 255]`);
+    });
+});
+
+// ─── DRT 4 — IEEE 754 End-to-End ─────────────────────────────────────────────
+
+const DRT4_FILE = new URL('../test/fixtures/ieee754_single.grib2', import.meta.url);
+
+describe('DRT 4 — IEEE 754 float32 real file', { skip: !existsSync(DRT4_FILE) }, () => {
+    let result;
+
+    before(async () => {
+        const buf = readFileSync(DRT4_FILE);
+        const ab  = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+        result = await decodeGRIB2(ab);
+    });
+
+    it('decodes without error', () => assert.ok(result));
+    it('values array has expected length (396 grid points)', () =>
+        assert.equal(result.values.length, 396));
+    it('all 396 points are valid', () => {
+        const valid = result.values.filter(v => v > -1e99);
+        assert.equal(valid.length, 396);
+    });
+    it('values are in expected range [74, 255]', () => {
+        let min = Infinity, max = -Infinity;
+        for (const v of result.values) {
+            if (v > -1e99) { if (v < min) min = v; if (v > max) max = v; }
+        }
+        assert.ok(min >= 74 && max <= 255,
+            `Range [${min}, ${max}] outside expected [74, 255]`);
+    });
+});

@@ -9,6 +9,7 @@ const TEMPLATES = {
     0:   drtSimple,
     2:   drtComplex,
     3:   drtComplex,
+    4:   drtIeee754,
     40:  drtJpeg2000,
     42:  drtCcsds,
     254: drtIeee754,
