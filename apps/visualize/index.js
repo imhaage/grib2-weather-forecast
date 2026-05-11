@@ -1504,7 +1504,8 @@ document
       );
     }
 
-    // 1. Select already shows the new value (native browser update)
+    // 1. Yield so the browser paints the new select value before anything else
+    await new Promise(r => requestAnimationFrame(r));
     // 2. Hide elements so the freeze is invisible
     setRendering(true);
     await new Promise(r => setTimeout(r, 0));
@@ -1554,7 +1555,7 @@ document.getElementById("player-play").addEventListener("click", () => {
     const next = (parseInt(aromeSlider.value, 10) + 1) % (max + 1);
     aromeSlider.value = next;
     showHour(next);
-  }, 60);
+  }, 120);
 });
 
 document.getElementById("player-reset").addEventListener("click", () => {
