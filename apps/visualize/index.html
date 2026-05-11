@@ -8,7 +8,7 @@
       rel="stylesheet"
       href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css"
     />
-    <link rel="stylesheet" href="./style.css" />
+    <link rel="stylesheet" href="/apps/visualize/style.css" />
   </head>
   <body>
     <header>
@@ -123,31 +123,33 @@
           </div>
         </div>
 
-        <!-- AROME player toolbar (shown instead of #grid-toolbar in AROME mode) -->
-        <div id="arome-player-toolbar" style="display: none">
-          <div id="arome-var-row">
-            <select id="arome-var-select" class="toolbar-select"></select>
-            <div id="palette-ctrl-arome" class="palette-ctrl-shared">
-              <label for="palette-select-arome">Color scale</label>
-              <select id="palette-select-arome" class="toolbar-select"></select>
+        <div id="map-scene">
+          <!-- AROME player toolbar (shown instead of #grid-toolbar in AROME mode) -->
+          <div id="arome-player-toolbar" style="display: none">
+            <div id="arome-var-row">
+              <select id="arome-var-select" class="toolbar-select"></select>
+              <div id="palette-ctrl-arome" class="palette-ctrl-shared">
+                <label for="palette-select-arome">Color scale</label>
+                <select id="palette-select-arome" class="toolbar-select"></select>
+              </div>
+            </div>
+            <div id="gv-meta">
+              <div>
+                <div id="gv-name"></div>
+                <div id="gv-desc"></div>
+              </div>
+            </div>
+            <div id="arome-slider-wrap">
+              <span id="arome-valid-time"></span>
+              <span id="arome-hour-label">+01H</span>
+              <input type="range" id="arome-slider" min="0" step="1" value="0" />
             </div>
           </div>
-          <div id="gv-meta">
-            <div>
-              <div id="gv-name"></div>
-              <div id="gv-desc"></div>
-            </div>
-          </div>
-          <div id="arome-slider-wrap">
-            <span id="arome-valid-time"></span>
-            <span id="arome-hour-label">+01H</span>
-            <input type="range" id="arome-slider" min="0" step="1" value="0" />
-          </div>
-        </div>
 
-        <div id="map-wrap">
-          <div id="map"></div>
-          <div id="map-tooltip" hidden></div>
+          <div id="map-wrap">
+            <div id="map"></div>
+            <div id="map-tooltip" hidden></div>
+          </div>
         </div>
 
         <div id="colorscale">
@@ -189,6 +191,6 @@
         }
       }
     </script>
-    <script type="module" src="./index.js"></script>
+    <script type="module" src="/apps/visualize/index.js"></script>
   </body>
 </html>

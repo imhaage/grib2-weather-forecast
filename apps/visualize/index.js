@@ -29,6 +29,7 @@ const PACKAGES = {
     provider: "data-gouv",
     datasetId: "65bd1247a6238f16e864fa80",
     titlePattern: "__SP1__",
+    skipHour0: true,
     bounds: [[-12, 37.5], [16, 55.4]],
     variables: [
       { shortName: "t",     name: "Temperature",                units: "°C",    level: "2 m above ground" },
@@ -45,6 +46,7 @@ const PACKAGES = {
     provider: "data-gouv",
     datasetId: "65bd1247a6238f16e864fa80",
     titlePattern: "__SP2__",
+    skipHour0: true,
     bounds: [[-12, 37.5], [16, 55.4]],
     variables: [
       { shortName: "p",     name: "Pressure",                             units: "hPa",    level: "Ground surface" },
@@ -55,6 +57,24 @@ const PACKAGES = {
       { shortName: "tgrp",  name: "Graupel (snow pellets) precipitation", units: "mm/h",   level: "Ground surface" },
       { shortName: "rrate", name: "Rain precipitation",                   units: "mm/h",   level: "Ground surface" },
       { shortName: "srate", name: "Snow precipitation",                   units: "mm/h",   level: "Ground surface" },
+    ],
+  },
+  AROME_HP1: {
+    model: "AROME",
+    label: "AROME HP1 0.01°",
+    provider: "data-gouv",
+    datasetId: "65bd1247a6238f16e864fa80",
+    titlePattern: "__HP1__",
+    skipHour0: true,
+    bounds: [[-12, 37.5], [16, 55.4]],
+    variables: [
+      { shortName: "wspd", varKey: "wspd_10",  levelValue: 10,  name: "Wind speed",      level: "10 m above ground",  units: "km/h" },
+      { shortName: "wspd", varKey: "wspd_20",  levelValue: 20,  name: "Wind speed",      level: "20 m above ground",  units: "km/h" },
+      { shortName: "wspd", varKey: "wspd_50",  levelValue: 50,  name: "Wind speed",      level: "50 m above ground",  units: "km/h" },
+      { shortName: "wdir", varKey: "wdir_10",  levelValue: 10,  name: "Wind direction",  level: "10 m above ground",  units: "°" },
+      { shortName: "wdir", varKey: "wdir_20",  levelValue: 20,  name: "Wind direction",  level: "20 m above ground",  units: "°" },
+      { shortName: "wdir", varKey: "wdir_50",  levelValue: 50,  name: "Wind direction",  level: "50 m above ground",  units: "°" },
+      { shortName: "wdir", varKey: "wdir_100", levelValue: 100, name: "Wind direction",  level: "100 m above ground", units: "°" },
     ],
   },
   ARPEGE_SP1: {
@@ -71,7 +91,7 @@ const PACKAGES = {
       { shortName: "v",    name: "V-component of wind",    units: "m s-1", level: "10 m above ground" },
       { shortName: "msl",  name: "Pressure reduced to MSL",units: "hPa",   level: "Mean sea level" },
       { shortName: "tcc",  name: "Total cloud cover",      units: "%",     level: "Ground surface" },
-      { shortName: "wspd", name: "Wind speed",             units: "m s-1", level: "10 m above ground" },
+      { shortName: "wspd", name: "Wind speed",             units: "km/h",  level: "10 m above ground" },
       { shortName: "wdir", name: "Wind direction",         units: "°",     level: "10 m above ground" },
     ],
   },
@@ -200,7 +220,8 @@ const VARIABLE_PALETTES = {
   tgrp: "Spectral",
   msl:  "RdBu",
   tcc:  "Viridis",
-  wspd: "Viridis",
+  wspd: "Spectral",
+  wspd_10: "Plasma", wspd_20: "Plasma", wspd_50: "Plasma", wspd_100: "Plasma",
   wdir: "Plasma",
 };
 
@@ -227,14 +248,15 @@ const STATIC_SCALES = {
   tgrp: { min: 0, max: 15, log: true, zeroThreshold: 0.005 },
   msl:  { min: 950, max: 1050 },
   tcc:  { min: 0, max: 100, zeroThreshold: 0.005 },
-  wspd: { min: 0, max: 30 },
+  wspd: { min: 0, max: 200 },
   wdir: { min: 0, max: 360 },
 };
 
 function displayUnitsFor(shortName, rawUnits) {
-  if (shortName === "t")   return "°C";
-  if (shortName === "p")   return "hPa";
-  if (shortName === "msl") return "hPa";
+  if (shortName === "t")    return "°C";
+  if (shortName === "p")    return "hPa";
+  if (shortName === "msl")  return "hPa";
+  if (shortName === "wspd") return "km/h";
   return rawUnits;
 }
 
@@ -630,7 +652,7 @@ async function initMap(fitBoundsArgs) {
   if (fitBoundsArgs) map.fitBounds(...fitBoundsArgs);
   map.addControl(
     new maplibregl.FullscreenControl({
-      container: document.getElementById("map-wrap"),
+      container: document.getElementById("map-scene"),
     }),
   );
   setupHoverTooltip();
@@ -785,7 +807,13 @@ async function getCachedDecode(hour) {
 
   if (!modelState.messageIndex.has(block.key)) indexBlock(block.key);
 
-  const msgBuffer = modelState.messageIndex.get(block.key)?.get(`${hour}_${variable}`);
+  const varDef = PACKAGES[modelState.packageKey]?.variables.find(
+    (v) => (v.varKey ?? v.shortName) === variable,
+  );
+  const lookupKey = varDef?.levelValue != null
+    ? `${hour}_${varDef.shortName}_${varDef.levelValue}`
+    : `${hour}_${variable}`;
+  const msgBuffer = modelState.messageIndex.get(block.key)?.get(lookupKey);
   if (!msgBuffer) return null;
 
   if (decodedOrder.length >= DECODED_CACHE_SIZE) decoded.delete(decodedOrder.shift());
@@ -801,7 +829,11 @@ function indexBlock(blockKey) {
   const index = new Map();
   for (const msg of iterateGRIB2Messages(buffer)) {
     const { product } = msg;
-    index.set(`${product.forecastTime}_${product.shortName}`, msg.buffer);
+    // Level-specific key — used by packages with multiple levels per shortName (e.g. HP1)
+    index.set(`${product.forecastTime}_${product.shortName}_${product.levelValue}`, msg.buffer);
+    // Simple key — first occurrence wins; used by single-level packages for backward compat
+    const simpleKey = `${product.forecastTime}_${product.shortName}`;
+    if (!index.has(simpleKey)) index.set(simpleKey, msg.buffer);
   }
   modelState.messageIndex.set(blockKey, index);
 }
@@ -861,6 +893,8 @@ async function showHour(idx) {
 
     if (product.shortName === "t")
       displayValues = applyToValues(displayValues, (v) => v - 273.15);
+    else if (product.shortName === "wspd")
+      displayValues = applyToValues(displayValues, (v) => v * 3.6);
     else if (product.shortName === "p")
       displayValues = applyToValues(displayValues, (v) => v / 100);
     else if (product.shortName === "msl")
@@ -911,9 +945,15 @@ async function showHour(idx) {
     renderHeatmap();
 
     const corners = gridCorners(grid);
-    await initMap([PACKAGES[modelState.packageKey].bounds, { padding: 20, animate: false }]);
-    if (!map.getSource("grib2") || canvasChanged)
+    await initMap();
+    const isFirstLayer = !map.getSource("grib2");
+    if (isFirstLayer || canvasChanged) {
       setMapLayer(heatCanvas, corners);
+      map.fitBounds(
+        [[corners[3][0], corners[2][1]], [corners[1][0], corners[0][1]]],
+        { padding: 20, animate: false },
+      );
+    }
     // Update stats + colorscale + valid time
     updateStats(dataMin, dataMax, mean, count, displayUnits);
     showColorScale(renderMin, renderMax, displayUnits);
@@ -951,17 +991,19 @@ async function startDownload(packageKey) {
     currentHour: null,
     lastRunInfo: null,
   };
+  const downloadKey = modelState;
 
   const varSelect = document.getElementById("arome-var-select");
   varSelect.innerHTML = "";
 
   const pkgVars = pkg.variables;
-  modelState.variable = pkgVars[0].shortName;
-  applyDefaultPalette(pkgVars[0].shortName);
+  const firstVar = pkgVars[0];
+  modelState.variable = firstVar.varKey ?? firstVar.shortName;
+  applyDefaultPalette(firstVar.varKey ?? firstVar.shortName);
   varSelect.innerHTML = pkgVars
     .map(
       (v) =>
-        `<option value="${v.shortName}">${v.name}${v.level ? " · " + v.level : ""}${v.units ? " (" + v.units + ")" : ""}</option>`,
+        `<option value="${v.varKey ?? v.shortName}">${v.name}${v.level ? " · " + v.level : ""}${v.units ? " (" + v.units + ")" : ""}</option>`,
     )
     .join("");
   varSelect.value = modelState.variable;
@@ -970,6 +1012,7 @@ async function startDownload(packageKey) {
   slider.value = 0;
 
   await initMap();
+  if (modelState !== downloadKey) return;
   map.fitBounds(pkg.bounds, { padding: 20, animate: false });
 
   document.getElementById("arome-dl-status").textContent =
@@ -978,7 +1021,10 @@ async function startDownload(packageKey) {
   let resources;
   try {
     resources = await fetchDataGouvResources(pkg.datasetId, pkg.titlePattern);
+    if (modelState !== downloadKey) return;
+    if (pkg.skipHour0) resources = resources.filter((r) => r.startHour > 0);
   } catch (e) {
+    if (modelState !== downloadKey) return;
     document.getElementById("arome-dl-status").textContent =
       "API error: " + e.message;
     return;
@@ -1013,7 +1059,6 @@ async function startDownload(packageKey) {
     fileListEl.appendChild(li);
   }
 
-  const downloadKey = modelState;
   let doneCount = 0;
   let legendInitialized = false;
   await Promise.all(
@@ -1042,28 +1087,30 @@ async function startDownload(packageKey) {
       // On first arrival: populate legend/info from header (no CCSDS decode)
       if (!legendInitialized) {
         legendInitialized = true;
+        const curVarDef = pkgVars.find(
+          (v) => (v.varKey ?? v.shortName) === modelState.variable,
+        );
+        const curShortName = curVarDef?.shortName ?? modelState.variable;
         for (const msg of iterateGRIB2Messages(buffer)) {
-          if (msg.product?.shortName === modelState.variable) {
-            modelState.lastRunInfo = `${packageKey} · run ${fmtRefTime(msg.header)}`;
-            applyDefaultPalette(modelState.variable);
-            updateParamInfo(
-              msg.product.name,
-              PARAM_DESCRIPTIONS[modelState.variable] ?? "",
-              modelState.lastRunInfo,
+          const p = msg.product;
+          if (!p || p.shortName !== curShortName) continue;
+          if (curVarDef?.levelValue != null && p.levelValue !== curVarDef.levelValue) continue;
+          modelState.lastRunInfo = `${packageKey} · run ${fmtRefTime(msg.header)}`;
+          applyDefaultPalette(modelState.variable);
+          updateParamInfo(
+            p.name,
+            PARAM_DESCRIPTIONS[curShortName] ?? "",
+            modelState.lastRunInfo,
+          );
+          const staticScale = STATIC_SCALES[curShortName];
+          if (staticScale && curVarDef) {
+            showColorScale(
+              staticScale.min,
+              staticScale.max,
+              displayUnitsFor(curShortName, curVarDef.units),
             );
-            const staticScale = STATIC_SCALES[modelState.variable];
-            const varDef = pkgVars.find(
-              (v) => v.shortName === modelState.variable,
-            );
-            if (staticScale && varDef) {
-              showColorScale(
-                staticScale.min,
-                staticScale.max,
-                displayUnitsFor(modelState.variable, varDef.units),
-              );
-            }
-            break;
           }
+          break;
         }
       }
 
@@ -1256,16 +1303,17 @@ document
   .getElementById("arome-var-select")
   .addEventListener("change", (e) => {
     if (!modelState) return;
-    const shortName = e.target.value;
-    modelState.variable = shortName;
-    applyDefaultPalette(shortName);
+    const varKey = e.target.value;
+    modelState.variable = varKey;
+    const varDef = PACKAGES[modelState.packageKey].variables.find(
+      (v) => (v.varKey ?? v.shortName) === varKey,
+    );
+    const shortName = varDef?.shortName ?? varKey;
+    applyDefaultPalette(varKey);
     modelState.decoded.clear();
     modelState.decodedOrder = [];
 
     // Immediately sync gv-meta — the async decode may be delayed or queued.
-    const varDef = PACKAGES[modelState.packageKey].variables.find(
-      (v) => v.shortName === shortName,
-    );
     if (varDef) {
       updateParamInfo(
         varDef.name,

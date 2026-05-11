@@ -358,20 +358,38 @@ header span {
   height: 600px;
 }
 
-#map-wrap:fullscreen {
-  width: 100%;
+#map-scene:fullscreen {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+}
+#map-scene:fullscreen #map-wrap {
+  flex: 1;
+  min-height: 0;
+  border-radius: 0;
+}
+#map-scene:fullscreen #map {
   height: 100%;
 }
-#map-wrap:fullscreen #map {
-  height: 100%;
+#map-scene:fullscreen #gv-meta {
+  display: none;
 }
 /* Safari */
-#map-wrap:-webkit-full-screen {
-  width: 100%;
+#map-scene:-webkit-full-screen {
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+}
+#map-scene:-webkit-full-screen #map-wrap {
+  flex: 1;
+  min-height: 0;
+  border-radius: 0;
+}
+#map-scene:-webkit-full-screen #map {
   height: 100%;
 }
-#map-wrap:-webkit-full-screen #map {
-  height: 100%;
+#map-scene:-webkit-full-screen #gv-meta {
+  display: none;
 }
 
 #map-tooltip {
@@ -621,9 +639,8 @@ header span {
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  margin-bottom: var(--space-lg);
   flex-wrap: wrap;
-  padding-top: var(--space-lg);
+  padding: var(--space-md) var(--space-sm);
   border-top: 1px solid var(--color-border);
 }
 #arome-var-row {
