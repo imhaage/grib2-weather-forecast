@@ -151,7 +151,7 @@ let playerInterval = null;
 let renderWorker = null;
 let renderGen = 0;
 let nextCallId = 0;
-let bitmapCache = new Map(); // hour (number) → ImageBitmap, scoped to current variable+palette
+let bitmapCache = new Map(); // cacheKey → {bitmap, dataMin, dataMax, mean, count}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -160,10 +160,10 @@ function initRenderWorker() {
   renderWorker = new Worker(new URL("./render-worker.js", import.meta.url));
 }
 
-// Sends decoded values to the worker, returns Promise<ImageBitmap|null>.
+// Sends raw values to the worker, returns Promise<{bitmap,dataMin,dataMax,mean,count}|null>.
 // Returns null if renderGen changed before the worker responds (stale result).
 // Values are copied (slice) so the decode cache entry remains valid.
-function renderViaWorker(displayValues, renderParams, outW, outH) {
+function renderViaWorker(values, renderParams, outW, outH) {
   initRenderWorker();
   const myGen = renderGen;
   const myCallId = ++nextCallId;
@@ -182,7 +182,7 @@ function renderViaWorker(displayValues, renderParams, outW, outH) {
       renderWorker.removeEventListener("error", onErr);
       if (data.error) { console.error("render-worker error:", data.error); resolve(null); return; }
       if (renderGen !== myGen) { data.bitmap?.close(); resolve(null); return; }
-      resolve(data.bitmap);
+      resolve({ bitmap: data.bitmap, dataMin: data.dataMin, dataMax: data.dataMax, mean: data.dataMean, count: data.dataCount });
     }
     function onErr(e) {
       renderWorker.removeEventListener("message", onMsg);
@@ -193,12 +193,13 @@ function renderViaWorker(displayValues, renderParams, outW, outH) {
     renderWorker.addEventListener("message", onMsg);
     renderWorker.addEventListener("error", onErr);
 
-    const valuesCopy = displayValues.slice();
+    const valuesCopy = values.slice();
     const lut = buildLUT(currentPalette);
     renderWorker.postMessage({
       callId: myCallId,
       gen: myGen,
       values: valuesCopy,
+      unitTransform: renderParams.unitTransform,
       lut,
       missingValue: MISSING_VALUE,
       min: renderParams.renderMin,
@@ -222,7 +223,7 @@ function renderViaWorker(displayValues, renderParams, outW, outH) {
 }
 
 function invalidateBitmapCache() {
-  for (const bitmap of bitmapCache.values()) bitmap.close();
+  for (const entry of bitmapCache.values()) entry.bitmap.close();
   bitmapCache = new Map();
   renderGen++;
 }
@@ -335,6 +336,18 @@ function displayUnitsFor(shortName, rawUnits) {
   if (shortName === "msl")  return "hPa";
   if (shortName === "wspd") return "km/h";
   return rawUnits;
+}
+
+// Returns a unit-conversion function for the given unitTransform key, or null if none.
+function unitFnFor(ut) {
+  switch (ut) {
+    case "t":    return (v) => v - 273.15;
+    case "wspd": return (v) => v * 3.6;
+    case "p":    return (v) => v / 100;
+    case "msl":  return (v) => v / 100;
+    case "tcc":  return (v) => v * 100;
+    default:     return null;
+  }
 }
 
 function applyDefaultPalette(shortName) {
@@ -517,15 +530,14 @@ function setupHoverTooltip() {
     const row = isStoN ? grid.nj - 1 - rowFromNorth : rowFromNorth;
     const col = Math.round((lng - lo1) / di);
     const idx = row * ni + col;
-    const val =
-      idx >= 0 && idx < values.length ? values[idx] : MISSING_VALUE;
-
-    if (val <= MISSING_VALUE) {
+    const rawVal = idx >= 0 && idx < values.length ? values[idx] : MISSING_VALUE;
+    if (rawVal <= MISSING_VALUE) {
       tooltip.hidden = true;
       mapCanvas.style.cursor = "default";
       return;
     }
 
+    const val = gridState.unitFn ? gridState.unitFn(rawVal) : rawVal;
     mapCanvas.style.cursor = "crosshair";
     tooltip.hidden = false;
     tooltip.textContent = `${product.name} : ${val.toFixed(2)} ${gridState.displayUnits ?? product.units}`;
@@ -947,29 +959,28 @@ async function computeRenderParams(data, idx) {
     }
   }
 
-  if (product.shortName === "t")    displayValues = applyToValues(displayValues, (v) => v - 273.15);
-  else if (product.shortName === "wspd") displayValues = applyToValues(displayValues, (v) => v * 3.6);
-  else if (product.shortName === "p")    displayValues = applyToValues(displayValues, (v) => v / 100);
-  else if (product.shortName === "msl")  displayValues = applyToValues(displayValues, (v) => v / 100);
-  else if (product.shortName === "tcc")  displayValues = applyToValues(displayValues, (v) => v * 100);
+  const unitTransform = ["t", "wspd", "p", "msl", "tcc"].includes(product.shortName)
+    ? product.shortName
+    : null;
 
-  const { min: dataMin, max: dataMax, mean, count } = computeStats(displayValues);
   let displayUnits = displayUnitsFor(product.shortName, product.units);
   if (isAccumulation && !isFallback && idx > 0) displayUnits = "mm/h";
 
   const staticScale = STATIC_SCALES[product.shortName] ?? null;
-  const renderMin = staticScale ? staticScale.min : dataMin;
-  const renderMax = staticScale ? staticScale.max : dataMax;
+  // renderMin/renderMax default to 0/1 when no static scale — worker stats provide
+  // actual data range for the legend, but renderMin/range are only used for non-static vars.
+  const renderMin = staticScale ? staticScale.min : 0;
+  const renderMax = staticScale ? staticScale.max : 1;
   const range = renderMax - renderMin || 1;
   const isLog = staticScale?.log ?? false;
   const logDenom = isLog ? Math.log(staticScale.max / LOG_SCALE_FLOOR) : 1;
   const zeroThreshold = staticScale?.zeroThreshold ?? 0;
 
   return {
-    displayValues,
+    values: displayValues,
+    unitTransform,
     renderMin, renderMax, range,
     staticScale, isLog, logDenom, zeroThreshold,
-    dataMin, dataMax, mean, count,
     displayUnits, isFallback,
     grid, product, header,
   };
@@ -997,8 +1008,10 @@ async function showHour(idx) {
     const { grid, product, header } = p;
 
     // Keep gridState in sync so the hover tooltip has current values.
+    // values are raw (pre-unit-transform); unitFn converts them for display.
     gridState = {
-      values: p.displayValues,
+      values: p.values,
+      unitFn: unitFnFor(p.unitTransform),
       min: p.renderMin,
       range: p.range,
       grid,
@@ -1017,17 +1030,22 @@ async function showHour(idx) {
     }
 
     const corners = gridCorners(grid);
+    const ctx = heatCanvas.getContext("2d");
 
     const cacheKey = `${hour}_${p.isFallback ? 1 : 0}`;
+    let statsEntry;
     if (bitmapCache.has(cacheKey)) {
       // Fast path: bitmap already rendered, just blit it.
-      heatCanvas.getContext("2d").drawImage(bitmapCache.get(cacheKey), 0, 0);
+      statsEntry = bitmapCache.get(cacheKey);
+      ctx.clearRect(0, 0, heatCanvas.width, heatCanvas.height);
+      ctx.drawImage(statsEntry.bitmap, 0, 0);
     } else {
-      // Slow path: render via worker, then cache.
-      const bitmap = await renderViaWorker(p.displayValues, p, grid.ni, needH);
-      if (!bitmap) return; // renderGen changed while worker was busy — abort
-      bitmapCache.set(cacheKey, bitmap);
-      heatCanvas.getContext("2d").drawImage(bitmap, 0, 0);
+      // Slow path: render via worker (pixel loop + stats run off-thread), then cache.
+      statsEntry = await renderViaWorker(p.values, p, grid.ni, needH);
+      if (!statsEntry) return; // renderGen changed while worker was busy — abort
+      bitmapCache.set(cacheKey, statsEntry);
+      ctx.clearRect(0, 0, heatCanvas.width, heatCanvas.height);
+      ctx.drawImage(statsEntry.bitmap, 0, 0);
     }
 
     // Update legend bar gradient.
@@ -1053,8 +1071,10 @@ async function showHour(idx) {
       modelState.lastRunInfo + (p.isFallback ? " · (cumulative — prev not loaded)" : ""),
     );
 
-    updateStats(p.dataMin, p.dataMax, p.mean, p.count, p.displayUnits);
-    showColorScale(p.renderMin, p.renderMax, p.displayUnits);
+    updateStats(statsEntry.dataMin, statsEntry.dataMax, statsEntry.mean, statsEntry.count, p.displayUnits);
+    const legendMin = p.staticScale ? p.renderMin : statsEntry.dataMin;
+    const legendMax = p.staticScale ? p.renderMax : statsEntry.dataMax;
+    showColorScale(legendMin, legendMax, p.displayUnits);
 
     const validTimeProduct = product.pdtNumber === 8
       ? { ...product, forecastTime: hour, timeUnit: 1 }
@@ -1100,17 +1120,17 @@ async function prerenderBlock(blockKey) {
 
     const outW = data.grid.ni;
     const outH = mercatorCanvasHeight(data.grid);
-    const bitmap = await renderViaWorker(p.displayValues, p, outW, outH);
-    if (!bitmap) return; // worker stale or crashed — abort this block
+    const entry = await renderViaWorker(p.values, p, outW, outH);
+    if (!entry) return; // worker stale or crashed — abort this block
 
     if (modelState === capturedState && renderGen === capturedGen) {
       if (bitmapCache.has(cacheKey)) {
-        bitmap.close(); // showHour raced and cached it while we were rendering
+        entry.bitmap.close(); // showHour raced and cached it while we were rendering
       } else {
-        bitmapCache.set(cacheKey, bitmap);
+        bitmapCache.set(cacheKey, entry);
       }
     } else {
-      bitmap.close();
+      entry.bitmap.close();
       return;
     }
   }

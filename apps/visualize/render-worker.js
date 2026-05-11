@@ -1,10 +1,11 @@
 // apps/visualize/render-worker.js
 // Pixel loop for heatmap rendering — runs in a Web Worker.
-// Receives decoded values + LUT + grid params, returns an ImageBitmap.
+// Receives raw decoded values + unit transform + LUT + grid params.
+// Returns an ImageBitmap plus field statistics (min/max/mean/count).
 self.onmessage = async ({ data }) => {
   const {
     callId, gen,
-    values, lut,
+    values, unitTransform, lut,
     missingValue,
     min, range,
     isLog, logFloor, logDenom,
@@ -15,6 +16,19 @@ self.onmessage = async ({ data }) => {
   } = data;
 
   try {
+    function applyUnit(v) {
+      switch (unitTransform) {
+        case "t":    return v - 273.15;
+        case "wspd": return v * 3.6;
+        case "p":    return v / 100;
+        case "msl":  return v / 100;
+        case "tcc":  return v * 100;
+        default:     return v;
+      }
+    }
+
+    let dataMin = Infinity, dataMax = -Infinity, dataSum = 0, dataCount = 0;
+
     const img = new ImageData(outW, outH);
     const px = img.data;
 
@@ -30,8 +44,15 @@ self.onmessage = async ({ data }) => {
 
       // Invariant: outW === ni (main thread passes outW: grid.ni)
       for (let col = 0; col < outW; col++) {
-        const v = values[rowOff + col];
-        if (v <= missingValue || (zeroThreshold > 0 && v <= zeroThreshold)) continue;
+        const raw = values[rowOff + col];
+        if (raw <= missingValue) continue;
+        const v = applyUnit(raw);
+        if (zeroThreshold > 0 && v <= zeroThreshold) continue;
+
+        if (v < dataMin) dataMin = v;
+        if (v > dataMax) dataMax = v;
+        dataSum += v;
+        dataCount++;
 
         let t;
         if (isLog) {
@@ -48,8 +69,9 @@ self.onmessage = async ({ data }) => {
       }
     }
 
+    const dataMean = dataCount ? dataSum / dataCount : NaN;
     const bitmap = await createImageBitmap(img);
-    self.postMessage({ callId, gen, bitmap }, [bitmap]);
+    self.postMessage({ callId, gen, bitmap, dataMin, dataMax, dataMean, dataCount }, [bitmap]);
   } catch (e) {
     self.postMessage({ callId, gen, error: e.message });
   }
