@@ -1108,10 +1108,10 @@ async function showHour(idx) {
 
 // Renders all hours in a block into bitmapCache in the background.
 // Silently aborts if the variable or package changes (renderGen / modelState guard).
-// Increments prerenderActiveCount while running; hides spinner when all concurrent
-// calls finish (count reaches 0).
-async function prerenderBlock(blockKey) {
-  prerenderActiveCount++;
+// Pass trackSpinner=true only from user-triggered calls (variable/palette change) so
+// the spinner tracks exactly those renders — not every background download.
+async function prerenderBlock(blockKey, trackSpinner = false) {
+  if (trackSpinner) prerenderActiveCount++;
   const capturedState = modelState;
   const capturedGen = renderGen;
   try {
@@ -1150,8 +1150,10 @@ async function prerenderBlock(blockKey) {
       }
     }
   } finally {
-    prerenderActiveCount--;
-    if (prerenderActiveCount === 0) hideMapSpinner();
+    if (trackSpinner) {
+      prerenderActiveCount--;
+      if (prerenderActiveCount === 0) hideMapSpinner();
+    }
   }
 }
 
@@ -1471,7 +1473,7 @@ async function onPaletteChange(e) {
     await new Promise(r => setTimeout(r, 0)); // yield so the browser can paint the spinner
     showHour(parseInt(document.getElementById("arome-slider").value, 10));
     for (const blockKey of modelState.buffers.keys()) {
-      prerenderBlock(blockKey); // background re-prerender for new palette
+      prerenderBlock(blockKey, true); // trackSpinner: hides when all done
     }
   } else {
     // Single-file grid view: use synchronous renderHeatmap (no model state to cache).
@@ -1520,7 +1522,7 @@ document
     const idx = parseInt(document.getElementById("arome-slider").value, 10);
     showHour(idx);
     for (const blockKey of modelState.buffers.keys()) {
-      prerenderBlock(blockKey); // background re-prerender for new variable
+      prerenderBlock(blockKey, true); // trackSpinner: hides when all done
     }
   });
 
