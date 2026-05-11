@@ -480,6 +480,14 @@ header span {
   font-size: 0.88rem;
 }
 
+.model-packages-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xs);
+}
+
 .model-packages {
   display: flex;
   flex-direction: column;

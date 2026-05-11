@@ -1162,6 +1162,11 @@ function route() {
     }
     section.appendChild(meta);
 
+    const pkgsLabel = document.createElement("p");
+    pkgsLabel.className = "model-packages-label";
+    pkgsLabel.textContent = "Last available run";
+    section.appendChild(pkgsLabel);
+
     const pkgsEl = document.createElement("div");
     pkgsEl.className = "model-packages";
     for (const { key, pkg } of entries) {
@@ -1170,7 +1175,7 @@ function route() {
 
       const btn = document.createElement("button");
       btn.className = "btn-primary";
-      btn.textContent = `${key.split("_").pop()} — last available run`;
+      btn.textContent = key.split("_").pop();
       btn.addEventListener("click", () => { location.hash = `#arome/${key}`; });
       pkgEl.appendChild(btn);
 
