@@ -13,6 +13,7 @@
   --color-error: #f87171;
   --color-success: #4ade80;
   --color-progress: #3b82f6;
+  --space-xxs: 2px;
   --space-xs: 4px;
   --space-sm: 8px;
   --space-md: 16px;
@@ -518,7 +519,7 @@ header span {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
+  padding: var(--space-xxs) var(--space-xs);
   border-radius: var(--radius-sm);
   color: var(--color-text-2);
   background: linear-gradient(
