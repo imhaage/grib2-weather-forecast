@@ -25,6 +25,10 @@
   --transition-fast: 0.12s;
   --transition-base: 0.15s;
   --transition-slow: 0.2s;
+  --font-xs: 0.72rem;
+  --font-sm: 0.78rem;
+  --font-ui: 0.82rem;
+  --font-md: 0.88rem;
 }
 
 *,
@@ -111,7 +115,7 @@ header span {
 }
 #drop-zone small {
   color: var(--color-text-muted);
-  font-size: 0.72rem;
+  font-size: var(--font-xs);
 }
 #file-input {
   display: none;
@@ -120,7 +124,7 @@ header span {
 /* ── Status ── */
 #status {
   margin-top: var(--space-md);
-  font-size: 0.875rem;
+  font-size: var(--font-md);
   color: var(--color-text-2);
   min-height: 1.4em;
   text-align: center;
@@ -156,7 +160,7 @@ header span {
 .meta-label,
 .stat-label,
 #results h2 {
-  font-size: 0.72rem;
+  font-size: var(--font-xs);
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: var(--color-text-muted);
@@ -221,7 +225,7 @@ header span {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  font-size: 0.82rem;
+  font-size: var(--font-ui);
   gap: var(--space-sm);
 }
 .card-row .key {
@@ -260,7 +264,7 @@ header span {
   margin-top: var(--space-md);
   width: 100%;
   padding: var(--space-sm) 0;
-  font-size: 0.82rem;
+  font-size: var(--font-ui);
   font-weight: 500;
 }
 
@@ -292,7 +296,7 @@ header span {
   border-radius: var(--radius-md);
   padding: var(--space-sm) var(--space-md);
   cursor: pointer;
-  font-size: 0.84rem;
+  font-size: var(--font-ui);
   color: var(--color-text-2);
   flex-shrink: 0;
   margin-bottom: var(--space-md);
@@ -316,12 +320,12 @@ header span {
   font-weight: 600;
 }
 #gv-desc {
-  font-size: 0.75rem;
+  font-size: var(--font-sm);
   margin-top: var(--space-xs);
   line-height: 1.45;
 }
 #gv-sub {
-  font-size: 0.78rem;
+  font-size: var(--font-sm);
   font-weight: 600;
   margin-bottom: var(--space-md);
 }
@@ -337,7 +341,7 @@ header span {
   gap: 1px;
 }
 .stat-value {
-  font-size: 0.88rem;
+  font-size: var(--font-md);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
@@ -378,7 +382,7 @@ header span {
   color: #fff;
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--radius-sm);
-  font-size: 0.78rem;
+  font-size: var(--font-sm);
   white-space: nowrap;
 }
 
@@ -388,7 +392,7 @@ header span {
   align-items: center;
   gap: var(--space-sm);
   margin-top: var(--space-sm);
-  font-size: 0.76rem;
+  font-size: var(--font-sm);
   color: var(--color-text-2);
   font-variant-numeric: tabular-nums;
   height: 1.5rem;
@@ -408,7 +412,7 @@ header span {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  font-size: 0.82rem;
+  font-size: var(--font-ui);
   color: var(--color-text-2);
   margin-left: auto;
 }
@@ -417,7 +421,7 @@ header span {
   border: 1px solid var(--color-border-2);
   border-radius: var(--radius-md);
   padding: var(--space-sm);
-  font-size: 0.82rem;
+  font-size: var(--font-ui);
   color: var(--color-text);
   cursor: pointer;
   transition: border-color var(--transition-fast);
@@ -483,12 +487,12 @@ header span {
 }
 
 .model-meta .meta-value {
-  font-size: 0.88rem;
+  font-size: var(--font-md);
   color: var(--color-text-2);
 }
 
 .model-packages-label {
-  font-size: 0.72rem;
+  font-size: var(--font-xs);
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: var(--color-text);
@@ -516,13 +520,13 @@ header span {
 
 .model-section .btn-primary {
   padding: var(--space-sm) var(--space-lg);
-  font-size: 0.88rem;
+  font-size: var(--font-md);
   font-weight: 600;
 }
 
 .model-package-vars {
   list-style: none;
-  font-size: 0.78rem;
+  font-size: var(--font-sm);
   color: var(--color-text-2);
   margin-top: var(--space-xs);
   display: flex;
@@ -541,7 +545,7 @@ header span {
   border-top: 1px solid var(--color-border);
 }
 #arome-dl-status {
-  font-size: 0.88rem;
+  font-size: var(--font-md);
   color: var(--color-text-2);
   margin-bottom: var(--space-md);
 }
@@ -575,7 +579,7 @@ header span {
   margin: var(--space-sm) 0 0;
   padding: 0;
   list-style: none;
-  font-size: 0.78rem;
+  font-size: var(--font-sm);
   color: var(--color-text-2);
   font-family: monospace;
   display: flex;
@@ -586,7 +590,7 @@ header span {
   display: grid;
   grid-template-columns: repeat(24, minmax(max-content, 1fr));
   gap: var(--space-xs);
-  font-size: 0.72rem;
+  font-size: var(--font-xs);
   width: 100%;
   max-width: 100%;
   overflow-x: auto;
@@ -637,7 +641,7 @@ header span {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  font-size: 0.82rem;
+  font-size: var(--font-ui);
   color: var(--color-text-2);
 }
 #arome-slider-wrap {
@@ -654,7 +658,7 @@ header span {
 
 #arome-hour-label {
   font-family: monospace;
-  font-size: 0.88rem;
+  font-size: var(--font-md);
   font-weight: 700;
   min-width: 44px;
   white-space: nowrap;
