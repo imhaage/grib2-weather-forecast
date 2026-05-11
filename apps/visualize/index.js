@@ -1241,7 +1241,6 @@ async function startDownload(packageKey) {
       );
       if (modelState !== downloadKey) return;
       modelState.buffers.set(block.key, buffer);
-      prerenderBlock(block.key); // background pre-render — no await
 
       document.getElementById(`dl-${block.key}`)?.classList.add("done");
       doneCount++;
@@ -1281,8 +1280,18 @@ async function startDownload(packageKey) {
       // Render map when the block containing the slider's current hour arrives
       const currentIdx = parseInt(slider.value, 10);
       const currentHour = hourList[currentIdx];
-      if (currentHour >= block.startHour && currentHour <= block.endHour && !gridState) {
-        showHour(currentIdx);
+      const isFirstDisplay = currentHour >= block.startHour && currentHour <= block.endHour && !gridState;
+
+      if (isFirstDisplay) {
+        // 1. Legend/select already visible  2. Hide map  3. Render + prerender
+        setRendering(true);
+        await new Promise(r => setTimeout(r, 0));
+        const myGen = renderGen;
+        await showHour(currentIdx);
+        await prerenderBlock(block.key);
+        if (renderGen === myGen) setRendering(false);
+      } else {
+        prerenderBlock(block.key); // background pre-render — no await
       }
     }),
   );
@@ -1450,10 +1459,10 @@ async function onPaletteChange(e) {
   document.getElementById("palette-select-arome").value = currentPalette;
   if (!gridState) return;
   if (modelState) {
-    invalidateBitmapCache();
-    const myGen = renderGen;
     setRendering(true);
     await new Promise(r => setTimeout(r, 0));
+    invalidateBitmapCache();
+    const myGen = renderGen;
     showHour(parseInt(document.getElementById("arome-slider").value, 10));
     await Promise.all([...modelState.buffers.keys()].map(k => prerenderBlock(k)));
     if (renderGen === myGen) setRendering(false);
@@ -1485,9 +1494,6 @@ document
     );
     const shortName = varDef?.shortName ?? varKey;
     applyDefaultPalette(varKey);
-    modelState.decoded.clear();
-    modelState.decodedOrder = [];
-    invalidateBitmapCache();
 
     // Immediately sync gv-meta — the async decode may be delayed or queued.
     if (varDef) {
@@ -1498,9 +1504,15 @@ document
       );
     }
 
-    const myGen = renderGen;
+    // 1. Select already shows the new value (native browser update)
+    // 2. Hide elements so the freeze is invisible
     setRendering(true);
     await new Promise(r => setTimeout(r, 0));
+    // 3. Now run the expensive synchronous work
+    modelState.decoded.clear();
+    modelState.decodedOrder = [];
+    invalidateBitmapCache();
+    const myGen = renderGen;
     const idx = parseInt(document.getElementById("arome-slider").value, 10);
     showHour(idx);
     await Promise.all([...modelState.buffers.keys()].map(k => prerenderBlock(k)));
