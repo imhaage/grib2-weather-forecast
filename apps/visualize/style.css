@@ -472,9 +472,12 @@ header span {
   gap: 2px;
 }
 
+.model-meta .meta-label {
+  font-weight: 600;
+}
+
 .model-meta .meta-value {
   font-size: 0.88rem;
-  font-weight: 600;
 }
 
 .model-packages {
