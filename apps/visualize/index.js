@@ -1005,7 +1005,7 @@ async function startDownload(packageKey) {
     const item = document.createElement("div");
     item.className = "arome-dl-item";
     item.id = `dl-${r.key}`;
-    item.textContent = `H+${String(r.startHour).padStart(3, "0")}`;
+    item.textContent = r.key;
     barsEl.appendChild(item);
 
     const li = document.createElement("li");
