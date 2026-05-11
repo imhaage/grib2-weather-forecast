@@ -491,7 +491,7 @@ header span {
 
 .model-package-vars {
   font-size: 0.78rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-2);
   margin-top: var(--space-xs);
   line-height: 1.5;
 }
