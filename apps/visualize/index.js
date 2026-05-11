@@ -152,16 +152,10 @@ let renderWorker = null;
 let renderGen = 0;
 let nextCallId = 0;
 let bitmapCache = new Map(); // cacheKey → {bitmap, dataMin, dataMax, mean, count}
-let prerenderActiveCount = 0; // number of prerenderBlock calls in flight
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function showMapSpinner() {
-  document.getElementById("var-spinner").hidden = false;
-}
-
-function hideMapSpinner() {
-  document.getElementById("var-spinner").hidden = true;
+function setRendering(on) {
+  document.getElementById("map-scene").classList.toggle("rendering", on);
 }
 
 function initRenderWorker() {
@@ -759,8 +753,7 @@ async function initMap(fitBoundsArgs) {
 function resetModelState() {
   stopPlayer();
   invalidateBitmapCache();
-  prerenderActiveCount = 0;
-  hideMapSpinner();
+  setRendering(false);
   modelState = null;
   isDecoding = false;
   pendingHourIdx = null;
@@ -1108,51 +1101,41 @@ async function showHour(idx) {
 
 // Renders all hours in a block into bitmapCache in the background.
 // Silently aborts if the variable or package changes (renderGen / modelState guard).
-// Pass trackSpinner=true only from user-triggered calls (variable/palette change) so
-// the spinner tracks exactly those renders — not every background download.
-async function prerenderBlock(blockKey, trackSpinner = false) {
-  if (trackSpinner) prerenderActiveCount++;
+async function prerenderBlock(blockKey) {
   const capturedState = modelState;
   const capturedGen = renderGen;
-  try {
-    const block = capturedState.resources.find((r) => r.key === blockKey);
-    if (!block) return;
+  const block = capturedState.resources.find((r) => r.key === blockKey);
+  if (!block) return;
 
-    for (let hour = block.startHour; hour <= block.endHour; hour++) {
-      if (modelState !== capturedState || renderGen !== capturedGen) return;
+  for (let hour = block.startHour; hour <= block.endHour; hour++) {
+    if (modelState !== capturedState || renderGen !== capturedGen) return;
 
-      const data = await getCachedDecode(hour);
-      if (!data || modelState !== capturedState || renderGen !== capturedGen) return;
+    const data = await getCachedDecode(hour);
+    if (!data || modelState !== capturedState || renderGen !== capturedGen) return;
 
-      const idx = capturedState.hourList.indexOf(hour);
-      if (idx === -1) continue;
+    const idx = capturedState.hourList.indexOf(hour);
+    if (idx === -1) continue;
 
-      const p = await computeRenderParams(data, idx);
-      if (modelState !== capturedState || renderGen !== capturedGen) return;
+    const p = await computeRenderParams(data, idx);
+    if (modelState !== capturedState || renderGen !== capturedGen) return;
 
-      const cacheKey = `${hour}_${p.isFallback ? 1 : 0}`;
-      if (bitmapCache.has(cacheKey)) continue; // already rendered (e.g. by showHour)
+    const cacheKey = `${hour}_${p.isFallback ? 1 : 0}`;
+    if (bitmapCache.has(cacheKey)) continue; // already rendered (e.g. by showHour)
 
-      const outW = data.grid.ni;
-      const outH = mercatorCanvasHeight(data.grid);
-      const entry = await renderViaWorker(p.values, p, outW, outH);
-      if (!entry) return; // worker stale or crashed — abort this block
+    const outW = data.grid.ni;
+    const outH = mercatorCanvasHeight(data.grid);
+    const entry = await renderViaWorker(p.values, p, outW, outH);
+    if (!entry) return; // worker stale or crashed — abort this block
 
-      if (modelState === capturedState && renderGen === capturedGen) {
-        if (bitmapCache.has(cacheKey)) {
-          entry.bitmap.close(); // showHour raced and cached it while we were rendering
-        } else {
-          bitmapCache.set(cacheKey, entry);
-        }
+    if (modelState === capturedState && renderGen === capturedGen) {
+      if (bitmapCache.has(cacheKey)) {
+        entry.bitmap.close(); // showHour raced and cached it while we were rendering
       } else {
-        entry.bitmap.close();
-        return;
+        bitmapCache.set(cacheKey, entry);
       }
-    }
-  } finally {
-    if (trackSpinner) {
-      prerenderActiveCount--;
-      if (prerenderActiveCount === 0) hideMapSpinner();
+    } else {
+      entry.bitmap.close();
+      return;
     }
   }
 }
@@ -1467,16 +1450,14 @@ async function onPaletteChange(e) {
   document.getElementById("palette-select-arome").value = currentPalette;
   if (!gridState) return;
   if (modelState) {
-    // Model player: invalidate cache, re-render current hour via worker, re-prerender blocks.
     invalidateBitmapCache();
-    showMapSpinner();
-    await new Promise(r => setTimeout(r, 0)); // yield so the browser can paint the spinner
+    const myGen = renderGen;
+    setRendering(true);
+    await new Promise(r => setTimeout(r, 0));
     showHour(parseInt(document.getElementById("arome-slider").value, 10));
-    for (const blockKey of modelState.buffers.keys()) {
-      prerenderBlock(blockKey, true); // trackSpinner: hides when all done
-    }
+    await Promise.all([...modelState.buffers.keys()].map(k => prerenderBlock(k)));
+    if (renderGen === myGen) setRendering(false);
   } else {
-    // Single-file grid view: use synchronous renderHeatmap (no model state to cache).
     renderHeatmap();
   }
 }
@@ -1517,13 +1498,13 @@ document
       );
     }
 
-    showMapSpinner();
-    await new Promise(r => setTimeout(r, 0)); // yield so the browser can paint the spinner
+    const myGen = renderGen;
+    setRendering(true);
+    await new Promise(r => setTimeout(r, 0));
     const idx = parseInt(document.getElementById("arome-slider").value, 10);
     showHour(idx);
-    for (const blockKey of modelState.buffers.keys()) {
-      prerenderBlock(blockKey, true); // trackSpinner: hides when all done
-    }
+    await Promise.all([...modelState.buffers.keys()].map(k => prerenderBlock(k)));
+    if (renderGen === myGen) setRendering(false);
   });
 
 const aromeSlider = document.getElementById("arome-slider");

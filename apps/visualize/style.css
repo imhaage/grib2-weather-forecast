@@ -353,23 +353,12 @@ header span {
   overflow: hidden;
 }
 
-#var-spinner {
-  display: flex;
-  align-items: center;
-  margin-left: 4px;
-}
-
-.spinner-ring {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-top-color: #4f9cf9;
-  border-radius: 50%;
-  animation: spin 0.75s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
+/* While pre-rendering: hide map + controls, keep only the var select visible */
+#map-scene.rendering #map-wrap,
+#map-scene.rendering #palette-ctrl-arome,
+#map-scene.rendering #gv-meta,
+#map-scene.rendering #arome-slider-wrap {
+  visibility: hidden;
 }
 
 #map {
