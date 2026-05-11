@@ -79,20 +79,20 @@ const PACKAGES = {
 
 const MODEL_INFO = {
   AROME: {
-    description: "Modèle haute résolution de Météo-France, limité à la France métropolitaine et ses façades maritimes.",
+    description: "High-resolution model from Météo-France, covering metropolitan France and its Atlantic, English Channel, and Mediterranean seaboards.",
     resolution: "0.01° (~1 km)",
     domain: "12°W – 16°E · 37°N – 55°N",
-    domainDesc: "France métropolitaine et façades Atlantique, Manche, Méditerranée",
-    horizon: "H+01 à H+51",
-    filesInfo: "1 heure par fichier (51 fichiers)",
+    domainDesc: "Metropolitan France and its Atlantic, English Channel, and Mediterranean seaboards",
+    horizon: "H+01 to H+51",
+    filesInfo: "1 hour per file (51 files)",
   },
   ARPEGE: {
-    description: "Modèle à aire limitée de Météo-France couvrant l'Europe, l'Atlantique nord-est et le Moyen-Orient.",
+    description: "Limited-area model from Météo-France covering Europe, the northeast Atlantic, and the Middle East.",
     resolution: "0.1° (~11 km)",
     domain: "32°W – 42°E · 20°N – 72°N",
-    domainDesc: "Europe occidentale à centrale, Sahara à mer de Norvège",
-    horizon: "H+000 à H+102",
-    filesInfo: "12 heures par fichier (9 fichiers)",
+    domainDesc: "Western to central Europe, from the Sahara to the Norwegian Sea",
+    horizon: "H+000 to H+102",
+    filesInfo: "12 hours per file (9 files)",
   },
 };
 
