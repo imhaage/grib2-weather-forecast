@@ -460,7 +460,7 @@ header span {
 .model-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-xs) var(--space-xl);
+  gap: var(--space-sm) var(--space-xl);
   padding: var(--space-sm) 0;
   border-top: 1px solid var(--color-border);
   border-bottom: 1px solid var(--color-border);
