@@ -319,6 +319,11 @@ header span {
   font-size: 1rem;
   font-weight: 600;
 }
+#gv-level {
+  font-size: var(--font-sm);
+  color: var(--color-text-muted);
+  margin-top: var(--space-xxs);
+}
 #gv-desc {
   font-size: var(--font-sm);
   margin-top: var(--space-xs);
@@ -353,7 +358,6 @@ header span {
 
 /* While pre-rendering: hide map + controls, keep only the var select visible */
 #map-scene.rendering #map-wrap,
-#map-scene.rendering #palette-ctrl-arome,
 #map-scene.rendering #gv-meta,
 #map-scene.rendering #arome-slider-wrap {
   visibility: hidden;

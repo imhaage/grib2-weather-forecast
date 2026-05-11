@@ -320,7 +320,7 @@ const STATIC_SCALES = {
   ugust: { min: 0, max: 40 },
   vgust: { min: 0, max: 40 },
   p: { min: 950, max: 1050 },
-  cape: { min: 0, max: 4000 },
+  cape: { min: 0, max: 4000, zeroThreshold: 0.5 },
   lcc: { min: 0, max: 100, zeroThreshold: 0.005 },
   mcc: { min: 0, max: 100, zeroThreshold: 0.005 },
   hcc: { min: 0, max: 100, zeroThreshold: 0.005 },
@@ -654,6 +654,11 @@ function showColorScale(min, max, units) {
 
 function hideColorScale() {
   document.getElementById("colorscale").style.display = "none";
+}
+
+function updateLevelInfo(varDef) {
+  const parts = [varDef?.level, varDef?.units].filter(Boolean);
+  document.getElementById("gv-level").textContent = parts.join(" · ");
 }
 
 function updateParamInfo(name, desc, sub) {
@@ -1166,10 +1171,11 @@ async function startDownload(packageKey) {
   varSelect.innerHTML = pkgVars
     .map(
       (v) =>
-        `<option value="${v.varKey ?? v.shortName}">${v.name}${v.level ? " · " + v.level : ""}${v.units ? " (" + v.units + ")" : ""}</option>`,
+        `<option value="${v.varKey ?? v.shortName}">${v.name}</option>`,
     )
     .join("");
   varSelect.value = modelState.variable;
+  updateLevelInfo(firstVar);
 
   const slider = document.getElementById("arome-slider");
   slider.value = 0;
@@ -1265,6 +1271,7 @@ async function startDownload(packageKey) {
             PARAM_DESCRIPTIONS[curShortName] ?? "",
             modelState.lastRunInfo,
           );
+          updateLevelInfo(curVarDef);
           const staticScale = STATIC_SCALES[curShortName];
           if (staticScale && curVarDef) {
             showColorScale(
@@ -1459,6 +1466,7 @@ async function onPaletteChange(e) {
   document.getElementById("palette-select-arome").value = currentPalette;
   if (!gridState) return;
   if (modelState) {
+    await new Promise(r => requestAnimationFrame(r));
     setRendering(true);
     await new Promise(r => setTimeout(r, 0));
     invalidateBitmapCache();
@@ -1502,6 +1510,7 @@ document
         PARAM_DESCRIPTIONS[shortName] ?? "",
         modelState.lastRunInfo ?? modelState.packageKey,
       );
+      updateLevelInfo(varDef);
     }
 
     // 1. Yield so the browser paints the new select value before anything else
