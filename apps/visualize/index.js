@@ -148,8 +148,84 @@ let modelState = null; // { packageKey, resources, buffers, messageIndex, hourLi
 let isDecoding = false;
 let pendingHourIdx = null;
 let playerInterval = null;
+let renderWorker = null;
+let renderGen = 0;
+let nextCallId = 0;
+let bitmapCache = new Map(); // hour (number) → ImageBitmap, scoped to current variable+palette
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+function initRenderWorker() {
+  if (renderWorker) return;
+  renderWorker = new Worker(new URL("./render-worker.js", import.meta.url));
+}
+
+// Sends decoded values to the worker, returns Promise<ImageBitmap|null>.
+// Returns null if renderGen changed before the worker responds (stale result).
+// Values are copied (slice) so the decode cache entry remains valid.
+function renderViaWorker(displayValues, renderParams, outW, outH) {
+  initRenderWorker();
+  const myGen = renderGen;
+  const myCallId = ++nextCallId;
+
+  const { grid } = renderParams;
+  const northLat = Math.max(grid.latitudeOfFirstPoint, grid.latitudeOfLastPoint);
+  const southLat = Math.min(grid.latitudeOfFirstPoint, grid.latitudeOfLastPoint);
+  const isStoN = grid.latitudeOfLastPoint > grid.latitudeOfFirstPoint;
+  const myNorth = mercatorY(northLat);
+  const mySpan = myNorth - mercatorY(southLat);
+
+  return new Promise((resolve) => {
+    function onMsg({ data }) {
+      if (data.callId !== myCallId) return;
+      renderWorker.removeEventListener("message", onMsg);
+      renderWorker.removeEventListener("error", onErr);
+      if (data.error) { console.error("render-worker error:", data.error); resolve(null); return; }
+      if (renderGen !== myGen) { data.bitmap?.close(); resolve(null); return; }
+      resolve(data.bitmap);
+    }
+    function onErr(e) {
+      renderWorker.removeEventListener("message", onMsg);
+      renderWorker.removeEventListener("error", onErr);
+      console.error("render-worker crash:", e);
+      resolve(null);
+    }
+    renderWorker.addEventListener("message", onMsg);
+    renderWorker.addEventListener("error", onErr);
+
+    const valuesCopy = displayValues.slice();
+    const lut = buildLUT(currentPalette);
+    renderWorker.postMessage({
+      callId: myCallId,
+      gen: myGen,
+      values: valuesCopy,
+      lut,
+      missingValue: MISSING_VALUE,
+      min: renderParams.renderMin,
+      range: renderParams.range,
+      isLog: renderParams.isLog,
+      logFloor: LOG_SCALE_FLOOR,
+      logDenom: renderParams.logDenom,
+      zeroThreshold: renderParams.zeroThreshold,
+      outW,
+      outH,
+      ni: grid.ni,
+      nj: grid.nj,
+      dj: grid.dj,
+      isStoN,
+      northLat,
+      southLat,
+      myNorth,
+      mySpan,
+    }, [valuesCopy.buffer]);
+  });
+}
+
+function invalidateBitmapCache() {
+  for (const bitmap of bitmapCache.values()) bitmap.close();
+  bitmapCache = new Map();
+  renderGen++;
+}
 
 const fmtNum = (v, d = 4) => v.toFixed(d);
 const fmtHourLabel = (h) => `+${String(h).padStart(2, "0")}H`;
@@ -661,6 +737,7 @@ async function initMap(fitBoundsArgs) {
 
 function resetModelState() {
   stopPlayer();
+  invalidateBitmapCache();
   modelState = null;
   isDecoding = false;
   pendingHourIdx = null;
@@ -844,9 +921,58 @@ function indexBlock(blockKey) {
   modelState.messageIndex.set(blockKey, index);
 }
 
-async function decodePrevHourValues(prevHour) {
-  const data = await getCachedDecode(prevHour);
-  return data ? data.values : null;
+// Applies all transforms to raw decoded data and returns render-ready params.
+// idx is the slider index — needed to compute accumulation diff with previous hour.
+async function computeRenderParams(data, idx) {
+  const { values, grid, product, header } = data;
+  const isAccumulation = product.pdtNumber === 8;
+  let displayValues = values;
+  let isFallback = false;
+
+  if (isAccumulation && idx > 0) {
+    const prevHour = modelState.hourList[idx - 1];
+    const prevData = await getCachedDecode(prevHour);
+    if (prevData !== null) {
+      const diff = new Float64Array(values.length);
+      for (let i = 0; i < values.length; i++) {
+        if (values[i] <= MISSING_VALUE || prevData.values[i] <= MISSING_VALUE) {
+          diff[i] = MISSING_VALUE;
+        } else {
+          diff[i] = Math.max(0, values[i] - prevData.values[i]);
+        }
+      }
+      displayValues = diff;
+    } else {
+      isFallback = true;
+    }
+  }
+
+  if (product.shortName === "t")    displayValues = applyToValues(displayValues, (v) => v - 273.15);
+  else if (product.shortName === "wspd") displayValues = applyToValues(displayValues, (v) => v * 3.6);
+  else if (product.shortName === "p")    displayValues = applyToValues(displayValues, (v) => v / 100);
+  else if (product.shortName === "msl")  displayValues = applyToValues(displayValues, (v) => v / 100);
+  else if (product.shortName === "tcc")  displayValues = applyToValues(displayValues, (v) => v * 100);
+
+  const { min: dataMin, max: dataMax, mean, count } = computeStats(displayValues);
+  let displayUnits = displayUnitsFor(product.shortName, product.units);
+  if (isAccumulation && !isFallback && idx > 0) displayUnits = "mm/h";
+
+  const staticScale = STATIC_SCALES[product.shortName] ?? null;
+  const renderMin = staticScale ? staticScale.min : dataMin;
+  const renderMax = staticScale ? staticScale.max : dataMax;
+  const range = renderMax - renderMin || 1;
+  const isLog = staticScale?.log ?? false;
+  const logDenom = isLog ? Math.log(staticScale.max / LOG_SCALE_FLOOR) : 1;
+  const zeroThreshold = staticScale?.zeroThreshold ?? 0;
+
+  return {
+    displayValues,
+    renderMin, renderMax, range,
+    staticScale, isLog, logDenom, zeroThreshold,
+    dataMin, dataMax, mean, count,
+    displayUnits, isFallback,
+    grid, product, header,
+  };
 }
 
 async function showHour(idx) {
@@ -858,8 +984,7 @@ async function showHour(idx) {
   pendingHourIdx = null;
   try {
     const hour = modelState.hourList[idx];
-    document.getElementById("arome-hour-label").textContent =
-      fmtHourLabel(hour);
+    document.getElementById("arome-hour-label").textContent = fmtHourLabel(hour);
 
     const data = await getCachedDecode(hour);
     if (!data) {
@@ -868,89 +993,48 @@ async function showHour(idx) {
     }
 
     modelState.currentHour = hour;
-    const { values, grid, product, header } = data;
+    const p = await computeRenderParams(data, idx);
+    const { grid, product, header } = p;
 
-    // Precipitation variables (PDT 4.8) are cumulative since H+00 — show hourly increment.
-    const isAccumulation = product.pdtNumber === 8;
-    let displayValues = values;
-    let isFallback = false;
-
-    if (isAccumulation && idx > 0) {
-      const prevHour = modelState.hourList[idx - 1];
-      const prevValues = await decodePrevHourValues(prevHour);
-      if (prevValues !== null) {
-        const diff = new Float64Array(values.length);
-        for (let i = 0; i < values.length; i++) {
-          if (
-            values[i] <= MISSING_VALUE ||
-            prevValues[i] <= MISSING_VALUE
-          ) {
-            diff[i] = MISSING_VALUE;
-          } else {
-            diff[i] = Math.max(0, values[i] - prevValues[i]);
-          }
-        }
-        displayValues = diff;
-      } else {
-        isFallback = true;
-      }
-    }
-    // idx === 0 (01H): raw cumulative value equals the 1H increment (model accumulates from 0 at run start).
-
-    if (product.shortName === "t")
-      displayValues = applyToValues(displayValues, (v) => v - 273.15);
-    else if (product.shortName === "wspd")
-      displayValues = applyToValues(displayValues, (v) => v * 3.6);
-    else if (product.shortName === "p")
-      displayValues = applyToValues(displayValues, (v) => v / 100);
-    else if (product.shortName === "msl")
-      displayValues = applyToValues(displayValues, (v) => v / 100);
-    else if (product.shortName === "tcc")
-      displayValues = applyToValues(displayValues, (v) => v * 100);
-
-    const {
-      min: dataMin,
-      max: dataMax,
-      mean,
-      count,
-    } = computeStats(displayValues);
-    let displayUnits = displayUnitsFor(product.shortName, product.units);
-    if (isAccumulation && !isFallback) displayUnits = "mm/h";
-    const staticScale = STATIC_SCALES[product.shortName] ?? null;
-    const renderMin = staticScale ? staticScale.min : dataMin;
-    const renderMax = staticScale ? staticScale.max : dataMax;
-    const range = renderMax - renderMin || 1;
+    // Keep gridState in sync so the hover tooltip has current values.
     gridState = {
-      values: displayValues,
-      min: renderMin,
-      range,
+      values: p.displayValues,
+      min: p.renderMin,
+      range: p.range,
       grid,
       product,
-      displayUnits,
-      staticScale,
+      displayUnits: p.displayUnits,
+      staticScale: p.staticScale,
     };
 
-    modelState.lastRunInfo = `${modelState.packageKey} · run ${fmtRefTime(header)}`;
-    updateParamInfo(
-      product.name,
-      PARAM_DESCRIPTIONS[product.shortName] ?? "",
-      modelState.lastRunInfo + (isFallback ? " · (cumulative — prev not loaded)" : ""),
-    );
-
-    // Create/resize offscreen canvas only when needed
+    // Create/resize offscreen canvas only when the grid dimensions change.
     const needH = mercatorCanvasHeight(grid);
-    const canvasChanged =
-      !heatCanvas ||
-      heatCanvas.width !== grid.ni ||
-      heatCanvas.height !== needH;
+    const canvasChanged = !heatCanvas || heatCanvas.width !== grid.ni || heatCanvas.height !== needH;
     if (canvasChanged) {
       heatCanvas = document.createElement("canvas");
       heatCanvas.width = grid.ni;
       heatCanvas.height = needH;
     }
-    renderHeatmap();
 
     const corners = gridCorners(grid);
+
+    const cacheKey = `${hour}_${p.isFallback ? 1 : 0}`;
+    if (bitmapCache.has(cacheKey)) {
+      // Fast path: bitmap already rendered, just blit it.
+      heatCanvas.getContext("2d").drawImage(bitmapCache.get(cacheKey), 0, 0);
+    } else {
+      // Slow path: render via worker, then cache.
+      const bitmap = await renderViaWorker(p.displayValues, p, grid.ni, needH);
+      if (!bitmap) return; // renderGen changed while worker was busy — abort
+      bitmapCache.set(cacheKey, bitmap);
+      heatCanvas.getContext("2d").drawImage(bitmap, 0, 0);
+    }
+
+    // Update legend bar gradient.
+    const sc = makeScale(currentPalette);
+    const stops = Array.from({ length: 8 }, (_, i) => sc(i / 7).css()).join(", ");
+    document.getElementById("cs-bar").style.background = `linear-gradient(to right, ${stops})`;
+
     await initMap();
     const isFirstLayer = !map.getSource("grib2");
     if (isFirstLayer || canvasChanged) {
@@ -960,16 +1044,24 @@ async function showHour(idx) {
         { padding: 20, animate: false },
       );
     }
-    // Update stats + colorscale + valid time
-    updateStats(dataMin, dataMax, mean, count, displayUnits);
-    showColorScale(renderMin, renderMax, displayUnits);
-    // PDT 4.8 accumulations always have forecastTime=0 (start of interval);
-    // use the file's hour offset as the end-of-interval valid time instead.
-    const validTimeProduct = isAccumulation
+    if (map) map.triggerRepaint();
+
+    modelState.lastRunInfo = `${modelState.packageKey} · run ${fmtRefTime(header)}`;
+    updateParamInfo(
+      product.name,
+      PARAM_DESCRIPTIONS[product.shortName] ?? "",
+      modelState.lastRunInfo + (p.isFallback ? " · (cumulative — prev not loaded)" : ""),
+    );
+
+    updateStats(p.dataMin, p.dataMax, p.mean, p.count, p.displayUnits);
+    showColorScale(p.renderMin, p.renderMax, p.displayUnits);
+
+    const validTimeProduct = product.pdtNumber === 8
       ? { ...product, forecastTime: hour, timeUnit: 1 }
       : product;
     document.getElementById("arome-valid-time").textContent =
       `Forecast time: ${fmtValidTime(header, validTimeProduct)}`;
+
   } catch (err) {
     console.error("showHour:", err);
     clearMapLayer();
@@ -979,6 +1071,47 @@ async function showHour(idx) {
       const next = pendingHourIdx;
       pendingHourIdx = null;
       showHour(next);
+    }
+  }
+}
+
+// Renders all hours in a block into bitmapCache in the background.
+// Silently aborts if the variable or package changes (renderGen / modelState guard).
+async function prerenderBlock(blockKey) {
+  const capturedState = modelState;
+  const capturedGen = renderGen;
+  const block = capturedState.resources.find((r) => r.key === blockKey);
+  if (!block) return;
+
+  for (let hour = block.startHour; hour <= block.endHour; hour++) {
+    if (modelState !== capturedState || renderGen !== capturedGen) return;
+
+    const data = await getCachedDecode(hour);
+    if (!data || modelState !== capturedState || renderGen !== capturedGen) return;
+
+    const idx = capturedState.hourList.indexOf(hour);
+    if (idx === -1) continue;
+
+    const p = await computeRenderParams(data, idx);
+    if (modelState !== capturedState || renderGen !== capturedGen) return;
+
+    const cacheKey = `${hour}_${p.isFallback ? 1 : 0}`;
+    if (bitmapCache.has(cacheKey)) continue; // already rendered (e.g. by showHour)
+
+    const outW = data.grid.ni;
+    const outH = mercatorCanvasHeight(data.grid);
+    const bitmap = await renderViaWorker(p.displayValues, p, outW, outH);
+    if (!bitmap) return; // worker stale or crashed — abort this block
+
+    if (modelState === capturedState && renderGen === capturedGen) {
+      if (bitmapCache.has(cacheKey)) {
+        bitmap.close(); // showHour raced and cached it while we were rendering
+      } else {
+        bitmapCache.set(cacheKey, bitmap);
+      }
+    } else {
+      bitmap.close();
+      return;
     }
   }
 }
@@ -1084,6 +1217,7 @@ async function startDownload(packageKey) {
       );
       if (modelState !== downloadKey) return;
       modelState.buffers.set(block.key, buffer);
+      prerenderBlock(block.key); // background pre-render — no await
 
       document.getElementById(`dl-${block.key}`)?.classList.add("done");
       doneCount++;
@@ -1290,7 +1424,18 @@ function onPaletteChange(e) {
   currentPalette = e.target.value;
   document.getElementById("palette-select").value = currentPalette;
   document.getElementById("palette-select-arome").value = currentPalette;
-  if (gridState) renderHeatmap();
+  if (!gridState) return;
+  if (modelState) {
+    // Model player: invalidate cache, re-render current hour via worker, re-prerender blocks.
+    invalidateBitmapCache();
+    showHour(parseInt(document.getElementById("arome-slider").value, 10));
+    for (const blockKey of modelState.buffers.keys()) {
+      prerenderBlock(blockKey); // background re-prerender for new palette
+    }
+  } else {
+    // Single-file grid view: use synchronous renderHeatmap (no model state to cache).
+    renderHeatmap();
+  }
 }
 document
   .getElementById("palette-select")
@@ -1318,6 +1463,7 @@ document
     applyDefaultPalette(varKey);
     modelState.decoded.clear();
     modelState.decodedOrder = [];
+    invalidateBitmapCache();
 
     // Immediately sync gv-meta — the async decode may be delayed or queued.
     if (varDef) {
@@ -1330,6 +1476,9 @@ document
 
     const idx = parseInt(document.getElementById("arome-slider").value, 10);
     showHour(idx);
+    for (const blockKey of modelState.buffers.keys()) {
+      prerenderBlock(blockKey); // background re-prerender for new variable
+    }
   });
 
 const aromeSlider = document.getElementById("arome-slider");
