@@ -1124,17 +1124,65 @@ function route() {
     if (!groups[pkg.model]) groups[pkg.model] = [];
     groups[pkg.model].push({ key, pkg });
   }
-  for (const [, entries] of Object.entries(groups)) {
-    const group = document.createElement("div");
-    group.className = "model-group";
+  for (const [modelName, entries] of Object.entries(groups)) {
+    const info = MODEL_INFO[modelName];
+
+    const section = document.createElement("div");
+    section.className = "model-section";
+
+    const title = document.createElement("h2");
+    title.className = "model-section-title";
+    title.textContent = modelName;
+    section.appendChild(title);
+
+    const desc = document.createElement("p");
+    desc.className = "model-section-desc";
+    desc.textContent = info.description;
+    section.appendChild(desc);
+
+    const meta = document.createElement("div");
+    meta.className = "model-meta";
+    for (const [label, value] of [
+      ["Resolution", info.resolution],
+      ["Domain", `${info.domain} — ${info.domainDesc}`],
+      ["Forecast horizon", info.horizon],
+      ["Files", info.filesInfo],
+    ]) {
+      const item = document.createElement("div");
+      item.className = "meta-item";
+      const lbl = document.createElement("span");
+      lbl.className = "meta-label";
+      lbl.textContent = label;
+      const val = document.createElement("span");
+      val.className = "meta-value";
+      val.textContent = value;
+      item.appendChild(lbl);
+      item.appendChild(val);
+      meta.appendChild(item);
+    }
+    section.appendChild(meta);
+
+    const pkgsEl = document.createElement("div");
+    pkgsEl.className = "model-packages";
     for (const { key, pkg } of entries) {
+      const pkgEl = document.createElement("div");
+      pkgEl.className = "model-package";
+
       const btn = document.createElement("button");
       btn.className = "btn-primary";
-      btn.textContent = `${pkg.label} (last available run)`;
+      btn.textContent = `${key.split("_").pop()} — last available run`;
       btn.addEventListener("click", () => { location.hash = `#arome/${key}`; });
-      group.appendChild(btn);
+      pkgEl.appendChild(btn);
+
+      const vars = document.createElement("p");
+      vars.className = "model-package-vars";
+      vars.textContent = pkg.variables.map((v) => v.name).join(" · ");
+      pkgEl.appendChild(vars);
+
+      pkgsEl.appendChild(pkgEl);
     }
-    container.appendChild(group);
+    section.appendChild(pkgsEl);
+    container.appendChild(section);
   }
 })();
 
