@@ -491,7 +491,8 @@ header span {
 .model-packages {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-md);
+  row-gap: var(--space-md);
+  column-gap: var(--space-xl);
 }
 
 @media (max-width: 480px) {
@@ -513,10 +514,13 @@ header span {
 }
 
 .model-package-vars {
+  list-style: none;
   font-size: 0.78rem;
   color: var(--color-text-2);
   margin-top: var(--space-xs);
-  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .section-desc {
   font-size: 0.9rem;

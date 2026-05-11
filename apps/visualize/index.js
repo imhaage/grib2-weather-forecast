@@ -1179,9 +1179,13 @@ function route() {
       btn.addEventListener("click", () => { location.hash = `#arome/${key}`; });
       pkgEl.appendChild(btn);
 
-      const vars = document.createElement("p");
+      const vars = document.createElement("ul");
       vars.className = "model-package-vars";
-      vars.textContent = pkg.variables.map((v) => v.name).join(" · ");
+      for (const v of pkg.variables) {
+        const li = document.createElement("li");
+        li.textContent = v.name;
+        vars.appendChild(li);
+      }
       pkgEl.appendChild(vars);
 
       pkgsEl.appendChild(pkgEl);
