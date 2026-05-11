@@ -152,15 +152,16 @@ let renderWorker = null;
 let renderGen = 0;
 let nextCallId = 0;
 let bitmapCache = new Map(); // cacheKey → {bitmap, dataMin, dataMax, mean, count}
+let prerenderActiveCount = 0; // number of prerenderBlock calls in flight
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function showMapSpinner() {
-  document.getElementById("map-spinner").hidden = false;
+  document.getElementById("var-spinner").hidden = false;
 }
 
 function hideMapSpinner() {
-  document.getElementById("map-spinner").hidden = true;
+  document.getElementById("var-spinner").hidden = true;
 }
 
 function initRenderWorker() {
@@ -758,6 +759,8 @@ async function initMap(fitBoundsArgs) {
 function resetModelState() {
   stopPlayer();
   invalidateBitmapCache();
+  prerenderActiveCount = 0;
+  hideMapSpinner();
   modelState = null;
   isDecoding = false;
   pendingHourIdx = null;
@@ -1094,7 +1097,6 @@ async function showHour(idx) {
     console.error("showHour:", err);
     clearMapLayer();
   } finally {
-    hideMapSpinner();
     isDecoding = false;
     if (pendingHourIdx !== null) {
       const next = pendingHourIdx;
@@ -1106,42 +1108,50 @@ async function showHour(idx) {
 
 // Renders all hours in a block into bitmapCache in the background.
 // Silently aborts if the variable or package changes (renderGen / modelState guard).
+// Increments prerenderActiveCount while running; hides spinner when all concurrent
+// calls finish (count reaches 0).
 async function prerenderBlock(blockKey) {
+  prerenderActiveCount++;
   const capturedState = modelState;
   const capturedGen = renderGen;
-  const block = capturedState.resources.find((r) => r.key === blockKey);
-  if (!block) return;
+  try {
+    const block = capturedState.resources.find((r) => r.key === blockKey);
+    if (!block) return;
 
-  for (let hour = block.startHour; hour <= block.endHour; hour++) {
-    if (modelState !== capturedState || renderGen !== capturedGen) return;
+    for (let hour = block.startHour; hour <= block.endHour; hour++) {
+      if (modelState !== capturedState || renderGen !== capturedGen) return;
 
-    const data = await getCachedDecode(hour);
-    if (!data || modelState !== capturedState || renderGen !== capturedGen) return;
+      const data = await getCachedDecode(hour);
+      if (!data || modelState !== capturedState || renderGen !== capturedGen) return;
 
-    const idx = capturedState.hourList.indexOf(hour);
-    if (idx === -1) continue;
+      const idx = capturedState.hourList.indexOf(hour);
+      if (idx === -1) continue;
 
-    const p = await computeRenderParams(data, idx);
-    if (modelState !== capturedState || renderGen !== capturedGen) return;
+      const p = await computeRenderParams(data, idx);
+      if (modelState !== capturedState || renderGen !== capturedGen) return;
 
-    const cacheKey = `${hour}_${p.isFallback ? 1 : 0}`;
-    if (bitmapCache.has(cacheKey)) continue; // already rendered (e.g. by showHour)
+      const cacheKey = `${hour}_${p.isFallback ? 1 : 0}`;
+      if (bitmapCache.has(cacheKey)) continue; // already rendered (e.g. by showHour)
 
-    const outW = data.grid.ni;
-    const outH = mercatorCanvasHeight(data.grid);
-    const entry = await renderViaWorker(p.values, p, outW, outH);
-    if (!entry) return; // worker stale or crashed — abort this block
+      const outW = data.grid.ni;
+      const outH = mercatorCanvasHeight(data.grid);
+      const entry = await renderViaWorker(p.values, p, outW, outH);
+      if (!entry) return; // worker stale or crashed — abort this block
 
-    if (modelState === capturedState && renderGen === capturedGen) {
-      if (bitmapCache.has(cacheKey)) {
-        entry.bitmap.close(); // showHour raced and cached it while we were rendering
+      if (modelState === capturedState && renderGen === capturedGen) {
+        if (bitmapCache.has(cacheKey)) {
+          entry.bitmap.close(); // showHour raced and cached it while we were rendering
+        } else {
+          bitmapCache.set(cacheKey, entry);
+        }
       } else {
-        bitmapCache.set(cacheKey, entry);
+        entry.bitmap.close();
+        return;
       }
-    } else {
-      entry.bitmap.close();
-      return;
     }
+  } finally {
+    prerenderActiveCount--;
+    if (prerenderActiveCount === 0) hideMapSpinner();
   }
 }
 
