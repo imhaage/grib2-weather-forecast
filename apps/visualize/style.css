@@ -497,14 +497,14 @@ header span {
 
 .model-packages {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   row-gap: var(--space-md);
   column-gap: var(--space-xl);
 }
 
-@media (max-width: 480px) {
+@media (min-width: 600px) {
   .model-packages {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
