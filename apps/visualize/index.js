@@ -155,6 +155,14 @@ let bitmapCache = new Map(); // cacheKey → {bitmap, dataMin, dataMax, mean, co
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function showMapSpinner() {
+  document.getElementById("map-spinner").hidden = false;
+}
+
+function hideMapSpinner() {
+  document.getElementById("map-spinner").hidden = true;
+}
+
 function initRenderWorker() {
   if (renderWorker) return;
   renderWorker = new Worker(new URL("./render-worker.js", import.meta.url));
@@ -1086,6 +1094,7 @@ async function showHour(idx) {
     console.error("showHour:", err);
     clearMapLayer();
   } finally {
+    hideMapSpinner();
     isDecoding = false;
     if (pendingHourIdx !== null) {
       const next = pendingHourIdx;
@@ -1440,7 +1449,7 @@ document.getElementById("back-btn").addEventListener("click", () => {
   location.hash = "";
 });
 
-function onPaletteChange(e) {
+async function onPaletteChange(e) {
   currentPalette = e.target.value;
   document.getElementById("palette-select").value = currentPalette;
   document.getElementById("palette-select-arome").value = currentPalette;
@@ -1448,6 +1457,8 @@ function onPaletteChange(e) {
   if (modelState) {
     // Model player: invalidate cache, re-render current hour via worker, re-prerender blocks.
     invalidateBitmapCache();
+    showMapSpinner();
+    await new Promise(r => setTimeout(r, 0)); // yield so the browser can paint the spinner
     showHour(parseInt(document.getElementById("arome-slider").value, 10));
     for (const blockKey of modelState.buffers.keys()) {
       prerenderBlock(blockKey); // background re-prerender for new palette
@@ -1472,7 +1483,7 @@ document
 
 document
   .getElementById("arome-var-select")
-  .addEventListener("change", (e) => {
+  .addEventListener("change", async (e) => {
     if (!modelState) return;
     const varKey = e.target.value;
     modelState.variable = varKey;
@@ -1494,6 +1505,8 @@ document
       );
     }
 
+    showMapSpinner();
+    await new Promise(r => setTimeout(r, 0)); // yield so the browser can paint the spinner
     const idx = parseInt(document.getElementById("arome-slider").value, 10);
     showHour(idx);
     for (const blockKey of modelState.buffers.keys()) {
