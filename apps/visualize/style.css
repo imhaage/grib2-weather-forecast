@@ -473,6 +473,10 @@ header span {
   gap: 2px;
 }
 
+.model-meta .meta-item-full {
+  flex-basis: 100%;
+}
+
 .model-meta .meta-label {
   font-weight: 600;
   color: var(--color-text);

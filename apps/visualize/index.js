@@ -1142,14 +1142,14 @@ function route() {
 
     const meta = document.createElement("div");
     meta.className = "model-meta";
-    for (const [label, value] of [
+    for (const [label, value, wide] of [
       ["Resolution", info.resolution],
-      ["Domain", `${info.domain} — ${info.domainDesc}`],
       ["Forecast horizon", info.horizon],
       ["Files", info.filesInfo],
+      ["Coverage", `${info.domain} — ${info.domainDesc}`, true],
     ]) {
       const item = document.createElement("div");
-      item.className = "meta-item";
+      item.className = wide ? "meta-item meta-item-full" : "meta-item";
       const lbl = document.createElement("span");
       lbl.className = "meta-label";
       lbl.textContent = label;
