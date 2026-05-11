@@ -589,7 +589,7 @@ header span {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-xxs) var(--space-xs);
+  padding: var(--space-xxs);
   border-radius: var(--radius-sm);
   color: var(--color-text-2);
   background: linear-gradient(
