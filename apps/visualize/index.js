@@ -1367,7 +1367,7 @@ document.getElementById("player-play").addEventListener("click", () => {
     const next = (parseInt(aromeSlider.value, 10) + 1) % (max + 1);
     aromeSlider.value = next;
     showHour(next);
-  }, 125);
+  }, 60);
 });
 
 document.getElementById("player-reset").addEventListener("click", () => {
