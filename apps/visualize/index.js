@@ -147,6 +147,7 @@ let heatCanvas = null; // offscreen canvas for heatmap rendering
 let modelState = null; // { packageKey, resources, buffers, messageIndex, hourList, decoded, decodedOrder, variable, currentHour, lastRunInfo }
 let isDecoding = false;
 let pendingHourIdx = null;
+let playerInterval = null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -659,6 +660,7 @@ async function initMap(fitBoundsArgs) {
 }
 
 function resetModelState() {
+  stopPlayer();
   modelState = null;
   isDecoding = false;
   pendingHourIdx = null;
@@ -826,13 +828,17 @@ async function getCachedDecode(hour) {
 
 function indexBlock(blockKey) {
   const buffer = modelState.buffers.get(blockKey);
+  const block = modelState.resources.find((r) => r.key === blockKey);
   const index = new Map();
   for (const msg of iterateGRIB2Messages(buffer)) {
     const { product } = msg;
-    // Level-specific key — used by packages with multiple levels per shortName (e.g. HP1)
-    index.set(`${product.forecastTime}_${product.shortName}_${product.levelValue}`, msg.buffer);
-    // Simple key — first occurrence wins; used by single-level packages for backward compat
-    const simpleKey = `${product.forecastTime}_${product.shortName}`;
+    // PDT 4.8 (accumulation) always has forecastTime=0 (start of interval).
+    // For single-hour blocks, use the block's hour as the effective forecast time.
+    const ft = (product.pdtNumber === 8 && block.startHour === block.endHour)
+      ? block.endHour
+      : product.forecastTime;
+    index.set(`${ft}_${product.shortName}_${product.levelValue}`, msg.buffer);
+    const simpleKey = `${ft}_${product.shortName}`;
     if (!index.has(simpleKey)) index.set(simpleKey, msg.buffer);
   }
   modelState.messageIndex.set(blockKey, index);
@@ -1330,4 +1336,50 @@ const aromeSlider = document.getElementById("arome-slider");
 aromeSlider.addEventListener("input", () => {
   if (!modelState) return;
   showHour(parseInt(aromeSlider.value, 10));
+});
+
+// ── Mini-player ───────────────────────────────────────────────────────────────
+
+function setPlaying(playing) {
+  document.getElementById("icon-play").style.display = playing ? "none" : "";
+  document.getElementById("icon-pause").style.display = playing ? "" : "none";
+  document.getElementById("player-play").title = playing ? "Pause" : "Play";
+  document.getElementById("player-play").setAttribute("aria-label", playing ? "Pause" : "Play");
+}
+
+function stopPlayer() {
+  if (playerInterval === null) return;
+  clearInterval(playerInterval);
+  playerInterval = null;
+  setPlaying(false);
+}
+
+document.getElementById("player-play").addEventListener("click", () => {
+  if (!modelState) return;
+  if (playerInterval !== null) {
+    stopPlayer();
+    return;
+  }
+  setPlaying(true);
+  playerInterval = setInterval(() => {
+    if (!modelState) { stopPlayer(); return; }
+    const max = parseInt(aromeSlider.max, 10);
+    const next = (parseInt(aromeSlider.value, 10) + 1) % (max + 1);
+    aromeSlider.value = next;
+    showHour(next);
+  }, 125);
+});
+
+document.getElementById("player-reset").addEventListener("click", () => {
+  if (!modelState) return;
+  stopPlayer();
+  aromeSlider.value = 0;
+  showHour(0);
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.code !== "Space" || !modelState) return;
+  if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT" || e.target.tagName === "BUTTON") return;
+  e.preventDefault();
+  document.getElementById("player-play").click();
 });

@@ -673,6 +673,32 @@ header span {
   cursor: pointer;
 }
 
+#player-reset,
+#player-play {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border-2);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background var(--transition-fast);
+}
+#player-reset:hover,
+#player-play:hover {
+  background: var(--color-border);
+}
+#player-reset svg,
+#player-play svg {
+  width: 14px;
+  height: 14px;
+}
+
 #arome-hour-label {
   font-family: monospace;
   font-size: var(--font-md);
