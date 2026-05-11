@@ -63,7 +63,7 @@ const PACKAGES = {
     provider: "data-gouv",
     datasetId: "65bd13b2eb9e79ab309f6e63",
     titlePattern: "__SP1__",
-    bounds: [[-180, -90], [180, 90]],
+    bounds: [[-32, 20], [42, 72]],
     variables: [
       { shortName: "t",    name: "Temperature",            units: "°C",    level: "2 m above ground" },
       { shortName: "r",    name: "Relative humidity",      units: "%",     level: "2 m above ground" },
@@ -74,6 +74,25 @@ const PACKAGES = {
       { shortName: "wspd", name: "Wind speed",             units: "m s-1", level: "10 m above ground" },
       { shortName: "wdir", name: "Wind direction",         units: "°",     level: "10 m above ground" },
     ],
+  },
+};
+
+const MODEL_INFO = {
+  AROME: {
+    description: "Modèle haute résolution de Météo-France, limité à la France métropolitaine et ses façades maritimes.",
+    resolution: "0.01° (~1 km)",
+    domain: "12°W – 16°E · 37°N – 55°N",
+    domainDesc: "France métropolitaine et façades Atlantique, Manche, Méditerranée",
+    horizon: "H+01 à H+51",
+    filesInfo: "1 heure par fichier (51 fichiers)",
+  },
+  ARPEGE: {
+    description: "Modèle à aire limitée de Météo-France couvrant l'Europe, l'Atlantique nord-est et le Moyen-Orient.",
+    resolution: "0.1° (~11 km)",
+    domain: "32°W – 42°E · 20°N – 72°N",
+    domainDesc: "Europe occidentale à centrale, Sahara à mer de Norvège",
+    horizon: "H+000 à H+102",
+    filesInfo: "12 heures par fichier (9 fichiers)",
   },
 };
 
