@@ -149,7 +149,7 @@ header span {
 #file-summary .meta-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-xxs);
 }
 
 /* ── Shared: uppercase labels ── */
@@ -470,7 +470,7 @@ header span {
 .model-meta .meta-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-xxs);
 }
 
 .model-meta .meta-item-full {
@@ -527,7 +527,7 @@ header span {
   margin-top: var(--space-xs);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-xxs);
 }
 .section-desc {
   font-size: 0.9rem;
@@ -580,7 +580,7 @@ header span {
   font-family: monospace;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-xxs);
 }
 #arome-dl-bars {
   display: grid;
