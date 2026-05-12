@@ -88,3 +88,26 @@ test("worker rendering can transfer owned values without cloning", () => {
     "expected background pre-rendering to opt into transfer when safe",
   );
 });
+
+test("model display values use Float32Array instead of retaining Float64Array precision", () => {
+  assert.match(
+    source,
+    /function toDisplayValues\(values\)/,
+    "expected a dedicated display-value conversion helper",
+  );
+  assert.match(
+    source,
+    /const out = new Float32Array\(values\.length\);/,
+    "expected model display values to be downcast to Float32Array",
+  );
+  assert.match(
+    source,
+    /const diff = new Float32Array\(values\.length\);/,
+    "expected accumulation diffs to be allocated as Float32Array",
+  );
+  assert.match(
+    source,
+    /values: toDisplayValues\(displayValues\),/,
+    "expected render params to expose Float32Array display values",
+  );
+});

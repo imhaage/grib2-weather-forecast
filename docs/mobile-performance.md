@@ -9,7 +9,7 @@
 - [ ] Bound the `ImageBitmap` cache.
 - [ ] Pre-render a sliding window instead of the full run.
 - [x] Avoid worker `values.slice()` when ownership is clear.
-- [ ] Consider `Float32Array` for display values.
+- [x] Consider `Float32Array` for display values.
 - [ ] Move stats and transforms to one owned pipeline.
 - [ ] Add lightweight runtime diagnostics.
 
@@ -217,7 +217,7 @@ Risk:
 
 - Transferring detaches the source buffer, so ownership must be explicit.
 
-### 8. Consider `Float32Array` for display values
+### 8. Consider `Float32Array` for display values — done
 
 Goal: halve value memory where full `Float64Array` precision is unnecessary for
 display rendering.
@@ -225,16 +225,18 @@ display rendering.
 Approach:
 
 - Keep decoder output as-is for correctness.
-- Convert display/render values to `Float32Array` only after physical decoding
-  and unit conversion.
-- Keep exact raw values only where needed for tooltip and export-style use cases.
+- Convert model display/render values to `Float32Array` after physical decoding.
+- Allocate accumulation diffs directly as `Float32Array`.
+- Keep decoded cache entries as `Float64Array`, so decoder correctness and future
+  export-style workflows are not coupled to the display pipeline.
 
 Expected effect: lower display pipeline memory.
 
 Risk:
 
-- Tooltips and scientific inspection may expect accurate values. This should be
-  measured before adopting broadly.
+- Tooltips now read display `Float32Array` values. This is expected to be
+  precise enough for map inspection, but should be measured with real scientific
+  use cases before adopting more broadly.
 
 ### 9. Move stats and transforms to one owned pipeline
 

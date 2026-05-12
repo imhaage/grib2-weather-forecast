@@ -698,6 +698,13 @@ function applyToValues(values, fn) {
   return out;
 }
 
+function toDisplayValues(values) {
+  if (values instanceof Float32Array) return values;
+  const out = new Float32Array(values.length);
+  out.set(values);
+  return out;
+}
+
 function gridCorners({
   latitudeOfFirstPoint: la1,
   longitudeOfFirstPoint: lo1,
@@ -987,7 +994,7 @@ async function computeRenderParams(data, idx) {
     const prevHour = modelState.hourList[idx - 1];
     const prevData = await getCachedDecode(prevHour);
     if (prevData !== null) {
-      const diff = new Float64Array(values.length);
+      const diff = new Float32Array(values.length);
       for (let i = 0; i < values.length; i++) {
         if (values[i] <= MISSING_VALUE || prevData.values[i] <= MISSING_VALUE) {
           diff[i] = MISSING_VALUE;
@@ -1019,7 +1026,7 @@ async function computeRenderParams(data, idx) {
   const zeroThreshold = staticScale?.zeroThreshold ?? 0;
 
   return {
-    values: displayValues,
+    values: toDisplayValues(displayValues),
     unitTransform,
     renderMin, renderMax, range,
     staticScale, isLog, logDenom, zeroThreshold,
