@@ -8,7 +8,7 @@
 - [x] Stop keeping copied message buffers in `messageIndex`.
 - [ ] Bound the `ImageBitmap` cache.
 - [ ] Pre-render a sliding window instead of the full run.
-- [ ] Avoid worker `values.slice()` when ownership is clear.
+- [x] Avoid worker `values.slice()` when ownership is clear.
 - [ ] Consider `Float32Array` for display values.
 - [ ] Move stats and transforms to one owned pipeline.
 - [ ] Add lightweight runtime diagnostics.
@@ -90,9 +90,9 @@ download, then decode and render.
 
 5. Worker input copies
 
-   `renderViaWorker()` calls `values.slice()` before transferring to the worker.
-   This preserves the decode cache entry, but briefly doubles the values memory
-   for each render.
+   `renderViaWorker()` copies values by default to preserve current-field
+   tooltip ownership, but background pre-rendering can transfer owned values
+   directly when they are safe to detach.
 
 6. Duplicate value transforms and render paths
 
@@ -200,16 +200,16 @@ Open question:
 - Tooltips currently need values for the visible field. We need at least the
   current field available, but probably not five fields.
 
-### 7. Avoid worker `values.slice()` when ownership is clear
+### 7. Avoid worker `values.slice()` when ownership is clear — done
 
 Goal: remove a large temporary copy per render.
 
 Approach:
 
-- For renders where the decoded values will not be reused, transfer the buffer
-  directly to the worker.
-- For current-hour tooltip support, keep current values on the main thread.
-- For background pre-render jobs, prefer transfer-only ownership.
+- `renderViaWorker()` accepts `{ transferValues }`.
+- Current-hour renders keep copying so tooltip values remain available.
+- Background pre-render jobs transfer owned values when they are not the current
+  hour and do not break accumulation dependencies.
 
 Expected effect: lower peak memory during pre-rendering.
 

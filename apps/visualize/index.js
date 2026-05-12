@@ -176,8 +176,8 @@ function initRenderWorker() {
 
 // Sends raw values to the worker, returns Promise<{bitmap,dataMin,dataMax,mean,count}|null>.
 // Returns null if renderGen changed before the worker responds (stale result).
-// Values are copied (slice) so the decode cache entry remains valid.
-function renderViaWorker(values, renderParams, outW, outH) {
+// By default values are copied so the main thread keeps ownership for tooltips.
+function renderViaWorker(values, renderParams, outW, outH, { transferValues = false } = {}) {
   initRenderWorker();
   const myGen = renderGen;
   const myCallId = ++nextCallId;
@@ -207,12 +207,12 @@ function renderViaWorker(values, renderParams, outW, outH) {
     renderWorker.addEventListener("message", onMsg);
     renderWorker.addEventListener("error", onErr);
 
-    const valuesCopy = values.slice();
+    const workerValues = transferValues ? values : values.slice();
     const lut = buildLUT(currentPalette);
     renderWorker.postMessage({
       callId: myCallId,
       gen: myGen,
-      values: valuesCopy,
+      values: workerValues,
       unitTransform: renderParams.unitTransform,
       lut,
       missingValue: MISSING_VALUE,
@@ -232,7 +232,7 @@ function renderViaWorker(values, renderParams, outW, outH) {
       southLat,
       myNorth,
       mySpan,
-    }, [valuesCopy.buffer]);
+    }, [workerValues.buffer]);
   });
 }
 
@@ -951,6 +951,11 @@ function messageViewFromRef(ref) {
   return buffer.subarray(ref.offset, ref.offset + ref.length);
 }
 
+function evictDecodedHour(hour) {
+  modelState.decoded.delete(hour);
+  modelState.decodedOrder = modelState.decodedOrder.filter((h) => h !== hour);
+}
+
 function indexBlock(blockKey) {
   const buffer = modelState.buffers.get(blockKey);
   const block = modelState.resources.find((r) => r.key === blockKey);
@@ -1157,7 +1162,13 @@ async function prerenderBlock(blockKey) {
 
     const outW = data.grid.ni;
     const outH = mercatorCanvasHeight(data.grid);
-    const entry = await renderViaWorker(p.values, p, outW, outH);
+    const canTransferValues =
+      hour !== capturedState.currentHour &&
+      (p.values !== data.values || p.product.pdtNumber !== 8);
+    if (canTransferValues && p.values === data.values) evictDecodedHour(hour);
+    const entry = await renderViaWorker(p.values, p, outW, outH, {
+      transferValues: canTransferValues,
+    });
     if (!entry) return; // worker stale or crashed — abort this block
 
     if (modelState === capturedState && renderGen === capturedGen) {

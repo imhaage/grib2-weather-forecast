@@ -70,3 +70,21 @@ test("message index stores block offsets instead of copied message buffers", () 
     "expected messageIndex not to retain message buffer copies",
   );
 });
+
+test("worker rendering can transfer owned values without cloning", () => {
+  assert.match(
+    source,
+    /function renderViaWorker\(values, renderParams, outW, outH, \{ transferValues = false \} = \{\}\)/,
+    "expected renderViaWorker to expose explicit transfer ownership",
+  );
+  assert.match(
+    source,
+    /const workerValues = transferValues \? values : values\.slice\(\);/,
+    "expected values.slice() only when ownership is not transferred",
+  );
+  assert.match(
+    source,
+    /transferValues: canTransferValues/,
+    "expected background pre-rendering to opt into transfer when safe",
+  );
+});
