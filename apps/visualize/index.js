@@ -161,10 +161,44 @@ let tooltipHydrateTimer = null;
 let tooltipHydrateToken = 0;
 let prerenderIdleResolvers = [];
 let isPreparingAnimation = false;
+const PERF_DEBUG = new URLSearchParams(window.location.search).get("debug") === "perf";
+const perfStats = {
+  lastRenderMs: null,
+  lastDecodeMs: null,
+};
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+function fmtPerfMs(value) {
+  return value == null ? "—" : `${Math.round(value)} ms`;
+}
+
+function updatePerfDiagnostics() {
+  if (!PERF_DEBUG) return;
+  const panel = document.getElementById("perf-debug");
+  if (!panel) return;
+
+  const totalBitmaps = modelState?.hourList.length ?? 0;
+  const readyBitmaps = totalBitmaps ? bitmapCacheReadyCount() : bitmapCache.size;
+  const decodedSize = modelState?.decoded?.size ?? 0;
+
+  panel.hidden = false;
+  document.getElementById("perf-debug-render").textContent =
+    `render ${fmtPerfMs(perfStats.lastRenderMs)}`;
+  document.getElementById("perf-debug-decode").textContent =
+    `decode ${fmtPerfMs(perfStats.lastDecodeMs)}`;
+  document.getElementById("perf-debug-queue").textContent =
+    `queue ${prerenderQueue.length}${isPrerendering ? " + active" : ""}`;
+  document.getElementById("perf-debug-cache").textContent =
+    `cache ${readyBitmaps} / ${totalBitmaps || bitmapCache.size}`;
+  document.getElementById("perf-debug-decoded").textContent =
+    `decoded ${decodedSize}`;
+  document.getElementById("perf-debug-gen").textContent =
+    `gen ${renderGen}`;
+}
 
 function setRendering(on) {
   document.getElementById("map-scene").classList.toggle("rendering", on);
+  updatePerfDiagnostics();
 }
 
 function setMapSceneVisible(visible) {
@@ -178,6 +212,16 @@ function initRenderWorker() {
   renderWorker = new Worker(new URL("./render-worker.js", import.meta.url));
 }
 
+async function timedDecodeGRIB2(buffer) {
+  const startedAt = PERF_DEBUG ? performance.now() : 0;
+  const decoded = await decodeGRIB2(buffer);
+  if (PERF_DEBUG) {
+    perfStats.lastDecodeMs = performance.now() - startedAt;
+    updatePerfDiagnostics();
+  }
+  return decoded;
+}
+
 // Sends raw values to the worker, returns Promise<{bitmap,dataMin,dataMax,mean,count}|null>.
 // Returns null if renderGen changed before the worker responds (stale result).
 // By default values are copied so the main thread keeps ownership for tooltips.
@@ -185,6 +229,7 @@ function renderViaWorker(values, renderParams, outW, outH, { transferValues = fa
   initRenderWorker();
   const myGen = renderGen;
   const myCallId = ++nextCallId;
+  const startedAt = PERF_DEBUG ? performance.now() : 0;
 
   const { grid } = renderParams;
   const northLat = Math.max(grid.latitudeOfFirstPoint, grid.latitudeOfLastPoint);
@@ -199,6 +244,10 @@ function renderViaWorker(values, renderParams, outW, outH, { transferValues = fa
       renderWorker.removeEventListener("message", onMsg);
       renderWorker.removeEventListener("error", onErr);
       if (data.error) { console.error("render-worker error:", data.error); resolve(null); return; }
+      if (PERF_DEBUG) {
+        perfStats.lastRenderMs = performance.now() - startedAt;
+        updatePerfDiagnostics();
+      }
       if (renderGen !== myGen) { data.bitmap?.close(); resolve(null); return; }
       resolve({ bitmap: data.bitmap, dataMin: data.dataMin, dataMax: data.dataMax, mean: data.dataMean, count: data.dataCount });
     }
@@ -251,6 +300,7 @@ function invalidateBitmapCache() {
   tooltipHydrateTimer = null;
   renderGen++;
   updateWarmupProgress();
+  updatePerfDiagnostics();
 }
 
 function bitmapCacheKey(hour) {
@@ -292,6 +342,7 @@ function updateWarmupProgress({ preparing = isPreparingAnimation } = {}) {
     : preparing
       ? "Preparing animation"
       : "Animation cache";
+  updatePerfDiagnostics();
 }
 
 function makeBitmapCacheEntry(renderEntry, renderParams) {
@@ -784,7 +835,7 @@ function setMapLayer(canvas, corners) {
 async function decodeVariableFromBuffer(buffer, shortName) {
   for (const msg of iterateGRIB2Messages(buffer)) {
     if (msg.product.shortName === shortName) {
-      const dec = await decodeGRIB2(msg.buffer);
+      const dec = await timedDecodeGRIB2(msg.buffer);
       return {
         values: dec.values,
         grid: dec.grid,
@@ -878,7 +929,7 @@ async function showGridView(shortName) {
   // Decode (WASM)
   let decoded;
   try {
-    decoded = await decodeGRIB2(msg.buffer);
+    decoded = await timedDecodeGRIB2(msg.buffer);
   } catch (err) {
     document.getElementById("map").textContent =
       "Decode error: " + err.message;
@@ -994,7 +1045,10 @@ async function downloadFileProg(url, filesize, onProgress) {
 
 async function getCachedDecode(hour) {
   const { decoded, decodedOrder, resources, variable } = modelState;
-  if (decoded.has(hour)) return decoded.get(hour);
+  if (decoded.has(hour)) {
+    updatePerfDiagnostics();
+    return decoded.get(hour);
+  }
 
   const block = resources.find((r) => hour >= r.startHour && hour <= r.endHour);
   if (!block || !modelState.buffers.has(block.key)) return null;
@@ -1012,7 +1066,7 @@ async function getCachedDecode(hour) {
   if (!msgBuffer) return null;
 
   if (decodedOrder.length >= DECODED_CACHE_SIZE) decoded.delete(decodedOrder.shift());
-  const dec = await decodeGRIB2(msgBuffer);
+  const dec = await timedDecodeGRIB2(msgBuffer);
   const data = { values: dec.values, grid: dec.grid, product: dec.product, header: dec.header };
   decoded.set(hour, data);
   decodedOrder.push(hour);
@@ -1029,6 +1083,7 @@ function messageViewFromRef(ref) {
 function evictDecodedHour(hour) {
   modelState.decoded.delete(hour);
   modelState.decodedOrder = modelState.decodedOrder.filter((h) => h !== hour);
+  updatePerfDiagnostics();
 }
 
 function indexBlock(blockKey) {
@@ -1289,6 +1344,7 @@ function queuePrerenderBlock(blockKey) {
   if (queuedPrerenderKeys.has(queueKey)) return;
   queuedPrerenderKeys.add(queueKey);
   prerenderQueue.push({ blockKey, gen, state, queueKey });
+  updatePerfDiagnostics();
   drainPrerenderQueue();
 }
 
@@ -1315,16 +1371,20 @@ function waitForPrerenderIdle() {
 async function drainPrerenderQueue() {
   if (isPrerendering) return;
   isPrerendering = true;
+  updatePerfDiagnostics();
   try {
     while (prerenderQueue.length > 0) {
       const job = prerenderQueue.shift();
+      updatePerfDiagnostics();
       if (modelState === job.state && renderGen === job.gen) {
         await prerenderBlock(job.blockKey);
       }
       queuedPrerenderKeys.delete(job.queueKey);
+      updatePerfDiagnostics();
     }
   } finally {
     isPrerendering = false;
+    updatePerfDiagnostics();
     if (prerenderQueue.length > 0) {
       drainPrerenderQueue();
     } else {
@@ -1797,3 +1857,5 @@ document.addEventListener("keydown", (e) => {
   e.preventDefault();
   document.getElementById("player-play").click();
 });
+
+updatePerfDiagnostics();

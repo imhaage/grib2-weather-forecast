@@ -258,3 +258,36 @@ test("uploaded file view uses the worker render pipeline for stats and bitmap", 
     "expected uploaded-file bitmap rendering to come from the worker",
   );
 });
+
+test("perf diagnostics are available only through the debug query flag", () => {
+  assert.match(
+    html,
+    /id="perf-debug" hidden[\s\S]*id="perf-debug-render"[\s\S]*id="perf-debug-decode"[\s\S]*id="perf-debug-queue"/,
+    "expected a hidden perf diagnostics panel in the map scene",
+  );
+  assert.match(
+    source,
+    /const PERF_DEBUG = new URLSearchParams\(window\.location\.search\)\.get\("debug"\) === "perf";/,
+    "expected perf diagnostics to be gated by ?debug=perf",
+  );
+  assert.match(
+    source,
+    /function updatePerfDiagnostics\(/,
+    "expected a central diagnostics renderer",
+  );
+  assert.match(
+    source,
+    /bitmapCache\.size[\s\S]*modelState\?\.decoded\?\.size[\s\S]*prerenderQueue\.length/,
+    "expected diagnostics to include bitmap, decoded, and queue sizes",
+  );
+  assert.match(
+    source,
+    /performance\.now\(\)[\s\S]*lastRenderMs/,
+    "expected worker render timing to be measured",
+  );
+  assert.match(
+    source,
+    /performance\.now\(\)[\s\S]*lastDecodeMs/,
+    "expected decode timing to be measured",
+  );
+});

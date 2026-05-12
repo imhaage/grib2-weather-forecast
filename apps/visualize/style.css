@@ -775,6 +775,26 @@ header span {
   font-variant-numeric: tabular-nums;
 }
 
+#perf-debug {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+  padding: var(--space-xs) var(--space-sm);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-2);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-xs);
+  font-variant-numeric: tabular-nums;
+}
+#perf-debug[hidden] {
+  display: none;
+}
+#perf-debug > span:first-child {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
 #player-reset,
 #player-play {
   flex-shrink: 0;

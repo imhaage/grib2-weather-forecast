@@ -14,7 +14,7 @@
 - [x] Lazy-decode tooltip values after cached bitmap display.
 - [x] Warm the full bitmap cache before starting animation playback.
 - [x] Move stats and transforms to one owned pipeline.
-- [ ] Add lightweight runtime diagnostics.
+- [x] Add lightweight runtime diagnostics.
 
 ## Context
 
@@ -277,14 +277,16 @@ the uploaded-file path was moved to the worker render pipeline.
 
 ### 10. Add lightweight runtime diagnostics
 
+Status: done.
+
 Goal: make performance work observable without requiring deep profiling.
 
 Approach:
 
-- Log render queue length, cache size, bitmap count, decoded cache size, and
-  render timings in a debug mode.
-- Add a visible debug panel only when enabled by a query parameter such as
-  `?debug=perf`.
+- Add a visible debug panel only when enabled by `?debug=perf`.
+- Show worker render time, decode time, queue length, bitmap cache progress,
+  decoded cache size, and render generation.
+- Keep the normal UI unchanged when the query parameter is absent.
 
 Expected effect: faster iteration on real mobile devices.
 
