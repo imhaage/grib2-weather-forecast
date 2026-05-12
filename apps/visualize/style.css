@@ -449,6 +449,29 @@ header span {
   font-size: var(--font-sm);
   white-space: nowrap;
 }
+.map-click-marker {
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+}
+.map-click-marker::before,
+.map-click-marker::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  background: #fff;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.65);
+  transform: translate(-50%, -50%);
+}
+.map-click-marker::before {
+  width: 18px;
+  height: 1px;
+}
+.map-click-marker::after {
+  width: 1px;
+  height: 18px;
+}
 
 /* ── Color scale ── */
 #colorscale {

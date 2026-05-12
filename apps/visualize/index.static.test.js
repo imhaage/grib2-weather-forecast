@@ -199,3 +199,44 @@ test("player warms the bitmap cache before starting animation", () => {
     "expected Play to start only after cache warm-up completes",
   );
 });
+
+test("palette and variable changes stop playback before invalidating bitmap cache", () => {
+  assert.match(
+    source,
+    /async function onPaletteChange\(e\) \{[\s\S]*if \(modelState\) \{[\s\S]*stopPlayer\(\);[\s\S]*invalidateBitmapCache\(\);/,
+    "expected palette changes to stop animation before cache invalidation",
+  );
+  assert.match(
+    source,
+    /\.getElementById\("arome-var-select"\)[\s\S]*\.addEventListener\("change", async \(e\) => \{[\s\S]*stopPlayer\(\);[\s\S]*invalidateBitmapCache\(\);/,
+    "expected variable changes to stop animation before cache invalidation",
+  );
+});
+
+test("map clicks show a thin cross marker for mobile tooltip location", () => {
+  assert.match(
+    source,
+    /let mapClickMarker = null;/,
+    "expected the clicked location to be tracked with a MapLibre marker",
+  );
+  assert.match(
+    source,
+    /new maplibregl\.Marker\(\{ element, anchor: "center" \}\)/,
+    "expected the click marker to stay anchored to clicked map coordinates",
+  );
+  assert.match(
+    source,
+    /function shouldShowMapClickMarker\(event\)/,
+    "expected click markers to be limited to touch-style interactions",
+  );
+  assert.match(
+    source,
+    /event\.pointerType === "touch"[\s\S]*matchMedia\("\(pointer: coarse\)"\)\.matches/,
+    "expected touch pointers and coarse pointers to request a click marker",
+  );
+  assert.match(
+    source,
+    /map\.on\("click", \(e\) => \{[\s\S]*if \(shouldShowMapClickMarker\(e\.originalEvent\)\) showMapClickMarker\(e\.lngLat\);[\s\S]*showTooltipForMapEvent\(e\);[\s\S]*\}\);/,
+    "expected map clicks to place the marker only when the input needs it",
+  );
+});
