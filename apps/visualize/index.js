@@ -1,4 +1,6 @@
 import maplibregl from "https://esm.sh/maplibre-gl@4";
+
+const PROXY = "https://grib2-cors-proxy.imh.workers.dev";
 import chroma from "https://esm.sh/chroma-js@2.4.2";
 import {
   iterateGRIB2Messages,
@@ -858,8 +860,13 @@ async function showGridView(shortName) {
 
 // ── AROME live data ───────────────────────────────────────────────────────────
 
+function proxyUrl(url) {
+  const u = new URL(url);
+  return `${PROXY}/${u.hostname}${u.pathname}${u.search}`;
+}
+
 async function fetchDataGouvResources(datasetId, titlePattern) {
-  const resp = await fetch(`https://www.data.gouv.fr/api/1/datasets/${datasetId}/`);
+  const resp = await fetch(`${PROXY}/www.data.gouv.fr/api/1/datasets/${datasetId}/`);
   if (!resp.ok) throw new Error(`API ${resp.status}`);
   const data = await resp.json();
   return data.resources
@@ -876,7 +883,7 @@ async function fetchDataGouvResources(datasetId, titlePattern) {
 }
 
 async function downloadFileProg(url, filesize, onProgress) {
-  const resp = await fetch(url);
+  const resp = await fetch(proxyUrl(url));
   if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
   const reader = resp.body.getReader();
   const chunks = [];
