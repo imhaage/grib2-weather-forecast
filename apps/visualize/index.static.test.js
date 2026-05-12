@@ -314,3 +314,51 @@ test("model file downloads are limited to six parallel fetches", () => {
     "expected startDownload not to fetch all resources in parallel",
   );
 });
+
+test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
+  assert.match(
+    source,
+    /const GRIB_BLOCK_STORE = "gribBlocks";/,
+    "expected a dedicated IndexedDB store for downloaded GRIB2 blocks",
+  );
+  assert.match(
+    source,
+    /function extractRunId\(/,
+    "expected each remote resource to expose its run id",
+  );
+  assert.match(
+    source,
+    /const runId = extractRunId\(`\$\{r\.title\} \$\{r\.url\}`\);/,
+    "expected data.gouv resources to carry a per-file run id",
+  );
+  assert.match(
+    source,
+    /function gribBlockCacheKey\(packageKey, block\)/,
+    "expected cache keys to be derived from package, block, and run metadata",
+  );
+  assert.match(
+    source,
+    /createIndex\("byPackageBlock", \["packageKey", "blockKey"\]\)/,
+    "expected an index for deleting obsolete versions of one logical file",
+  );
+  assert.match(
+    source,
+    /await readCachedGribBlock\(packageKey, block\)[\s\S]*cachedBuffer \?\? await downloadFileProg/,
+    "expected IndexedDB reads before falling back to network",
+  );
+  assert.match(
+    source,
+    /if \(!cachedBuffer\) await writeCachedGribBlock\(packageKey, block, buffer\);/,
+    "expected downloaded misses to be written to IndexedDB",
+  );
+  assert.match(
+    source,
+    /async function deleteObsoleteCachedGribBlocks\(db, packageKey, block\)[\s\S]*cursor\.value\.id !== currentId[\s\S]*cursor\.delete\(\)/,
+    "expected old runs for the same package/block to be removed after replacement",
+  );
+  assert.match(
+    source,
+    /formatRunSummary\(resources\)/,
+    "expected the UI to expose whether the listed files come from one run or mixed runs",
+  );
+});

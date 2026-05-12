@@ -162,11 +162,15 @@ let tooltipHydrateToken = 0;
 let prerenderIdleResolvers = [];
 let isPreparingAnimation = false;
 const MAX_PARALLEL_DOWNLOADS = 6;
+const GRIB_CACHE_DB_NAME = "grib2-visualizer-cache";
+const GRIB_CACHE_DB_VERSION = 1;
+const GRIB_BLOCK_STORE = "gribBlocks";
 const PERF_DEBUG = new URLSearchParams(window.location.search).get("debug") === "perf";
 const perfStats = {
   lastRenderMs: null,
   lastDecodeMs: null,
 };
+let gribCacheDbPromise = null;
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtPerfMs(value) {
@@ -187,6 +191,138 @@ async function runWithConcurrency(items, limit, worker) {
 
   await Promise.all(Array.from({ length: workerCount }, runNext));
   return results;
+}
+
+function idbRequest(request) {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function idbTransactionDone(transaction) {
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onabort = () => reject(transaction.error);
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
+
+function openGribCacheDb() {
+  if (typeof indexedDB === "undefined") return Promise.resolve(null);
+  if (gribCacheDbPromise) return gribCacheDbPromise;
+
+  gribCacheDbPromise = new Promise((resolve) => {
+    const request = indexedDB.open(GRIB_CACHE_DB_NAME, GRIB_CACHE_DB_VERSION);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      const store = db.objectStoreNames.contains(GRIB_BLOCK_STORE)
+        ? request.transaction.objectStore(GRIB_BLOCK_STORE)
+        : db.createObjectStore(GRIB_BLOCK_STORE, { keyPath: "id" });
+      if (!store.indexNames.contains("byPackageBlock")) {
+        store.createIndex("byPackageBlock", ["packageKey", "blockKey"]);
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => {
+      console.warn("IndexedDB cache unavailable:", request.error);
+      gribCacheDbPromise = null;
+      resolve(null);
+    };
+    request.onblocked = () => {
+      console.warn("IndexedDB cache upgrade is blocked by another tab.");
+    };
+  });
+
+  return gribCacheDbPromise;
+}
+
+function extractRunId(text) {
+  const match = text.match(/(\d{4}-\d{2}-\d{2}T\d{2}[:_]\d{2}[:_]\d{2}Z)/);
+  return match ? match[1].replaceAll("_", ":") : "unknown-run";
+}
+
+function formatRunId(runId) {
+  const match = runId.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/);
+  if (!match) return runId;
+  return `${match[1]} ${match[2]}:${match[3]} UTC`;
+}
+
+function formatRunSummary(resources) {
+  const runIds = [...new Set(resources.map((r) => r.runId))];
+  if (runIds.length === 0) return "no run";
+  if (runIds.length === 1) return `run ${formatRunId(runIds[0])}`;
+  return `mixed runs: ${runIds.map(formatRunId).join(", ")}`;
+}
+
+function gribBlockCacheKey(packageKey, block) {
+  return [
+    "grib2",
+    packageKey,
+    block.key,
+    block.runId,
+    block.filesize ?? "unknown-size",
+    block.url,
+  ].join(":");
+}
+
+async function readCachedGribBlock(packageKey, block) {
+  try {
+    const db = await openGribCacheDb();
+    if (!db) return null;
+    const transaction = db.transaction(GRIB_BLOCK_STORE, "readonly");
+    const record = await idbRequest(
+      transaction.objectStore(GRIB_BLOCK_STORE).get(gribBlockCacheKey(packageKey, block)),
+    );
+    return record?.buffer ? new Uint8Array(record.buffer) : null;
+  } catch (error) {
+    console.warn("IndexedDB cache read failed:", error);
+    return null;
+  }
+}
+
+async function writeCachedGribBlock(packageKey, block, buffer) {
+  try {
+    const db = await openGribCacheDb();
+    if (!db) return;
+    const transaction = db.transaction(GRIB_BLOCK_STORE, "readwrite");
+    const record = {
+      id: gribBlockCacheKey(packageKey, block),
+      packageKey,
+      blockKey: block.key,
+      runId: block.runId,
+      url: block.url,
+      filesize: block.filesize ?? null,
+      savedAt: new Date().toISOString(),
+      buffer: buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
+    };
+    transaction.objectStore(GRIB_BLOCK_STORE).put(record);
+    await idbTransactionDone(transaction);
+    await deleteObsoleteCachedGribBlocks(db, packageKey, block);
+  } catch (error) {
+    console.warn("IndexedDB cache write failed:", error);
+  }
+}
+
+async function deleteObsoleteCachedGribBlocks(db, packageKey, block) {
+  const currentId = gribBlockCacheKey(packageKey, block);
+  const transaction = db.transaction(GRIB_BLOCK_STORE, "readwrite");
+  const index = transaction.objectStore(GRIB_BLOCK_STORE).index("byPackageBlock");
+  const range = IDBKeyRange.only([packageKey, block.key]);
+  await new Promise((resolve, reject) => {
+    const request = index.openCursor(range);
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) {
+        resolve();
+        return;
+      }
+      if (cursor.value.id !== currentId) cursor.delete();
+      cursor.continue();
+    };
+    request.onerror = () => reject(request.error);
+  });
+  await idbTransactionDone(transaction);
 }
 
 function updatePerfDiagnostics() {
@@ -1029,8 +1165,9 @@ async function fetchDataGouvResources(datasetId, titlePattern) {
     .map((r) => {
       const single = r.title.match(/__(\d+)H__/);
       const range  = r.title.match(/__(\d+)H(\d+)H__/);
-      if (single) return { startHour: +single[1], endHour: +single[1], key: single[0].slice(2, -2), url: r.url, filesize: r.filesize };
-      if (range)  return { startHour: +range[1],  endHour: +range[2],  key: range[0].slice(2, -2),  url: r.url, filesize: r.filesize };
+      const runId = extractRunId(`${r.title} ${r.url}`);
+      if (single) return { startHour: +single[1], endHour: +single[1], key: single[0].slice(2, -2), runId, title: r.title, url: r.url, filesize: r.filesize };
+      if (range)  return { startHour: +range[1],  endHour: +range[2],  key: range[0].slice(2, -2),  runId, title: r.title, url: r.url, filesize: r.filesize };
       return null;
     })
     .filter(Boolean)
@@ -1470,9 +1607,10 @@ async function startDownload(packageKey) {
   }
   modelState.hourList = hourList;
   slider.max = hourList.length - 1;
+  const runSummary = formatRunSummary(resources);
 
   document.getElementById("arome-dl-status").textContent =
-    `Downloading ${resources.length} ${packageKey} files…`;
+    `Downloading ${resources.length} ${packageKey} files (${runSummary})…`;
 
   const barsEl = document.getElementById("arome-dl-bars");
   const fileListEl = document.getElementById("arome-dl-file-list");
@@ -1483,10 +1621,11 @@ async function startDownload(packageKey) {
     item.className = "arome-dl-item";
     item.id = `dl-${r.key}`;
     item.textContent = r.key;
+    item.title = formatRunSummary([r]);
     barsEl.appendChild(item);
 
     const li = document.createElement("li");
-    li.textContent = r.url.split("/").pop();
+    li.textContent = `${r.url.split("/").pop()} · ${formatRunId(r.runId)}`;
     fileListEl.appendChild(li);
   }
 
@@ -1496,7 +1635,9 @@ async function startDownload(packageKey) {
     resources,
     MAX_PARALLEL_DOWNLOADS,
     async (block) => {
-      const buffer = await downloadFileProg(
+      const cachedBuffer = await readCachedGribBlock(packageKey, block);
+      if (modelState !== downloadKey) return;
+      const buffer = cachedBuffer ?? await downloadFileProg(
         block.url,
         block.filesize,
         (loaded, total) => {
@@ -1509,6 +1650,13 @@ async function startDownload(packageKey) {
             );
         },
       );
+      if (cachedBuffer) {
+        document
+          .getElementById(`dl-${block.key}`)
+          ?.style.setProperty("--pct", "100%");
+        document.getElementById(`dl-${block.key}`)?.classList.add("cached");
+      }
+      if (!cachedBuffer) await writeCachedGribBlock(packageKey, block, buffer);
       if (modelState !== downloadKey) return;
       modelState.buffers.set(block.key, buffer);
 
@@ -1550,7 +1698,7 @@ async function startDownload(packageKey) {
 
       if (doneCount === resources.length) {
         document.getElementById("arome-dl-status").textContent =
-          `Downloaded ${resources.length} / ${resources.length} files`;
+          `Downloaded ${resources.length} / ${resources.length} files (${runSummary})`;
         setMapSceneVisible(true);
         setRendering(true);
         await initMap();

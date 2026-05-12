@@ -16,6 +16,7 @@
 - [x] Move stats and transforms to one owned pipeline.
 - [x] Add lightweight runtime diagnostics.
 - [x] Limit model file downloads to 6 parallel fetches.
+- [x] Cache downloaded GRIB2 blocks in IndexedDB by file run.
 
 ## Context
 
@@ -42,9 +43,14 @@ the problem, but mobile browsers are much less forgiving.
 ## Current Rendering Model
 
 The online player downloads GRIB2 blocks with at most 6 parallel fetches,
-decodes selected messages with `decodeGRIB2()`, renders heatmaps in
+caches downloaded block bytes in IndexedDB by file run, decodes selected
+messages with `decodeGRIB2()`, renders heatmaps in
 `apps/visualize/render-worker.js`, and caches rendered `ImageBitmap` entries in
 `bitmapCache`.
+
+IndexedDB is currently used to avoid re-downloading the same remote files after
+a refresh. It does not yet reduce in-session RAM usage because cache hits still
+fill `modelState.buffers` before rendering.
 
 Keeping an `ImageBitmap` cache is still a good direction because cache hits make
 animation cheap: the visible frame becomes a `drawImage()` call instead of a

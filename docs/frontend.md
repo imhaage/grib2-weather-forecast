@@ -100,16 +100,39 @@ blocks for a 102-hour run).
 `startDownload(packageKey)`:
 1. Initialises `modelState` (resets previous state) and sets `downloadKey = modelState`
 2. Calls `fetchDataGouvResources(pkg.datasetId, pkg.titlePattern)` to list available blocks
+   and extract each file's `runId` from its name or URL
 3. Builds `hourList`: expands each block's `[startHour..endHour]` range into a flat array of all
    forecast hours — e.g. `[0, 1, ..., 12, 13, ..., 24, ...]` for ARPEGE or `[0, 1, ..., 51]`
    for AROME
 4. Sets `slider.max = hourList.length - 1`
-5. Renders one progress bar per block (labelled with `H+${startHour}`)
+5. Renders one progress bar per block and reports whether the current resource list is a single
+   run or mixed runs
 6. Launches block downloads through `runWithConcurrency(..., MAX_PARALLEL_DOWNLOADS, ...)`,
    currently capped at 6 active fetches. Each callback checks `modelState !== downloadKey` to
-   handle cancellation. On block arrival: stores in `modelState.buffers` (keyed by block key string),
-   optionally initialises the legend, and triggers the first render only after all files are
-   downloaded
+   handle cancellation. For each block, IndexedDB is checked before network download. Cache misses
+   are written back after download, then older cached versions for the same `packageKey + block.key`
+   are deleted. On block availability: stores in `modelState.buffers` (keyed by block key string),
+   optionally initialises the legend, and triggers the first render only after all listed files are
+   available.
+
+### Download cache
+
+Downloaded GRIB2 blocks are cached in IndexedDB store `gribBlocks`.
+
+Cache identity is per package, logical file, run, URL, and file size:
+
+```txt
+grib2:{packageKey}:{block.key}:{runId}:{filesize}:{url}
+```
+
+The app intentionally still fills `modelState.buffers` after a cache hit. IndexedDB is used first
+to avoid downloading the same files again after refresh; it is not yet used as a low-memory backing
+store during a session.
+
+When a new version of a logical file is successfully written, older cached entries with the same
+`packageKey + block.key` are removed. This supports progressive upstream publication: one forecast
+hour can advance to a newer run without deleting cached files for other hours that have not been
+published yet.
 
 ### Block indexing
 
