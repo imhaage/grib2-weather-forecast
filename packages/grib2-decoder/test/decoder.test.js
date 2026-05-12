@@ -9,7 +9,7 @@
 import { describe, it, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { walkSections, parseSection1, parseSection3, parseSection5, parseSection6 } from '../src/decoder.js';
+import { walkSections, parseSection1, parseSection3, parseSection5, parseSection6, iterateGRIB2Messages } from '../src/decoder.js';
 import { lookupParameter } from '../src/parameters.js';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -78,6 +78,17 @@ describe('walkSections — Section boundaries', () => {
                 `Gap between section ${order[i]} and ${order[i + 1]}`
             );
         }
+    });
+});
+
+describe('iterateGRIB2Messages — message views', () => {
+    it('yields offsets and non-copying views into the original buffer', () => {
+        const msg = [...iterateGRIB2Messages(data)][0];
+        assert.equal(msg.offset, 0);
+        assert.equal(msg.length, 5158751);
+        assert.equal(msg.buffer.buffer, data.buffer);
+        assert.equal(msg.buffer.byteOffset, data.byteOffset);
+        assert.equal(msg.buffer.byteLength, msg.length);
     });
 });
 

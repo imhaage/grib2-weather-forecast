@@ -1009,6 +1009,7 @@ const TEMPLATES = {
 	0: drt_simple_exports,
 	2: drt_complex_exports,
 	3: drt_complex_exports,
+	4: drt_ieee754_exports,
 	40: drt_jpeg2000_exports,
 	42: drt_ccsds_exports,
 	254: drt_ieee754_exports,
@@ -1028,10 +1029,12 @@ function getTemplate(n) {
 *
 * Supported data representation templates:
 *   0   – Simple packing
-*   40  – Constant field (all values equal)
+*   2   – Complex packing
+*   3   – Complex packing with spatial differencing
+*   40  – JPEG 2000 code stream (OpenJPEG WASM)
 *   42  – CCSDS lossless compression (Golomb-Rice via libaec WASM)
-*   254 – Grid IEEE 754 (32-bit floats, big-endian)
-*   255 – All values missing
+*   254 – IEEE 754 float32 (big-endian)
+*   255 – Constant field (all values equal)
 *
 * GRIB2 message structure (per WMO FM-92):
 *   Section 0  (16 bytes) : "GRIB" + reserved + discipline + edition + 8-byte length
@@ -1451,7 +1454,9 @@ function parseGRIB2Header(buffer) {
 * @param {ArrayBuffer|Uint8Array} buffer - Raw bytes of the concatenated file
 * @yields {{
 *   index:   number,     - Zero-based message index
-*   buffer:  Uint8Array, - Self-contained copy of this message (byteOffset = 0)
+*   offset:  number,     - Message offset within the input buffer
+*   length:  number,     - Message byte length
+*   buffer:  Uint8Array, - Non-copying view of this message
 *   header:  object,     - Section 1 identification fields + discipline
 *   product: object,     - Section 4 product fields (shortName, name, units…)
 *   grid:    object,     - Section 3 grid definition fields
@@ -1467,11 +1472,13 @@ function* iterateGRIB2Messages(buffer) {
 		const msgLenLo = u32(data, offset + 12);
 		const msgLen = msgLenHi * 4294967296 + msgLenLo;
 		if (msgLen < 16 || offset + msgLen > data.length) break;
-		const msgData = data.slice(offset, offset + msgLen);
+		const msgData = data.subarray(offset, offset + msgLen);
 		const walked = walkSections(msgData);
 		const { s1, s3, s4 } = parseHeaderSections(msgData, walked);
 		yield {
 			index,
+			offset,
+			length: msgLen,
 			buffer: msgData,
 			header: {
 				...s1,

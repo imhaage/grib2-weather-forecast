@@ -1,5 +1,18 @@
 # Mobile Performance Notes
 
+## Optimization Checklist
+
+- [x] Hide `#map-scene` until all files are downloaded.
+- [x] Replace global block pre-rendering with a single render queue.
+- [x] Reduce decoded value retention (`DECODED_CACHE_SIZE = 2`).
+- [x] Stop keeping copied message buffers in `messageIndex`.
+- [ ] Bound the `ImageBitmap` cache.
+- [ ] Pre-render a sliding window instead of the full run.
+- [ ] Avoid worker `values.slice()` when ownership is clear.
+- [ ] Consider `Float32Array` for display values.
+- [ ] Move stats and transforms to one owned pipeline.
+- [ ] Add lightweight runtime diagnostics.
+
 ## Context
 
 This project is an experiment and a technical showcase: a browser-native GRIB2
@@ -66,13 +79,13 @@ download, then decode and render.
 
 3. Message copies in `iterateGRIB2Messages()`
 
-   The iterator currently stores each yielded message as `data.slice(...)`.
-   `indexBlock()` then keeps these message copies in `messageIndex`, while the
-   original downloaded block buffer is also kept in memory.
+   The iterator yields non-copying message views plus message offsets. The web
+   app stores `{ blockKey, offset, length }` in `messageIndex`, while the
+   original downloaded block buffer remains the single owner of the bytes.
 
 4. Decoded value cache
 
-   `DECODED_CACHE_SIZE = 5` can retain several large `Float64Array` objects.
+   `DECODED_CACHE_SIZE = 2` can retain two large `Float64Array` objects.
    This improves decode reuse, but it competes directly with the bitmap cache.
 
 5. Worker input copies
@@ -147,25 +160,25 @@ Approach:
 
 Expected effect: good perceived performance with bounded memory.
 
-### 5. Stop keeping copied message buffers in `messageIndex`
+### 5. Stop keeping copied message buffers in `messageIndex` — done
 
 Goal: avoid storing copied GRIB2 messages for every variable and hour.
 
 Approach:
 
-- Change the iterator or add a new iterator mode that yields message offsets and
-  lengths into the original block buffer.
-- Store `{ blockKey, offset, length }` in `messageIndex` instead of a copied
-  `Uint8Array`.
-- Decode from a view into the original buffer, or copy only the one message that
-  is about to be decoded if required by a decoder edge case.
+- `iterateGRIB2Messages()` yields message offsets, lengths, and a non-copying
+  `subarray()` view.
+- `messageIndex` stores `{ blockKey, offset, length }` instead of `msg.buffer`.
+- `getCachedDecode()` resolves the reference into a `subarray()` view only when
+  decoding is needed.
 
 Expected effect: lower baseline memory after indexing blocks.
 
-Risk:
+Validation:
 
-- Some decoder paths may assume `byteOffset === 0`. Fix those assumptions before
-  fully removing copies.
+- `decodeGRIB2()` has a regression test covering non-zero `byteOffset` views.
+- `iterateGRIB2Messages()` has a regression test ensuring yielded message
+  buffers share the original `ArrayBuffer`.
 
 ### 6. Reduce decoded value retention
 
@@ -174,7 +187,7 @@ arrays.
 
 Approach:
 
-- Lower `DECODED_CACHE_SIZE` when bitmap caching is active.
+- Keep `DECODED_CACHE_SIZE` low while bitmap caching is active.
 - Consider caching only current and previous decoded fields for accumulation
   variables.
 - For non-accumulation variables, release decoded values once the bitmap and

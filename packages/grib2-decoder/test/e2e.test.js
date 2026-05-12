@@ -68,6 +68,23 @@ describe('decodeGRIB2 — values array shape', () => {
         assert.equal(values.length, 5016591));
 });
 
+describe('decodeGRIB2 — Uint8Array views', () => {
+    it('decodes a message view whose byteOffset is not zero', async () => {
+        const buf = readFileSync(GRIB2_FILE);
+        const data = new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
+        const padded = new Uint8Array(data.length + 17);
+        padded.set(data, 17);
+        const view = padded.subarray(17);
+
+        assert.notEqual(view.byteOffset, 0);
+        const decoded = await decodeGRIB2(view);
+        assert.equal(decoded.grid.totalPoints, grid.totalPoints);
+        assert.equal(decoded.product.shortName, result.product.shortName);
+        assert.equal(decoded.values.length, values.length);
+        assert.equal(decoded.values[bitmap.indexOf(1)], values[bitmap.indexOf(1)]);
+    });
+});
+
 // ─── Bitmap ───────────────────────────────────────────────────────────────────
 
 describe('decodeGRIB2 — bitmap', () => {

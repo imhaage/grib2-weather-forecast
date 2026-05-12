@@ -498,7 +498,9 @@ export function parseGRIB2Header(buffer) {
  * @param {ArrayBuffer|Uint8Array} buffer - Raw bytes of the concatenated file
  * @yields {{
  *   index:   number,     - Zero-based message index
- *   buffer:  Uint8Array, - Self-contained copy of this message (byteOffset = 0)
+ *   offset:  number,     - Message offset within the input buffer
+ *   length:  number,     - Message byte length
+ *   buffer:  Uint8Array, - Non-copying view of this message
  *   header:  object,     - Section 1 identification fields + discipline
  *   product: object,     - Section 4 product fields (shortName, name, units…)
  *   grid:    object,     - Section 3 grid definition fields
@@ -523,15 +525,15 @@ export function* iterateGRIB2Messages(buffer) {
 
         if (msgLen < 16 || offset + msgLen > data.length) break;
 
-        // Use .slice() (not .subarray()) so byteOffset === 0 in the copy —
-        // required by the tmpl === 254 DataView path in decodeGRIB2().
-        const msgData = data.slice(offset, offset + msgLen);
+        const msgData = data.subarray(offset, offset + msgLen);
 
         const walked         = walkSections(msgData);
         const { s1, s3, s4 } = parseHeaderSections(msgData, walked);
 
         yield {
             index,
+            offset,
+            length:  msgLen,
             buffer:  msgData,
             header:  { ...s1, discipline: walked.discipline, messageLength: walked.messageLength },
             product: s4,

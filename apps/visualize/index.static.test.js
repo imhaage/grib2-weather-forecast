@@ -21,3 +21,52 @@ test("model downloads keep the map scene hidden until every file is downloaded",
     "expected download completion to reveal the map scene explicitly",
   );
 });
+
+test("model pre-rendering is scheduled through a single queue", () => {
+  assert.match(
+    source,
+    /let prerenderQueue = \[\];/,
+    "expected explicit queue state",
+  );
+  assert.match(
+    source,
+    /async function drainPrerenderQueue\(/,
+    "expected a single queue drain loop",
+  );
+  assert.doesNotMatch(
+    source,
+    /Promise\.all\(\s*\[\.\.\.modelState\.buffers\.keys\(\)\]\.map\(k => prerenderBlock\(k\)\)\s*\)/,
+    "expected no global parallel pre-render after palette or variable changes",
+  );
+  assert.match(
+    source,
+    /queuePrerenderForAllBlocks\(\);/,
+    "expected callers to enqueue all blocks instead of rendering them directly",
+  );
+});
+
+test("decoded value cache is limited to current and adjacent working fields", () => {
+  assert.match(
+    source,
+    /const DECODED_CACHE_SIZE = 2;/,
+    "expected decoded Float64Array cache to stay small while bitmap cache handles playback",
+  );
+});
+
+test("message index stores block offsets instead of copied message buffers", () => {
+  assert.match(
+    source,
+    /function messageViewFromRef\(/,
+    "expected message references to be resolved into views only at decode time",
+  );
+  assert.match(
+    source,
+    /index\.set\(`\$\{ft\}_\$\{product\.shortName\}_\$\{product\.levelValue\}`, messageRef\);/,
+    "expected indexed messages to store a lightweight reference",
+  );
+  assert.doesNotMatch(
+    source,
+    /index\.set\([^;]+msg\.buffer\)/,
+    "expected messageIndex not to retain message buffer copies",
+  );
+});

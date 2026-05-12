@@ -154,6 +154,9 @@ let renderWorker = null;
 let renderGen = 0;
 let nextCallId = 0;
 let bitmapCache = new Map(); // cacheKey → {bitmap, dataMin, dataMax, mean, count}
+let prerenderQueue = [];
+let queuedPrerenderKeys = new Set();
+let isPrerendering = false;
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function setRendering(on) {
@@ -236,6 +239,8 @@ function renderViaWorker(values, renderParams, outW, outH) {
 function invalidateBitmapCache() {
   for (const entry of bitmapCache.values()) entry.bitmap.close();
   bitmapCache = new Map();
+  prerenderQueue = [];
+  queuedPrerenderKeys = new Set();
   renderGen++;
 }
 
@@ -315,7 +320,7 @@ const VARIABLE_PALETTES = {
 };
 
 // Static color scale ranges for AROME variables (enables timestep comparison).
-const DECODED_CACHE_SIZE = 5;
+const DECODED_CACHE_SIZE = 2;
 const LOG_SCALE_FLOOR = 0.1;
 const RASTER_OPACITY = 0.8;
 
@@ -927,7 +932,8 @@ async function getCachedDecode(hour) {
   const lookupKey = varDef?.levelValue != null
     ? `${hour}_${varDef.shortName}_${varDef.levelValue}`
     : `${hour}_${variable}`;
-  const msgBuffer = modelState.messageIndex.get(block.key)?.get(lookupKey);
+  const msgRef = modelState.messageIndex.get(block.key)?.get(lookupKey);
+  const msgBuffer = messageViewFromRef(msgRef);
   if (!msgBuffer) return null;
 
   if (decodedOrder.length >= DECODED_CACHE_SIZE) decoded.delete(decodedOrder.shift());
@@ -938,20 +944,28 @@ async function getCachedDecode(hour) {
   return data;
 }
 
+function messageViewFromRef(ref) {
+  if (!ref) return null;
+  const buffer = modelState.buffers.get(ref.blockKey);
+  if (!buffer) return null;
+  return buffer.subarray(ref.offset, ref.offset + ref.length);
+}
+
 function indexBlock(blockKey) {
   const buffer = modelState.buffers.get(blockKey);
   const block = modelState.resources.find((r) => r.key === blockKey);
   const index = new Map();
   for (const msg of iterateGRIB2Messages(buffer)) {
     const { product } = msg;
+    const messageRef = { blockKey, offset: msg.offset, length: msg.length };
     // PDT 4.8 (accumulation) always has forecastTime=0 (start of interval).
     // For single-hour blocks, use the block's hour as the effective forecast time.
     const ft = (product.pdtNumber === 8 && block.startHour === block.endHour)
       ? block.endHour
       : product.forecastTime;
-    index.set(`${ft}_${product.shortName}_${product.levelValue}`, msg.buffer);
+    index.set(`${ft}_${product.shortName}_${product.levelValue}`, messageRef);
     const simpleKey = `${ft}_${product.shortName}`;
-    if (!index.has(simpleKey)) index.set(simpleKey, msg.buffer);
+    if (!index.has(simpleKey)) index.set(simpleKey, messageRef);
   }
   modelState.messageIndex.set(blockKey, index);
 }
@@ -1159,6 +1173,41 @@ async function prerenderBlock(blockKey) {
   }
 }
 
+function queuePrerenderBlock(blockKey) {
+  if (!modelState || !modelState.buffers.has(blockKey)) return;
+  const gen = renderGen;
+  const state = modelState;
+  const queueKey = `${gen}:${blockKey}`;
+  if (queuedPrerenderKeys.has(queueKey)) return;
+  queuedPrerenderKeys.add(queueKey);
+  prerenderQueue.push({ blockKey, gen, state, queueKey });
+  drainPrerenderQueue();
+}
+
+function queuePrerenderForAllBlocks() {
+  if (!modelState) return;
+  for (const blockKey of modelState.buffers.keys()) {
+    queuePrerenderBlock(blockKey);
+  }
+}
+
+async function drainPrerenderQueue() {
+  if (isPrerendering) return;
+  isPrerendering = true;
+  try {
+    while (prerenderQueue.length > 0) {
+      const job = prerenderQueue.shift();
+      if (modelState === job.state && renderGen === job.gen) {
+        await prerenderBlock(job.blockKey);
+      }
+      queuedPrerenderKeys.delete(job.queueKey);
+    }
+  } finally {
+    isPrerendering = false;
+    if (prerenderQueue.length > 0) drainPrerenderQueue();
+  }
+}
+
 async function startDownload(packageKey) {
   const pkg = PACKAGES[packageKey];
   modelState = {
@@ -1309,9 +1358,7 @@ async function startDownload(packageKey) {
         await showHour(currentIdx);
         if (modelState !== downloadKey || renderGen !== myGen) return;
         if (renderGen === myGen) setRendering(false);
-        for (const blockKey of modelState.buffers.keys()) {
-          prerenderBlock(blockKey);
-        }
+        queuePrerenderForAllBlocks();
       }
     }),
   );
@@ -1485,7 +1532,7 @@ async function onPaletteChange(e) {
     invalidateBitmapCache();
     const myGen = renderGen;
     showHour(parseInt(document.getElementById("arome-slider").value, 10));
-    await Promise.all([...modelState.buffers.keys()].map(k => prerenderBlock(k)));
+    queuePrerenderForAllBlocks();
     if (renderGen === myGen) setRendering(false);
   } else {
     renderHeatmap();
@@ -1538,7 +1585,7 @@ document
     const myGen = renderGen;
     const idx = parseInt(document.getElementById("arome-slider").value, 10);
     showHour(idx);
-    await Promise.all([...modelState.buffers.keys()].map(k => prerenderBlock(k)));
+    queuePrerenderForAllBlocks();
     if (renderGen === myGen) setRendering(false);
   });
 
