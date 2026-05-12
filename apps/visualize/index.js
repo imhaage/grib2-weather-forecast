@@ -160,6 +160,12 @@ function setRendering(on) {
   document.getElementById("map-scene").classList.toggle("rendering", on);
 }
 
+function setMapSceneVisible(visible) {
+  const scene = document.getElementById("map-scene");
+  scene.hidden = !visible;
+  if (visible && map) map.resize();
+}
+
 function initRenderWorker() {
   if (renderWorker) return;
   renderWorker = new Worker(new URL("./render-worker.js", import.meta.url));
@@ -815,6 +821,7 @@ async function showGridView(shortName) {
   // Switch view
   document.getElementById("view-home").style.display = "none";
   document.getElementById("view-grid").style.display = "block";
+  setMapSceneVisible(true);
 
   // Decode (WASM)
   let decoded;
@@ -1166,6 +1173,7 @@ async function startDownload(packageKey) {
     currentHour: null,
     lastRunInfo: null,
   };
+  setMapSceneVisible(false);
   const downloadKey = modelState;
 
   const varSelect = document.getElementById("arome-var-select");
@@ -1186,10 +1194,6 @@ async function startDownload(packageKey) {
 
   const slider = document.getElementById("arome-slider");
   slider.value = 0;
-
-  await initMap();
-  if (modelState !== downloadKey) return;
-  map.fitBounds(pkg.bounds, { padding: 20, animate: false });
 
   document.getElementById("arome-dl-status").textContent =
     "Fetching file list…";
@@ -1291,21 +1295,23 @@ async function startDownload(packageKey) {
         }
       }
 
-      // Render map when the block containing the slider's current hour arrives
-      const currentIdx = parseInt(slider.value, 10);
-      const currentHour = hourList[currentIdx];
-      const isFirstDisplay = currentHour >= block.startHour && currentHour <= block.endHour && !gridState;
-
-      if (isFirstDisplay) {
-        // 1. Legend/select already visible  2. Hide map  3. Render + prerender
+      if (doneCount === resources.length) {
+        document.getElementById("arome-dl-status").textContent =
+          `Downloaded ${resources.length} / ${resources.length} files`;
+        setMapSceneVisible(true);
         setRendering(true);
+        await initMap();
+        if (modelState !== downloadKey) return;
+        map.fitBounds(pkg.bounds, { padding: 20, animate: false });
         await new Promise(r => setTimeout(r, 0));
         const myGen = renderGen;
+        const currentIdx = parseInt(slider.value, 10);
         await showHour(currentIdx);
-        await prerenderBlock(block.key);
+        if (modelState !== downloadKey || renderGen !== myGen) return;
         if (renderGen === myGen) setRendering(false);
-      } else {
-        prerenderBlock(block.key); // background pre-render — no await
+        for (const blockKey of modelState.buffers.keys()) {
+          prerenderBlock(blockKey);
+        }
       }
     }),
   );
