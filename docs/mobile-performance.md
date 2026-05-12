@@ -15,6 +15,7 @@
 - [x] Warm the full bitmap cache before starting animation playback.
 - [x] Move stats and transforms to one owned pipeline.
 - [x] Add lightweight runtime diagnostics.
+- [x] Limit model file downloads to 6 parallel fetches.
 
 ## Context
 
@@ -40,9 +41,10 @@ the problem, but mobile browsers are much less forgiving.
 
 ## Current Rendering Model
 
-The online player downloads GRIB2 blocks, decodes selected messages with
-`decodeGRIB2()`, renders heatmaps in `apps/visualize/render-worker.js`, and
-caches rendered `ImageBitmap` entries in `bitmapCache`.
+The online player downloads GRIB2 blocks with at most 6 parallel fetches,
+decodes selected messages with `decodeGRIB2()`, renders heatmaps in
+`apps/visualize/render-worker.js`, and caches rendered `ImageBitmap` entries in
+`bitmapCache`.
 
 Keeping an `ImageBitmap` cache is still a good direction because cache hits make
 animation cheap: the visible frame becomes a `drawImage()` call instead of a

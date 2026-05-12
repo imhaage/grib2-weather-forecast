@@ -161,6 +161,7 @@ let tooltipHydrateTimer = null;
 let tooltipHydrateToken = 0;
 let prerenderIdleResolvers = [];
 let isPreparingAnimation = false;
+const MAX_PARALLEL_DOWNLOADS = 6;
 const PERF_DEBUG = new URLSearchParams(window.location.search).get("debug") === "perf";
 const perfStats = {
   lastRenderMs: null,
@@ -170,6 +171,22 @@ const perfStats = {
 
 function fmtPerfMs(value) {
   return value == null ? "—" : `${Math.round(value)} ms`;
+}
+
+async function runWithConcurrency(items, limit, worker) {
+  const results = new Array(items.length);
+  let nextIndex = 0;
+  const workerCount = Math.min(limit, items.length);
+
+  async function runNext() {
+    const index = nextIndex++;
+    if (index >= items.length) return;
+    results[index] = await worker(items[index], index);
+    await runNext();
+  }
+
+  await Promise.all(Array.from({ length: workerCount }, runNext));
+  return results;
 }
 
 function updatePerfDiagnostics() {
@@ -1475,8 +1492,10 @@ async function startDownload(packageKey) {
 
   let doneCount = 0;
   let legendInitialized = false;
-  await Promise.all(
-    resources.map(async (block) => {
+  await runWithConcurrency(
+    resources,
+    MAX_PARALLEL_DOWNLOADS,
+    async (block) => {
       const buffer = await downloadFileProg(
         block.url,
         block.filesize,
@@ -1545,7 +1564,7 @@ async function startDownload(packageKey) {
         if (renderGen === myGen) setRendering(false);
         queuePrerenderForAllBlocks();
       }
-    }),
+    },
   );
 }
 

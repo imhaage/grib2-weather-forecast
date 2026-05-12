@@ -105,10 +105,11 @@ blocks for a 102-hour run).
    for AROME
 4. Sets `slider.max = hourList.length - 1`
 5. Renders one progress bar per block (labelled with `H+${startHour}`)
-6. Launches `Promise.all(...)` over blocks; each callback checks `modelState !== downloadKey` to
+6. Launches block downloads through `runWithConcurrency(..., MAX_PARALLEL_DOWNLOADS, ...)`,
+   currently capped at 6 active fetches. Each callback checks `modelState !== downloadKey` to
    handle cancellation. On block arrival: stores in `modelState.buffers` (keyed by block key string),
-   optionally initialises the legend, and triggers `showHour()` if the slider's current hour
-   belongs to this block
+   optionally initialises the legend, and triggers the first render only after all files are
+   downloaded
 
 ### Block indexing
 

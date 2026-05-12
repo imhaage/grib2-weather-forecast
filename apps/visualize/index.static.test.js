@@ -291,3 +291,26 @@ test("perf diagnostics are available only through the debug query flag", () => {
     "expected decode timing to be measured",
   );
 });
+
+test("model file downloads are limited to six parallel fetches", () => {
+  assert.match(
+    source,
+    /const MAX_PARALLEL_DOWNLOADS = 6;/,
+    "expected model downloads to declare the current concurrency limit",
+  );
+  assert.match(
+    source,
+    /async function runWithConcurrency\(items, limit, worker\)/,
+    "expected a reusable concurrency helper",
+  );
+  assert.match(
+    source,
+    /await runWithConcurrency\(\s*resources,\s*MAX_PARALLEL_DOWNLOADS,\s*async \(block\) =>/,
+    "expected startDownload to use the concurrency-limited queue",
+  );
+  assert.doesNotMatch(
+    source,
+    /await Promise\.all\(\s*resources\.map\(async \(block\) =>/,
+    "expected startDownload not to fetch all resources in parallel",
+  );
+});
