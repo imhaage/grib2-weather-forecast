@@ -7,13 +7,13 @@
 - [x] Reduce decoded value retention (`DECODED_CACHE_SIZE = 2`).
 - [x] Stop keeping copied message buffers in `messageIndex`.
 - [x] Keep the full `ImageBitmap` cache when the device can hold it.
-- [ ] Pre-render a sliding window instead of the full run.
+- [x] Drop sliding-window pre-rendering while the full cache works well.
 - [x] Avoid worker `values.slice()` when ownership is clear.
 - [x] Consider `Float32Array` for display values.
 - [x] Use cached `ImageBitmap` entries before decoding values.
 - [x] Lazy-decode tooltip values after cached bitmap display.
 - [x] Warm the full bitmap cache before starting animation playback.
-- [ ] Move stats and transforms to one owned pipeline.
+- [x] Move stats and transforms to one owned pipeline.
 - [ ] Add lightweight runtime diagnostics.
 
 ## Context
@@ -114,11 +114,12 @@ download, then decode and render.
    tooltip ownership, but background pre-rendering can transfer owned values
    directly when they are safe to detach.
 
-6. Duplicate value transforms and render paths
+6. Duplicate value transforms
 
-   Unit conversion and render logic are split between the main thread and the
-   worker. This makes it harder to reason about memory ownership and stale
-   render cancellation.
+   Heatmap unit transforms, stats, and bitmap generation now run through the
+   worker for both model data and uploaded files. Unit conversion still exists
+   on the main thread for tooltip display, so `unitFnFor()` and worker
+   `applyUnit()` should eventually share metadata or a helper.
 
 ## Incremental Optimization Plan
 
@@ -152,33 +153,30 @@ Approach:
 
 Expected effect: lower CPU spikes and lower temporary memory pressure.
 
-### 3. Bound the `ImageBitmap` cache
+### 3. Bound the `ImageBitmap` cache — not planned for now
 
-Goal: keep the benefit of bitmap cache hits without keeping every forecast hour
-in memory.
+Decision: do not bound the bitmap cache while the full cache works on target
+devices.
 
-Approach:
+Rationale:
 
-- Use an LRU cache for `ImageBitmap` entries.
-- Start with a small mobile-friendly size such as 8 to 12 bitmaps.
-- Optionally use a larger desktop size when memory looks sufficient.
-- Always call `bitmap.close()` on eviction.
+- A complete `ImageBitmap` cache makes every timestamp instant after warm-up.
+- It keeps animation and manual slider movement simple and predictable.
+- It keeps the code much simpler than an LRU or adaptive cache.
 
-Expected effect: the largest immediate memory reduction while keeping smooth
-animation near the current hour.
+Revisit only if real mobile devices still crash, reload the tab, or evict
+bitmaps aggressively.
 
-### 4. Pre-render a sliding window, not the full run
+### 4. Pre-render a sliding window, not the full run — dropped
 
-Goal: make playback smooth where the user is likely to go next.
+Decision: keep pre-rendering the full run.
 
-Approach:
+Rationale:
 
-- Render current hour first.
-- Then pre-render `idx + 1`, `idx + 2`, `idx - 1`, `idx + 3`, etc.
-- When the slider moves, reprioritize the queue.
-- Avoid pre-rendering hours far away from the current position.
-
-Expected effect: good perceived performance with bounded memory.
+- The full cache now works well enough on the target mobile device.
+- Playback waits for the full warm-up before starting, so the first animation
+  loop is smooth instead of filling cache on demand.
+- Manual slider movement benefits from any timestamp being instantly available.
 
 ### 5. Stop keeping copied message buffers in `messageIndex` — done
 
@@ -260,15 +258,22 @@ Risk:
 
 ### 9. Move stats and transforms to one owned pipeline
 
+Status: done.
+
 Goal: reduce duplicate loops and make cancellation easier.
 
 Approach:
 
-- Let one worker job handle unit transform, stats, and bitmap generation.
-- Keep the main thread responsible for UI state and cache policy only.
-- Make every worker response keyed by `callId` and `renderGen`.
+- One worker job handles unit transform, stats, and bitmap generation.
+- The main thread prepares render parameters, UI state, cache policy, and
+  tooltip state.
+- Model data and uploaded files both use the worker render path.
+- `renderHeatmap()` was removed from `index.js`.
 
 Expected effect: simpler ownership, fewer repeated loops, fewer stale results.
+
+Validation: confirmed smooth in the current target browser/mobile workflow after
+the uploaded-file path was moved to the worker render pipeline.
 
 ### 10. Add lightweight runtime diagnostics
 
@@ -288,17 +293,17 @@ Expected effect: faster iteration on real mobile devices.
 - Changing parameter or color scale never leaves the app on an infinite spinner.
 - On a mid-range mobile device, changing parameter completes without a browser
   tab reload or memory crash.
-- Animation is smooth near the current hour after a short warm-up.
+- Animation is smooth across the full run after a short warm-up.
 - Data values remain precise enough for scientific inspection in the tooltip.
-- The `ImageBitmap` cache remains part of the design, but with a bounded and
-  observable memory footprint.
+- The full `ImageBitmap` cache remains part of the design and is observable via
+  the warm-up progress indicator.
 
 ## DRY Issues To Address Before Refactoring
 
-- Unit conversion logic is duplicated between `unitFnFor()` in `index.js` and
-  `applyUnit()` in `render-worker.js`.
-- The Mercator row mapping and pixel normalization logic exist in both
-  `renderHeatmap()` and `render-worker.js`.
+- Unit conversion logic is still duplicated between `unitFnFor()` in `index.js`
+  and `applyUnit()` in `render-worker.js`. The main thread currently needs it
+  for tooltip display, while the worker needs it for bitmap and stats
+  generation.
 - Variable metadata is spread across `PACKAGES`, `PARAM_DESCRIPTIONS`,
   `STATIC_SCALES`, and `VARIABLE_PALETTES`.
 

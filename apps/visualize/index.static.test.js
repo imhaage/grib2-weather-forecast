@@ -108,7 +108,7 @@ test("model display values use Float32Array instead of retaining Float64Array pr
   );
   assert.match(
     source,
-    /values: toDisplayValues\(displayValues\),/,
+    /values: toDisplayValues\(values\),/,
     "expected render params to expose Float32Array display values",
   );
 });
@@ -126,7 +126,7 @@ test("cached bitmaps are shown before decoding values for the same hour", () => 
   );
   assert.match(
     source,
-    /values: values \?\? null,/,
+    /makeGridState\(entry, values \?\? null\)/,
     "expected cached bitmap hits to avoid retaining decoded values for tooltips",
   );
 });
@@ -238,5 +238,23 @@ test("map clicks show a thin cross marker for mobile tooltip location", () => {
     source,
     /map\.on\("click", \(e\) => \{[\s\S]*if \(shouldShowMapClickMarker\(e\.originalEvent\)\) showMapClickMarker\(e\.lngLat\);[\s\S]*showTooltipForMapEvent\(e\);[\s\S]*\}\);/,
     "expected map clicks to place the marker only when the input needs it",
+  );
+});
+
+test("uploaded file view uses the worker render pipeline for stats and bitmap", () => {
+  assert.match(
+    source,
+    /async function showGridView\(shortName\) \{[\s\S]*const p = makeRenderParams\(decoded\);[\s\S]*const statsEntry = await renderViaWorker\(p\.values, p, gr\.ni, needH\);/,
+    "expected uploaded-file rendering to use renderViaWorker",
+  );
+  assert.doesNotMatch(
+    source,
+    /async function showGridView\(shortName\) \{[\s\S]*computeStats\(values\);/,
+    "expected uploaded-file stats to come from the worker",
+  );
+  assert.doesNotMatch(
+    source,
+    /async function showGridView\(shortName\) \{[\s\S]*renderHeatmap\(\);/,
+    "expected uploaded-file bitmap rendering to come from the worker",
   );
 });

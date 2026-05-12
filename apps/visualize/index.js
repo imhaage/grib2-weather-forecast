@@ -6,7 +6,6 @@ import {
   iterateGRIB2Messages,
   decodeGRIB2,
   MISSING_VALUE,
-  computeStats,
   CENTRES,
   GENERATING_PROCESS,
   fmtRefTime,
@@ -310,6 +309,16 @@ function makeBitmapCacheEntry(renderEntry, renderParams) {
   };
 }
 
+function makeGridState(renderParams, values = renderParams.values) {
+  return {
+    ...renderParams,
+    values,
+    unitFn: unitFnFor(renderParams.unitTransform),
+    min: renderParams.renderMin,
+    range: renderParams.range,
+  };
+}
+
 const fmtNum = (v, d = 4) => v.toFixed(d);
 const fmtHourLabel = (h) => `+${String(h).padStart(2, "0")}H`;
 
@@ -484,97 +493,6 @@ function mercatorCanvasHeight(grid) {
   const spanY = Math.abs(mercatorY(la1) - mercatorY(la2));
   const spanX = Math.abs((lo2 - lo1) * Math.PI) / 180;
   return Math.round((ni * spanY) / spanX);
-}
-
-// Render heatmap into the offscreen heatCanvas, then notify MapLibre.
-// The canvas is pre-warped to Web Mercator: each row is inverse-Mercator'd
-// back to latitude so the image aligns perfectly with the basemap.
-function renderHeatmap() {
-  const { values, min, range, grid } = gridState;
-  const {
-    ni,
-    nj,
-    latitudeOfFirstPoint: la1,
-    latitudeOfLastPoint: la2,
-    dj,
-  } = grid;
-  const lut = buildLUT(currentPalette);
-  const sn = gridState.product?.shortName;
-  const isLog = gridState.staticScale?.log ?? false;
-  // Log scale: normalize v ∈ [0.1, max] logarithmically → [0, 1]
-  const logDenom = isLog
-    ? Math.log(gridState.staticScale.max / LOG_SCALE_FLOOR)
-    : 1;
-  const zeroThreshold = gridState.staticScale?.zeroThreshold ?? 0;
-  const isTransparentZero = zeroThreshold > 0;
-  const outW = heatCanvas.width; // = ni
-  const outH = heatCanvas.height; // Mercator-proportional
-  const ctx = heatCanvas.getContext("2d");
-  const img = ctx.createImageData(outW, outH);
-  const px = img.data;
-
-  // Support both N→S (la1 > la2) and S→N (la1 < la2, scanningMode 0x40) grids.
-  const northLat = Math.max(la1, la2);
-  const southLat = Math.min(la1, la2);
-  const isStoN = la2 > la1;
-  const myNorth = mercatorY(northLat);
-  const mySpan = myNorth - mercatorY(southLat); // always positive
-
-  for (let py = 0; py < outH; py++) {
-    // Map output row → Mercator Y → geographic latitude (north=py0, south=pyMax)
-    const lat = invMercatorY(myNorth - (py / outH) * mySpan);
-    if (lat > northLat || lat < southLat) continue;
-
-    const rowFromNorth = Math.min(
-      Math.max(Math.round((northLat - lat) / dj), 0),
-      nj - 1,
-    );
-    const row = isStoN ? nj - 1 - rowFromNorth : rowFromNorth;
-    const rowOff = row * ni;
-    const imgRow = py * outW;
-
-    for (let col = 0; col < outW; col++) {
-      const off = (imgRow + col) * 4;
-      const v = values[rowOff + col];
-      if (
-        v <= MISSING_VALUE ||
-        (isTransparentZero && v <= zeroThreshold)
-      ) {
-        /* transparent — createImageData initialises to rgba(0,0,0,0) */
-      } else {
-        let t;
-        if (isLog) {
-          // log-normalize: v=0.1 → 0, v=max → 1; clamp to [0,1]
-          t = Math.max(
-            0,
-            Math.min(
-              1,
-              Math.log(Math.max(v, LOG_SCALE_FLOOR) / LOG_SCALE_FLOOR) /
-                logDenom,
-            ),
-          );
-        } else {
-          t = Math.max(0, Math.min(1, (v - min) / range));
-        }
-        const li = Math.min(Math.round(t * 255), 255) * 3;
-        px[off] = lut[li];
-        px[off + 1] = lut[li + 1];
-        px[off + 2] = lut[li + 2];
-        px[off + 3] = 255;
-      }
-    }
-  }
-  ctx.putImageData(img, 0, 0);
-
-  // Update legend bar
-  const sc = makeScale(currentPalette);
-  const stops = Array.from({ length: 8 }, (_, i) => sc(i / 7).css()).join(
-    ", ",
-  );
-  document.getElementById("cs-bar").style.background =
-    `linear-gradient(to right, ${stops})`;
-
-  if (map) map.triggerRepaint();
 }
 
 // ── Hover tooltip ─────────────────────────────────────────────────────────────
@@ -787,18 +705,43 @@ function updateStats(min, max, mean, count, units) {
     count.toLocaleString();
 }
 
-function applyToValues(values, fn) {
-  const out = new Float64Array(values.length);
-  for (let i = 0; i < values.length; i++)
-    out[i] = values[i] <= MISSING_VALUE ? MISSING_VALUE : fn(values[i]);
-  return out;
-}
-
 function toDisplayValues(values) {
   if (values instanceof Float32Array) return values;
   const out = new Float32Array(values.length);
   out.set(values);
   return out;
+}
+
+function unitTransformFor(shortName) {
+  return ["t", "wspd", "p", "msl", "tcc"].includes(shortName)
+    ? shortName
+    : null;
+}
+
+function makeRenderParams(data, {
+  values = data.values,
+  displayUnits = null,
+  isFallback = false,
+} = {}) {
+  const { grid, product, header } = data;
+  const unitTransform = unitTransformFor(product.shortName);
+  const staticScale = STATIC_SCALES[product.shortName] ?? null;
+  const renderMin = staticScale ? staticScale.min : 0;
+  const renderMax = staticScale ? staticScale.max : 1;
+  const range = renderMax - renderMin || 1;
+  const isLog = staticScale?.log ?? false;
+  const logDenom = isLog ? Math.log(staticScale.max / LOG_SCALE_FLOOR) : 1;
+  const zeroThreshold = staticScale?.zeroThreshold ?? 0;
+
+  return {
+    values: toDisplayValues(values),
+    unitTransform,
+    renderMin, renderMax, range,
+    staticScale, isLog, logDenom, zeroThreshold,
+    displayUnits: displayUnits ?? displayUnitsFor(product.shortName, product.units),
+    isFallback,
+    grid, product, header,
+  };
 }
 
 function gridCorners({
@@ -912,13 +855,13 @@ async function showGridView(shortName) {
     return;
   }
 
-  const p = msg.product;
+  const product = msg.product;
 
   // Populate toolbar
   updateParamInfo(
-    p.name,
-    PARAM_DESCRIPTIONS[p.shortName] ?? "",
-    fmtValidTime(msg.header, p),
+    product.name,
+    PARAM_DESCRIPTIONS[product.shortName] ?? "",
+    fmtValidTime(msg.header, product),
   );
 
   // Reset stats
@@ -942,24 +885,25 @@ async function showGridView(shortName) {
     return;
   }
 
-  const { values, grid: gr } = decoded;
-
-  // Stats
-  const { min, max, mean, count } = computeStats(values);
-  const range = max - min || 1;
-
-  updateStats(min, max, mean, count, p.units);
-
-  // Store state (grid + product needed by hover tooltip)
-  gridState = { values, min, range, grid: gr, product: p };
+  const { grid: gr } = decoded;
+  const p = makeRenderParams(decoded);
+  gridState = makeGridState(p);
 
   // Offscreen canvas: full grid width, Mercator-proportional height
+  const needH = mercatorCanvasHeight(gr);
   heatCanvas = document.createElement("canvas");
   heatCanvas.width = gr.ni;
-  heatCanvas.height = mercatorCanvasHeight(gr);
+  heatCanvas.height = needH;
 
   const corners = gridCorners(gr);
-  renderHeatmap();
+  const statsEntry = await renderViaWorker(p.values, p, gr.ni, needH);
+  if (!statsEntry) return;
+
+  const ctx = heatCanvas.getContext("2d");
+  ctx.clearRect(0, 0, heatCanvas.width, heatCanvas.height);
+  ctx.drawImage(statsEntry.bitmap, 0, 0);
+  statsEntry.bitmap.close();
+
   await initMap();
   setMapLayer(heatCanvas, corners);
   map.fitBounds(
@@ -970,8 +914,35 @@ async function showGridView(shortName) {
     { padding: 20, animate: false },
   );
 
-  // Show color scale
-  showColorScale(min, max, p.units);
+  updateStats(statsEntry.dataMin, statsEntry.dataMax, statsEntry.mean, statsEntry.count, p.displayUnits);
+  const legendMin = p.staticScale ? p.renderMin : statsEntry.dataMin;
+  const legendMax = p.staticScale ? p.renderMax : statsEntry.dataMax;
+  showColorScale(legendMin, legendMax, p.displayUnits);
+}
+
+async function rerenderUploadedGridView() {
+  if (!gridState || modelState) return;
+  const { grid } = gridState;
+  const needH = mercatorCanvasHeight(grid);
+  if (!heatCanvas || heatCanvas.width !== grid.ni || heatCanvas.height !== needH) {
+    heatCanvas = document.createElement("canvas");
+    heatCanvas.width = grid.ni;
+    heatCanvas.height = needH;
+  }
+
+  const statsEntry = await renderViaWorker(gridState.values, gridState, grid.ni, needH);
+  if (!statsEntry) return;
+
+  const ctx = heatCanvas.getContext("2d");
+  ctx.clearRect(0, 0, heatCanvas.width, heatCanvas.height);
+  ctx.drawImage(statsEntry.bitmap, 0, 0);
+  statsEntry.bitmap.close();
+
+  updateStats(statsEntry.dataMin, statsEntry.dataMax, statsEntry.mean, statsEntry.count, gridState.displayUnits);
+  const legendMin = gridState.staticScale ? gridState.renderMin : statsEntry.dataMin;
+  const legendMax = gridState.staticScale ? gridState.renderMax : statsEntry.dataMax;
+  showColorScale(legendMin, legendMax, gridState.displayUnits);
+  if (map) map.triggerRepaint();
 }
 
 // ── AROME live data ───────────────────────────────────────────────────────────
@@ -1082,10 +1053,11 @@ function indexBlock(blockKey) {
 // Applies all transforms to raw decoded data and returns render-ready params.
 // idx is the slider index — needed to compute accumulation diff with previous hour.
 async function computeRenderParams(data, idx) {
-  const { values, grid, product, header } = data;
+  const { values, product } = data;
   const isAccumulation = product.pdtNumber === 8;
   let displayValues = values;
   let isFallback = false;
+  let displayUnits = null;
 
   if (isAccumulation && idx > 0) {
     const prevHour = modelState.hourList[idx - 1];
@@ -1105,46 +1077,19 @@ async function computeRenderParams(data, idx) {
     }
   }
 
-  const unitTransform = ["t", "wspd", "p", "msl", "tcc"].includes(product.shortName)
-    ? product.shortName
-    : null;
-
-  let displayUnits = displayUnitsFor(product.shortName, product.units);
   if (isAccumulation && !isFallback && idx > 0) displayUnits = "mm/h";
 
-  const staticScale = STATIC_SCALES[product.shortName] ?? null;
-  // renderMin/renderMax default to 0/1 when no static scale — worker stats provide
-  // actual data range for the legend, but renderMin/range are only used for non-static vars.
-  const renderMin = staticScale ? staticScale.min : 0;
-  const renderMax = staticScale ? staticScale.max : 1;
-  const range = renderMax - renderMin || 1;
-  const isLog = staticScale?.log ?? false;
-  const logDenom = isLog ? Math.log(staticScale.max / LOG_SCALE_FLOOR) : 1;
-  const zeroThreshold = staticScale?.zeroThreshold ?? 0;
-
-  return {
-    values: toDisplayValues(displayValues),
-    unitTransform,
-    renderMin, renderMax, range,
-    staticScale, isLog, logDenom, zeroThreshold,
-    displayUnits, isFallback,
-    grid, product, header,
-  };
+  return makeRenderParams(data, {
+    values: displayValues,
+    displayUnits,
+    isFallback,
+  });
 }
 
 async function presentBitmapEntry(hour, entry, { values } = {}) {
   const { grid, product, header } = entry;
 
-  gridState = {
-    values: values ?? null,
-    unitFn: unitFnFor(entry.unitTransform),
-    min: entry.renderMin,
-    range: entry.range,
-    grid,
-    product,
-    displayUnits: entry.displayUnits,
-    staticScale: entry.staticScale,
-  };
+  gridState = makeGridState(entry, values ?? null);
 
   const needH = mercatorCanvasHeight(grid);
   const canvasChanged = !heatCanvas || heatCanvas.width !== grid.ni || heatCanvas.height !== needH;
@@ -1211,16 +1156,7 @@ async function hydrateTooltipValues(idx, hour, token, capturedState, capturedGen
     capturedState.currentHour !== hour
   ) return;
 
-  gridState = {
-    values: p.values,
-    unitFn: unitFnFor(p.unitTransform),
-    min: p.renderMin,
-    range: p.range,
-    grid: p.grid,
-    product: p.product,
-    displayUnits: p.displayUnits,
-    staticScale: p.staticScale,
-  };
+  gridState = makeGridState(p);
 }
 
 function queueTooltipValueHydration(idx, hour) {
@@ -1725,7 +1661,7 @@ async function onPaletteChange(e) {
     queuePrerenderForAllBlocks();
     if (renderGen === myGen) setRendering(false);
   } else {
-    renderHeatmap();
+    await rerenderUploadedGridView();
   }
 }
 document
