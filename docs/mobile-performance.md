@@ -12,6 +12,7 @@
 - [x] Consider `Float32Array` for display values.
 - [x] Use cached `ImageBitmap` entries before decoding values.
 - [x] Lazy-decode tooltip values after cached bitmap display.
+- [x] Warm the full bitmap cache before starting animation playback.
 - [ ] Move stats and transforms to one owned pipeline.
 - [ ] Add lightweight runtime diagnostics.
 
@@ -59,6 +60,11 @@ keeps slider and animation interactions expensive. Tooltip values are hydrated
 after cached bitmap display, and skipped during playback to keep animation
 smooth.
 
+Animation playback now waits for the full bitmap cache to be warm before it
+starts. A small progress bar between the slider and map shows `bitmapCache`
+readiness, which makes the first playback predictable and helps debug cache
+generation on mobile devices.
+
 Approximate AROME memory costs:
 
 - One decoded field as `Float64Array`: about 40 MB.
@@ -85,12 +91,11 @@ download, then decode and render.
    replay when the browser can hold the bitmaps. Revisit this only if real
    devices still crash or evict aggressively.
 
-2. Parallel pre-rendering after variable or palette changes
+2. Cache warm-up after variable or palette changes
 
-   The app currently starts `prerenderBlock()` for all downloaded blocks with
-   `Promise.all(...)`. Each block renders sequentially internally, but several
-   blocks can render at the same time. That can multiply decode, worker, bitmap,
-   and temporary buffer pressure.
+   The app uses a single render queue, but the cache can still be incomplete
+   when the user first presses Play. Playback now waits for the queue to finish
+   and shows progress before starting the animation.
 
 3. Message copies in `iterateGRIB2Messages()`
 

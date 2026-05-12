@@ -159,6 +159,8 @@ let queuedPrerenderKeys = new Set();
 let isPrerendering = false;
 let tooltipHydrateTimer = null;
 let tooltipHydrateToken = 0;
+let prerenderIdleResolvers = [];
+let isPreparingAnimation = false;
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function setRendering(on) {
@@ -243,14 +245,53 @@ function invalidateBitmapCache() {
   bitmapCache = new Map();
   prerenderQueue = [];
   queuedPrerenderKeys = new Set();
+  resolvePrerenderIdle();
   tooltipHydrateToken++;
   if (tooltipHydrateTimer !== null) clearTimeout(tooltipHydrateTimer);
   tooltipHydrateTimer = null;
   renderGen++;
+  updateWarmupProgress();
 }
 
 function bitmapCacheKey(hour) {
   return `${hour}`;
+}
+
+function bitmapCacheReadyCount() {
+  if (!modelState) return 0;
+  let count = 0;
+  for (const hour of modelState.hourList) {
+    if (bitmapCache.has(bitmapCacheKey(hour))) count++;
+  }
+  return count;
+}
+
+function isBitmapCacheComplete() {
+  return Boolean(modelState?.hourList.length) &&
+    bitmapCacheReadyCount() === modelState.hourList.length;
+}
+
+function updateWarmupProgress({ preparing = isPreparingAnimation } = {}) {
+  const container = document.getElementById("cache-warmup");
+  if (!container || !modelState?.hourList.length) {
+    if (container) container.hidden = true;
+    return;
+  }
+
+  const total = modelState.hourList.length;
+  const ready = bitmapCacheReadyCount();
+  const pct = total ? Math.round((ready / total) * 100) : 0;
+  const complete = ready === total;
+
+  container.hidden = false;
+  container.classList.toggle("ready", complete);
+  document.getElementById("cache-warmup-bar").style.width = `${pct}%`;
+  document.getElementById("cache-warmup-count").textContent = `${ready} / ${total}`;
+  document.getElementById("cache-warmup-label").textContent = complete
+    ? "Animation ready"
+    : preparing
+      ? "Preparing animation"
+      : "Animation cache";
 }
 
 function makeBitmapCacheEntry(renderEntry, renderParams) {
@@ -812,6 +853,7 @@ function resetModelState() {
   isDecoding = false;
   pendingHourIdx = null;
   gridState = null;
+  updateWarmupProgress();
   document.getElementById("arome-dl-bars").innerHTML = "";
   document.getElementById("arome-dl-file-list").innerHTML = "";
 }
@@ -1213,6 +1255,7 @@ async function showHour(idx) {
     if (!renderEntry) return; // renderGen changed while worker was busy — abort
     const entry = makeBitmapCacheEntry(renderEntry, p);
     bitmapCache.set(cacheKey, entry);
+    updateWarmupProgress();
     await presentBitmapEntry(hour, entry, { values: p.values });
 
   } catch (err) {
@@ -1267,6 +1310,7 @@ async function prerenderBlock(blockKey) {
         entry.bitmap.close(); // showHour raced and cached it while we were rendering
       } else {
         bitmapCache.set(cacheKey, makeBitmapCacheEntry(entry, p));
+        updateWarmupProgress();
       }
     } else {
       entry.bitmap.close();
@@ -1288,9 +1332,22 @@ function queuePrerenderBlock(blockKey) {
 
 function queuePrerenderForAllBlocks() {
   if (!modelState) return;
+  updateWarmupProgress();
   for (const blockKey of modelState.buffers.keys()) {
     queuePrerenderBlock(blockKey);
   }
+}
+
+function resolvePrerenderIdle() {
+  if (isPrerendering || prerenderQueue.length > 0) return;
+  const resolvers = prerenderIdleResolvers;
+  prerenderIdleResolvers = [];
+  for (const resolve of resolvers) resolve();
+}
+
+function waitForPrerenderIdle() {
+  if (!isPrerendering && prerenderQueue.length === 0) return Promise.resolve();
+  return new Promise((resolve) => prerenderIdleResolvers.push(resolve));
 }
 
 async function drainPrerenderQueue() {
@@ -1306,7 +1363,11 @@ async function drainPrerenderQueue() {
     }
   } finally {
     isPrerendering = false;
-    if (prerenderQueue.length > 0) drainPrerenderQueue();
+    if (prerenderQueue.length > 0) {
+      drainPrerenderQueue();
+    } else {
+      resolvePrerenderIdle();
+    }
   }
 }
 
@@ -1706,20 +1767,29 @@ function setPlaying(playing) {
   document.getElementById("player-play").setAttribute("aria-label", playing ? "Pause" : "Play");
 }
 
-function stopPlayer() {
-  if (playerInterval === null) return;
-  clearInterval(playerInterval);
-  playerInterval = null;
-  setPlaying(false);
-  queueCurrentTooltipValueHydration();
+function setPreparingAnimation(preparing) {
+  isPreparingAnimation = preparing;
+  const playButton = document.getElementById("player-play");
+  playButton.disabled = preparing;
+  playButton.title = preparing ? "Preparing animation" : "Play";
+  playButton.setAttribute("aria-label", preparing ? "Preparing animation" : "Play");
+  updateWarmupProgress({ preparing });
 }
 
-document.getElementById("player-play").addEventListener("click", () => {
-  if (!modelState) return;
-  if (playerInterval !== null) {
-    stopPlayer();
-    return;
+async function warmUpBitmapCacheForAnimation() {
+  if (!modelState || isBitmapCacheComplete()) return true;
+  setPreparingAnimation(true);
+  try {
+    queuePrerenderForAllBlocks();
+    await waitForPrerenderIdle();
+    updateWarmupProgress({ preparing: false });
+    return isBitmapCacheComplete();
+  } finally {
+    setPreparingAnimation(false);
   }
+}
+
+function startPlayer() {
   setPlaying(true);
   playerInterval = setInterval(() => {
     if (!modelState) { stopPlayer(); return; }
@@ -1728,6 +1798,26 @@ document.getElementById("player-play").addEventListener("click", () => {
     aromeSlider.value = next;
     showHour(next);
   }, 120);
+}
+
+function stopPlayer() {
+  if (playerInterval === null) return;
+  clearInterval(playerInterval);
+  playerInterval = null;
+  setPlaying(false);
+  queueCurrentTooltipValueHydration();
+}
+
+document.getElementById("player-play").addEventListener("click", async () => {
+  if (!modelState) return;
+  if (playerInterval !== null) {
+    stopPlayer();
+    return;
+  }
+  if (isPreparingAnimation) return;
+  const ready = await warmUpBitmapCacheForAnimation();
+  if (!ready || !modelState || playerInterval !== null) return;
+  startPlayer();
 });
 
 document.getElementById("player-reset").addEventListener("click", () => {

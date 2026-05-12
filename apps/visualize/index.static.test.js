@@ -3,6 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 const source = readFileSync(new URL("./index.js", import.meta.url), "utf8");
+const html = readFileSync(new URL("./index.html", import.meta.url), "utf8");
 
 test("model downloads keep the map scene hidden until every file is downloaded", () => {
   assert.match(
@@ -168,5 +169,33 @@ test("CAPE keeps zero values visible in the static color scale", () => {
     source,
     /cape:\s*\{[^}]*zeroThreshold/,
     "expected CAPE zero values to remain visible instead of transparent",
+  );
+});
+
+test("player warms the bitmap cache before starting animation", () => {
+  assert.match(
+    html,
+    /id="arome-slider-wrap"[\s\S]*id="cache-warmup"[\s\S]*id="map-wrap"/,
+    "expected a visible cache warm-up indicator between the slider and map",
+  );
+  assert.match(
+    source,
+    /function updateWarmupProgress\(/,
+    "expected warm-up progress to be rendered from bitmap cache state",
+  );
+  assert.match(
+    source,
+    /async function warmUpBitmapCacheForAnimation\(/,
+    "expected Play to warm the bitmap cache before animation",
+  );
+  assert.match(
+    source,
+    /queuePrerenderForAllBlocks\(\);[\s\S]*await waitForPrerenderIdle\(\);/,
+    "expected warm-up to wait for the pre-render queue",
+  );
+  assert.match(
+    source,
+    /await warmUpBitmapCacheForAnimation\(\);[\s\S]*startPlayer\(\);/,
+    "expected Play to start only after cache warm-up completes",
   );
 });
