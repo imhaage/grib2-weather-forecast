@@ -6,10 +6,12 @@
 - [x] Replace global block pre-rendering with a single render queue.
 - [x] Reduce decoded value retention (`DECODED_CACHE_SIZE = 2`).
 - [x] Stop keeping copied message buffers in `messageIndex`.
-- [ ] Bound the `ImageBitmap` cache.
+- [x] Keep the full `ImageBitmap` cache when the device can hold it.
 - [ ] Pre-render a sliding window instead of the full run.
 - [x] Avoid worker `values.slice()` when ownership is clear.
 - [x] Consider `Float32Array` for display values.
+- [x] Use cached `ImageBitmap` entries before decoding values.
+- [x] Lazy-decode tooltip values after cached bitmap display.
 - [ ] Move stats and transforms to one owned pipeline.
 - [ ] Add lightweight runtime diagnostics.
 
@@ -46,6 +48,17 @@ animation cheap: the visible frame becomes a `drawImage()` call instead of a
 full pixel loop. The problem is the cache policy and the surrounding memory
 costs.
 
+For now, the player intentionally keeps the full `ImageBitmap` cache instead of
+using an LRU limit. If the device can hold the cache, every timestamp can be
+shown instantly during animation or manual slider movement, and the code stays
+much simpler.
+
+Cache hits must be checked before decoding values. Otherwise playback can still
+decode and downcast fields even when the rendered bitmap already exists, which
+keeps slider and animation interactions expensive. Tooltip values are hydrated
+after cached bitmap display, and skipped during playback to keep animation
+smooth.
+
 Approximate AROME memory costs:
 
 - One decoded field as `Float64Array`: about 40 MB.
@@ -65,10 +78,12 @@ download, then decode and render.
 
 ## Suspected Hot Spots
 
-1. Unbounded `ImageBitmap` cache
+1. Full `ImageBitmap` cache
 
    `bitmapCache` can grow to all forecast hours for the current variable and
-   palette. This is probably the largest memory issue.
+   palette. This is intentionally accepted for now because it gives instant
+   replay when the browser can hold the bitmaps. Revisit this only if real
+   devices still crash or evict aggressively.
 
 2. Parallel pre-rendering after variable or palette changes
 

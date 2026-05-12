@@ -111,3 +111,62 @@ test("model display values use Float32Array instead of retaining Float64Array pr
     "expected render params to expose Float32Array display values",
   );
 });
+
+test("cached bitmaps are shown before decoding values for the same hour", () => {
+  assert.match(
+    source,
+    /function bitmapCacheKey\(hour\)/,
+    "expected a stable cache key helper independent from decoded render params",
+  );
+  assert.match(
+    source,
+    /const cachedEntry = bitmapCache\.get\(cacheKey\);[\s\S]*if \(cachedEntry\) \{[\s\S]*return;[\s\S]*const data = await getCachedDecode\(hour\);/,
+    "expected showHour to use cached bitmaps before decoding values",
+  );
+  assert.match(
+    source,
+    /values: values \?\? null,/,
+    "expected cached bitmap hits to avoid retaining decoded values for tooltips",
+  );
+});
+
+test("cached bitmap hits hydrate tooltip values lazily after presentation", () => {
+  assert.match(
+    source,
+    /let tooltipHydrateTimer = null;/,
+    "expected tooltip hydration to be debounced independently from rendering",
+  );
+  assert.match(
+    source,
+    /function queueTooltipValueHydration\(idx, hour\)/,
+    "expected cached frames to schedule tooltip values separately",
+  );
+  assert.match(
+    source,
+    /await presentBitmapEntry\(hour, cachedEntry\);[\s\S]*queueTooltipValueHydration\(idx, hour\);[\s\S]*return;/,
+    "expected cached frames to paint before scheduling tooltip value decode",
+  );
+  assert.match(
+    source,
+    /if \(playerInterval !== null\) return;/,
+    "expected animation playback not to trigger tooltip value decoding",
+  );
+  assert.match(
+    source,
+    /function queueCurrentTooltipValueHydration\(\)/,
+    "expected a helper to hydrate the visible frame after playback stops",
+  );
+  assert.match(
+    source,
+    /setPlaying\(false\);[\s\S]*queueCurrentTooltipValueHydration\(\);/,
+    "expected stopping playback to restore tooltip values for the visible frame",
+  );
+});
+
+test("CAPE keeps zero values visible in the static color scale", () => {
+  assert.doesNotMatch(
+    source,
+    /cape:\s*\{[^}]*zeroThreshold/,
+    "expected CAPE zero values to remain visible instead of transparent",
+  );
+});

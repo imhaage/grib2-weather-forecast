@@ -157,6 +157,8 @@ let bitmapCache = new Map(); // cacheKey → {bitmap, dataMin, dataMax, mean, co
 let prerenderQueue = [];
 let queuedPrerenderKeys = new Set();
 let isPrerendering = false;
+let tooltipHydrateTimer = null;
+let tooltipHydrateToken = 0;
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function setRendering(on) {
@@ -241,7 +243,29 @@ function invalidateBitmapCache() {
   bitmapCache = new Map();
   prerenderQueue = [];
   queuedPrerenderKeys = new Set();
+  tooltipHydrateToken++;
+  if (tooltipHydrateTimer !== null) clearTimeout(tooltipHydrateTimer);
+  tooltipHydrateTimer = null;
   renderGen++;
+}
+
+function bitmapCacheKey(hour) {
+  return `${hour}`;
+}
+
+function makeBitmapCacheEntry(renderEntry, renderParams) {
+  return {
+    ...renderEntry,
+    unitTransform: renderParams.unitTransform,
+    renderMin: renderParams.renderMin,
+    range: renderParams.range,
+    staticScale: renderParams.staticScale,
+    displayUnits: renderParams.displayUnits,
+    isFallback: renderParams.isFallback,
+    grid: renderParams.grid,
+    product: renderParams.product,
+    header: renderParams.header,
+  };
 }
 
 const fmtNum = (v, d = 4) => v.toFixed(d);
@@ -333,7 +357,7 @@ const STATIC_SCALES = {
   ugust: { min: 0, max: 40 },
   vgust: { min: 0, max: 40 },
   p: { min: 950, max: 1050 },
-  cape: { min: 0, max: 4000, zeroThreshold: 0.5 },
+  cape: { min: 0, max: 4000 },
   lcc: { min: 0, max: 100, zeroThreshold: 0.005 },
   mcc: { min: 0, max: 100, zeroThreshold: 0.005 },
   hcc: { min: 0, max: 100, zeroThreshold: 0.005 },
@@ -521,6 +545,11 @@ function setupHoverTooltip() {
     if (!gridState) return;
     const { lat, lng } = e.lngLat;
     const { grid, values, product } = gridState;
+    if (!values) {
+      tooltip.hidden = true;
+      mapCanvas.style.cursor = "";
+      return;
+    }
     const {
       ni,
       latitudeOfFirstPoint: la1,
@@ -1035,6 +1064,122 @@ async function computeRenderParams(data, idx) {
   };
 }
 
+async function presentBitmapEntry(hour, entry, { values } = {}) {
+  const { grid, product, header } = entry;
+
+  gridState = {
+    values: values ?? null,
+    unitFn: unitFnFor(entry.unitTransform),
+    min: entry.renderMin,
+    range: entry.range,
+    grid,
+    product,
+    displayUnits: entry.displayUnits,
+    staticScale: entry.staticScale,
+  };
+
+  const needH = mercatorCanvasHeight(grid);
+  const canvasChanged = !heatCanvas || heatCanvas.width !== grid.ni || heatCanvas.height !== needH;
+  if (canvasChanged) {
+    heatCanvas = document.createElement("canvas");
+    heatCanvas.width = grid.ni;
+    heatCanvas.height = needH;
+  }
+
+  const corners = gridCorners(grid);
+  const ctx = heatCanvas.getContext("2d");
+  ctx.clearRect(0, 0, heatCanvas.width, heatCanvas.height);
+  ctx.drawImage(entry.bitmap, 0, 0);
+
+  const sc = makeScale(currentPalette);
+  const stops = Array.from({ length: 8 }, (_, i) => sc(i / 7).css()).join(", ");
+  document.getElementById("cs-bar").style.background = `linear-gradient(to right, ${stops})`;
+
+  await initMap();
+  const isFirstLayer = !map.getSource("grib2");
+  if (isFirstLayer || canvasChanged) {
+    setMapLayer(heatCanvas, corners);
+    map.fitBounds(
+      [[corners[3][0], corners[2][1]], [corners[1][0], corners[0][1]]],
+      { padding: 20, animate: false },
+    );
+  }
+  if (map) map.triggerRepaint();
+
+  modelState.lastRunInfo = `${modelState.packageKey} · run ${fmtRefTime(header)}`;
+  updateParamInfo(
+    product.name,
+    PARAM_DESCRIPTIONS[product.shortName] ?? "",
+    modelState.lastRunInfo + (entry.isFallback ? " · (cumulative — prev not loaded)" : ""),
+  );
+
+  updateStats(entry.dataMin, entry.dataMax, entry.mean, entry.count, entry.displayUnits);
+  const legendMin = entry.staticScale ? entry.renderMin : entry.dataMin;
+  const legendMax = entry.staticScale ? entry.renderMin + entry.range : entry.dataMax;
+  showColorScale(legendMin, legendMax, entry.displayUnits);
+
+  const validTimeProduct = product.pdtNumber === 8
+    ? { ...product, forecastTime: hour, timeUnit: 1 }
+    : product;
+  document.getElementById("arome-valid-time").textContent =
+    `Forecast time: ${fmtValidTime(header, validTimeProduct)}`;
+}
+
+async function hydrateTooltipValues(idx, hour, token, capturedState, capturedGen) {
+  const data = await getCachedDecode(hour);
+  if (
+    !data ||
+    modelState !== capturedState ||
+    renderGen !== capturedGen ||
+    tooltipHydrateToken !== token ||
+    capturedState.currentHour !== hour
+  ) return;
+
+  const p = await computeRenderParams(data, idx);
+  if (
+    modelState !== capturedState ||
+    renderGen !== capturedGen ||
+    tooltipHydrateToken !== token ||
+    capturedState.currentHour !== hour
+  ) return;
+
+  gridState = {
+    values: p.values,
+    unitFn: unitFnFor(p.unitTransform),
+    min: p.renderMin,
+    range: p.range,
+    grid: p.grid,
+    product: p.product,
+    displayUnits: p.displayUnits,
+    staticScale: p.staticScale,
+  };
+}
+
+function queueTooltipValueHydration(idx, hour) {
+  tooltipHydrateToken++;
+  if (tooltipHydrateTimer !== null) clearTimeout(tooltipHydrateTimer);
+  tooltipHydrateTimer = null;
+  if (playerInterval !== null) return;
+
+  const token = tooltipHydrateToken;
+  const capturedState = modelState;
+  const capturedGen = renderGen;
+  tooltipHydrateTimer = setTimeout(() => {
+    tooltipHydrateTimer = null;
+    if (playerInterval !== null) return;
+    hydrateTooltipValues(idx, hour, token, capturedState, capturedGen)
+      .catch((err) => console.error("hydrateTooltipValues:", err));
+  }, 140);
+}
+
+function queueCurrentTooltipValueHydration() {
+  if (!modelState || gridState?.values) return;
+  const slider = document.getElementById("arome-slider");
+  const idx = parseInt(slider.value, 10);
+  const hour = modelState.hourList[idx];
+  if (bitmapCache.has(bitmapCacheKey(hour))) queueTooltipValueHydration(idx, hour);
+}
+
 async function showHour(idx) {
   if (isDecoding) {
     pendingHourIdx = idx;
@@ -1046,6 +1191,15 @@ async function showHour(idx) {
     const hour = modelState.hourList[idx];
     document.getElementById("arome-hour-label").textContent = fmtHourLabel(hour);
 
+    const cacheKey = bitmapCacheKey(hour);
+    const cachedEntry = bitmapCache.get(cacheKey);
+    if (cachedEntry) {
+      modelState.currentHour = hour;
+      await presentBitmapEntry(hour, cachedEntry);
+      queueTooltipValueHydration(idx, hour);
+      return;
+    }
+
     const data = await getCachedDecode(hour);
     if (!data) {
       clearMapLayer();
@@ -1054,82 +1208,12 @@ async function showHour(idx) {
 
     modelState.currentHour = hour;
     const p = await computeRenderParams(data, idx);
-    const { grid, product, header } = p;
-
-    // Keep gridState in sync so the hover tooltip has current values.
-    // values are raw (pre-unit-transform); unitFn converts them for display.
-    gridState = {
-      values: p.values,
-      unitFn: unitFnFor(p.unitTransform),
-      min: p.renderMin,
-      range: p.range,
-      grid,
-      product,
-      displayUnits: p.displayUnits,
-      staticScale: p.staticScale,
-    };
-
-    // Create/resize offscreen canvas only when the grid dimensions change.
-    const needH = mercatorCanvasHeight(grid);
-    const canvasChanged = !heatCanvas || heatCanvas.width !== grid.ni || heatCanvas.height !== needH;
-    if (canvasChanged) {
-      heatCanvas = document.createElement("canvas");
-      heatCanvas.width = grid.ni;
-      heatCanvas.height = needH;
-    }
-
-    const corners = gridCorners(grid);
-    const ctx = heatCanvas.getContext("2d");
-
-    const cacheKey = `${hour}_${p.isFallback ? 1 : 0}`;
-    let statsEntry;
-    if (bitmapCache.has(cacheKey)) {
-      // Fast path: bitmap already rendered, just blit it.
-      statsEntry = bitmapCache.get(cacheKey);
-      ctx.clearRect(0, 0, heatCanvas.width, heatCanvas.height);
-      ctx.drawImage(statsEntry.bitmap, 0, 0);
-    } else {
-      // Slow path: render via worker (pixel loop + stats run off-thread), then cache.
-      statsEntry = await renderViaWorker(p.values, p, grid.ni, needH);
-      if (!statsEntry) return; // renderGen changed while worker was busy — abort
-      bitmapCache.set(cacheKey, statsEntry);
-      ctx.clearRect(0, 0, heatCanvas.width, heatCanvas.height);
-      ctx.drawImage(statsEntry.bitmap, 0, 0);
-    }
-
-    // Update legend bar gradient.
-    const sc = makeScale(currentPalette);
-    const stops = Array.from({ length: 8 }, (_, i) => sc(i / 7).css()).join(", ");
-    document.getElementById("cs-bar").style.background = `linear-gradient(to right, ${stops})`;
-
-    await initMap();
-    const isFirstLayer = !map.getSource("grib2");
-    if (isFirstLayer || canvasChanged) {
-      setMapLayer(heatCanvas, corners);
-      map.fitBounds(
-        [[corners[3][0], corners[2][1]], [corners[1][0], corners[0][1]]],
-        { padding: 20, animate: false },
-      );
-    }
-    if (map) map.triggerRepaint();
-
-    modelState.lastRunInfo = `${modelState.packageKey} · run ${fmtRefTime(header)}`;
-    updateParamInfo(
-      product.name,
-      PARAM_DESCRIPTIONS[product.shortName] ?? "",
-      modelState.lastRunInfo + (p.isFallback ? " · (cumulative — prev not loaded)" : ""),
-    );
-
-    updateStats(statsEntry.dataMin, statsEntry.dataMax, statsEntry.mean, statsEntry.count, p.displayUnits);
-    const legendMin = p.staticScale ? p.renderMin : statsEntry.dataMin;
-    const legendMax = p.staticScale ? p.renderMax : statsEntry.dataMax;
-    showColorScale(legendMin, legendMax, p.displayUnits);
-
-    const validTimeProduct = product.pdtNumber === 8
-      ? { ...product, forecastTime: hour, timeUnit: 1 }
-      : product;
-    document.getElementById("arome-valid-time").textContent =
-      `Forecast time: ${fmtValidTime(header, validTimeProduct)}`;
+    const outH = mercatorCanvasHeight(p.grid);
+    const renderEntry = await renderViaWorker(p.values, p, p.grid.ni, outH);
+    if (!renderEntry) return; // renderGen changed while worker was busy — abort
+    const entry = makeBitmapCacheEntry(renderEntry, p);
+    bitmapCache.set(cacheKey, entry);
+    await presentBitmapEntry(hour, entry, { values: p.values });
 
   } catch (err) {
     console.error("showHour:", err);
@@ -1164,7 +1248,7 @@ async function prerenderBlock(blockKey) {
     const p = await computeRenderParams(data, idx);
     if (modelState !== capturedState || renderGen !== capturedGen) return;
 
-    const cacheKey = `${hour}_${p.isFallback ? 1 : 0}`;
+    const cacheKey = bitmapCacheKey(hour);
     if (bitmapCache.has(cacheKey)) continue; // already rendered (e.g. by showHour)
 
     const outW = data.grid.ni;
@@ -1182,7 +1266,7 @@ async function prerenderBlock(blockKey) {
       if (bitmapCache.has(cacheKey)) {
         entry.bitmap.close(); // showHour raced and cached it while we were rendering
       } else {
-        bitmapCache.set(cacheKey, entry);
+        bitmapCache.set(cacheKey, makeBitmapCacheEntry(entry, p));
       }
     } else {
       entry.bitmap.close();
@@ -1627,6 +1711,7 @@ function stopPlayer() {
   clearInterval(playerInterval);
   playerInterval = null;
   setPlaying(false);
+  queueCurrentTooltipValueHydration();
 }
 
 document.getElementById("player-play").addEventListener("click", () => {
