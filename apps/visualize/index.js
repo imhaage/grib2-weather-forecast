@@ -308,12 +308,26 @@ function cachedGribBlockBuffer(record) {
   return record?.buffer ? new Uint8Array(record.buffer) : null;
 }
 
-function isCurrentRunCachedGribBlock(record, block) {
-  return record.runId === block.runId && (
+function runTimeValue(runId) {
+  const time = Date.parse(runId);
+  return Number.isFinite(time) ? time : -Infinity;
+}
+
+function hasCompatibleCachedGribBlockSize(record, block) {
+  return (
     record.filesize == null ||
     block.filesize == null ||
     record.filesize === block.filesize
   );
+}
+
+function isUsableCachedGribBlock(record, block) {
+  return runTimeValue(record.runId) >= runTimeValue(block.runId) &&
+    hasCompatibleCachedGribBlockSize(record, block);
+}
+
+function isOlderCachedGribBlock(record, block) {
+  return runTimeValue(record.runId) < runTimeValue(block.runId);
 }
 
 async function findCachedGribBlock(packageKey, block, predicate) {
@@ -356,7 +370,7 @@ async function readCachedGribBlock(packageKey, block) {
     const runRecord = await findCachedGribBlock(
       packageKey,
       block,
-      (record) => isCurrentRunCachedGribBlock(record, block),
+      (record) => isUsableCachedGribBlock(record, block),
     );
     return cachedGribBlockBuffer(runRecord);
   } catch (error) {
@@ -371,7 +385,7 @@ async function readLatestCachedGribBlock(packageKey, block) {
     const latest = await findCachedGribBlock(
       packageKey,
       block,
-      (record) => record.id !== currentId && record.runId !== block.runId,
+      (record) => record.id !== currentId && isOlderCachedGribBlock(record, block),
     );
     const buffer = cachedGribBlockBuffer(latest);
     return buffer ? { ...latest, buffer } : null;

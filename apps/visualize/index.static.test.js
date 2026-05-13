@@ -707,13 +707,18 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
   );
   assert.match(
     source,
-    /function isCurrentRunCachedGribBlock\(record, block\)[\s\S]*record\.runId === block\.runId[\s\S]*record\.filesize === block\.filesize/,
-    "expected current-run cache hits to survive URL changes while respecting known file sizes",
+    /function runTimeValue\(runId\)[\s\S]*Date\.parse\(runId\)/,
+    "expected cache freshness to compare run dates explicitly",
   );
   assert.match(
     source,
-    /findCachedGribBlock\([\s\S]*\(record\) => isCurrentRunCachedGribBlock\(record, block\),/,
-    "expected current-run cache lookup to use the relaxed cache matcher",
+    /function isUsableCachedGribBlock\(record, block\)[\s\S]*runTimeValue\(record\.runId\) >= runTimeValue\(block\.runId\)[\s\S]*hasCompatibleCachedGribBlockSize\(record, block\)/,
+    "expected package/hour cache hits to be accepted only when the cached run is not older than remote",
+  );
+  assert.match(
+    source,
+    /findCachedGribBlock\([\s\S]*\(record\) => isUsableCachedGribBlock\(record, block\),/,
+    "expected cache lookup to use package/hour freshness rather than URL identity",
   );
   assert.match(
     source,
@@ -745,7 +750,7 @@ test("stale cached files can be displayed while newer remote files download", ()
   );
   assert.match(
     source,
-    /const staleCachedBlock = await readLatestCachedGribBlock\(packageKey, block\);[\s\S]*await onAvailable\(block, staleCachedBlock\.buffer, BLOCK_STATUS\.LOADED_FROM_CACHE\);[\s\S]*const buffer = await downloadFileProg/,
+    /function isOlderCachedGribBlock\(record, block\)[\s\S]*runTimeValue\(record\.runId\) < runTimeValue\(block\.runId\)[\s\S]*const staleCachedBlock = await readLatestCachedGribBlock\(packageKey, block\);[\s\S]*await onAvailable\(block, staleCachedBlock\.buffer, BLOCK_STATUS\.LOADED_FROM_CACHE\);[\s\S]*const buffer = await downloadFileProg/,
     "expected stale cache to be presented before downloading the latest file",
   );
   assert.match(
