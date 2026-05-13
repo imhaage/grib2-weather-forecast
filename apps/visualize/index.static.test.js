@@ -329,6 +329,11 @@ test("home model list rendering is split into focused builders", () => {
 test("variable metadata access uses shared helpers", () => {
   assert.match(
     source,
+    /const VARIABLE_METADATA = Object\.freeze\(\{/,
+    "expected shared variable metadata to have one source of truth",
+  );
+  assert.match(
+    source,
     /function variableKeyFor\(varDef\)/,
     "expected variable key resolution to be centralized",
   );
@@ -342,10 +347,35 @@ test("variable metadata access uses shared helpers", () => {
     /function parameterDescriptionFor\(shortName\)/,
     "expected parameter description fallback to be centralized",
   );
+  assert.match(
+    source,
+    /function defaultPaletteFor\(shortName\)/,
+    "expected default palette lookup to be centralized",
+  );
+  assert.match(
+    source,
+    /function staticScaleFor\(shortName\)/,
+    "expected static scale lookup to be centralized",
+  );
   assert.doesNotMatch(
     source,
     /\(v\) => \(v\.varKey \?\? v\.shortName\) ===/,
     "expected repeated inline variable-key comparisons to be replaced",
+  );
+  assert.doesNotMatch(
+    source,
+    /const PARAM_DESCRIPTIONS = \{/,
+    "expected parameter descriptions to move into VARIABLE_METADATA",
+  );
+  assert.doesNotMatch(
+    source,
+    /const VARIABLE_PALETTES = \{/,
+    "expected variable palettes to move into VARIABLE_METADATA",
+  );
+  assert.doesNotMatch(
+    source,
+    /const STATIC_SCALES = \{/,
+    "expected static scales to move into VARIABLE_METADATA",
   );
 });
 

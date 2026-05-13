@@ -315,14 +315,13 @@ Expected effect: faster iteration on real mobile devices.
 - The full `ImageBitmap` cache remains part of the design and is observable via
   the warm-up progress indicator.
 
-## DRY Issues To Address Before Refactoring
+## DRY Issues Addressed During Refactoring
 
 - Unit conversion logic is centralized in
   `apps/visualize/unit-transforms.js` and shared by `index.js` and the module
   render worker.
-- Variable metadata is spread across `PACKAGES`, `PARAM_DESCRIPTIONS`,
-  `STATIC_SCALES`, and `VARIABLE_PALETTES`.
+- Variable metadata is centralized in `VARIABLE_METADATA`; `PACKAGES` keeps
+  dataset/package concerns such as availability, levels, and file selection.
 
-These are worth cleaning up only when they directly support the mobile
-performance work. The immediate priority is reducing memory pressure and making
-render cancellation reliable.
+Further metadata consolidation should stay tied to concrete UI or performance
+needs instead of becoming a broad data-model rewrite.
