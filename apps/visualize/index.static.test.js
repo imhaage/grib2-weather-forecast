@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 
 const source = readFileSync(new URL("./index.js", import.meta.url), "utf8");
 const html = readFileSync(new URL("./index.html", import.meta.url), "utf8");
+const css = readFileSync(new URL("./style.css", import.meta.url), "utf8");
 const renderWorker = readFileSync(new URL("./render-worker.js", import.meta.url), "utf8");
 const unitTransforms = readFileSync(new URL("./unit-transforms.js", import.meta.url), "utf8");
 const variableMetadata = readFileSync(new URL("./variable-metadata.js", import.meta.url), "utf8");
@@ -561,6 +562,16 @@ test("player warms the bitmap cache before starting animation", () => {
     source,
     /function updateWarmupProgress\([\s\S]*syncPlayButtonAvailability\(\);/,
     "expected cache progress updates to sync the Play button",
+  );
+  assert.doesNotMatch(
+    css,
+    /#player-play:disabled\s*\{[\s\S]*cursor:\s*progress/,
+    "expected disabled Play not to show a progress cursor",
+  );
+  assert.match(
+    css,
+    /#player-play:disabled\s*\{[\s\S]*background:\s*var\(--color-border-2\);[\s\S]*color:\s*var\(--color-text-hover\);/,
+    "expected disabled Play to use a lighter visual state",
   );
 });
 
