@@ -95,13 +95,36 @@ test("model block loading through cache and network is isolated", () => {
   );
   assert.match(
     source,
-    /await loadModelBlockWithCache\(packageKey, block, downloadKey, handleAvailableBlock\);/,
+    /await loadModelBlockWithCache\(packageKey, block, downloadKey, async \(block, buffer, status\) => \{[\s\S]*await presentAvailableModelBlock\(block, buffer, status, session\);[\s\S]*\}\);/,
     "expected startDownload concurrency worker to delegate per-block loading",
   );
   assert.match(
     source,
     /async function loadModelBlockWithCache\(packageKey, block, downloadKey, onAvailable\) \{[\s\S]*readCachedGribBlock\(packageKey, block\)[\s\S]*readLatestCachedGribBlock\(packageKey, block\)[\s\S]*downloadFileProg\(/,
     "expected the helper to keep exact cache, older cache, and network fallback in one flow",
+  );
+});
+
+test("model block availability presentation is isolated", () => {
+  assert.match(
+    source,
+    /function createModelDownloadSession\(\{ packageKey, pkg, resources, runSummary, downloadKey \}\)/,
+    "expected model download presentation dependencies to be grouped in a session object",
+  );
+  assert.match(
+    source,
+    /async function presentAvailableModelBlock\(block, buffer, status, session\)/,
+    "expected available block presentation to be isolated from startDownload",
+  );
+  assert.match(
+    source,
+    /await presentAvailableModelBlock\(block, buffer, status, session\);/,
+    "expected startDownload to delegate available block presentation",
+  );
+  assert.match(
+    source,
+    /presentAvailableModelBlock\(block, buffer, status, session\)[\s\S]*session\.availableCount[\s\S]*session\.legendInitialized/,
+    "expected availability counters and legend state to live on the session object",
   );
 });
 
@@ -118,17 +141,17 @@ test("model map scene appears after the first available downloaded or cached fil
   );
   assert.match(
     source,
-    /let availableCount = 0;/,
+    /availableCount: 0,/,
     "expected progressive availability to be tracked independently from download completion",
   );
   assert.match(
     source,
-    /async function handleAvailableBlock\(block, buffer, status\)/,
+    /async function presentAvailableModelBlock\(block, buffer, status, session\)/,
     "expected one shared path for cached and downloaded blocks becoming available",
   );
   assert.match(
     source,
-    /if \(availableCount === 1\) \{[\s\S]*setMapSceneVisible\(true\)/,
+    /if \(session\.availableCount === 1\) \{[\s\S]*setMapSceneVisible\(true\)/,
     "expected the map scene to appear as soon as the first block is available",
   );
   assert.match(

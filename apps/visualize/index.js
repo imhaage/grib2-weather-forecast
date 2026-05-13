@@ -1807,6 +1807,85 @@ async function loadModelBlockWithCache(packageKey, block, downloadKey, onAvailab
   await onAvailable(block, buffer, BLOCK_STATUS.READY);
 }
 
+function createModelDownloadSession({ packageKey, pkg, resources, runSummary, downloadKey }) {
+  return {
+    packageKey,
+    pkg,
+    pkgVars: pkg.variables,
+    resources,
+    runSummary,
+    downloadKey,
+    slider: document.getElementById("arome-slider"),
+    availableCount: 0,
+    legendInitialized: false,
+  };
+}
+
+async function presentAvailableModelBlock(block, buffer, status, session) {
+  if (modelState !== session.downloadKey) return;
+  const hadBuffer = modelState.buffers.has(block.key);
+  if (hadBuffer) {
+    modelState.messageIndex.delete(block.key);
+    invalidateBlockRenderCache(block);
+  }
+  modelState.buffers.set(block.key, buffer);
+  setBlockStatus(block, status);
+  if (!hadBuffer) session.availableCount++;
+
+  document.getElementById(`dl-${block.key}`)?.style.setProperty("--pct", "100%");
+  document.getElementById("arome-dl-status").textContent =
+    `Available… ${session.availableCount} / ${session.resources.length} files (${session.runSummary})`;
+
+  // On first arrival: populate legend/info from header (no CCSDS decode)
+  if (!session.legendInitialized) {
+    session.legendInitialized = true;
+    const curVarDef = session.pkgVars.find(
+      (v) => (v.varKey ?? v.shortName) === modelState.variable,
+    );
+    const curShortName = curVarDef?.shortName ?? modelState.variable;
+    for (const msg of iterateGRIB2Messages(buffer)) {
+      const p = msg.product;
+      if (!p || p.shortName !== curShortName) continue;
+      if (curVarDef?.levelValue != null && p.levelValue !== curVarDef.levelValue) continue;
+      modelState.lastRunInfo = `${session.packageKey} · run ${fmtRefTime(msg.header)}`;
+      applyDefaultPalette(modelState.variable);
+      updateParamInfo(
+        p.name,
+        PARAM_DESCRIPTIONS[curShortName] ?? "",
+        modelState.lastRunInfo,
+      );
+      updateLevelInfo(curVarDef);
+      const staticScale = STATIC_SCALES[curShortName];
+      if (staticScale && curVarDef) {
+        showColorScale(
+          staticScale.min,
+          staticScale.max,
+          displayUnitsFor(curShortName, curVarDef.units),
+        );
+      }
+      break;
+    }
+  }
+
+  const currentIdx = parseInt(session.slider.value, 10);
+  const currentHour = modelState.hourList[currentIdx];
+  if (session.availableCount === 1) {
+    setMapSceneVisible(true);
+    await initMap();
+    if (modelState !== session.downloadKey) return;
+    map.fitBounds(session.pkg.bounds, { padding: 20, animate: false });
+    await showHour(currentIdx);
+  } else if (blockForHour(currentHour)?.key === block.key) {
+    await showHour(currentIdx);
+  }
+
+  if (session.availableCount === session.resources.length) {
+    document.getElementById("arome-dl-status").textContent =
+      `Available ${session.resources.length} / ${session.resources.length} files (${session.runSummary})`;
+    queuePrerenderForAllBlocks();
+  }
+}
+
 async function startDownload(packageKey) {
   const pkg = PACKAGES[packageKey];
   modelState = createModelState(packageKey);
@@ -1814,7 +1893,6 @@ async function startDownload(packageKey) {
   const downloadKey = modelState;
 
   configureModelVariableControls(pkg);
-  const pkgVars = pkg.variables;
 
   const slider = document.getElementById("arome-slider");
   slider.value = 0;
@@ -1842,80 +1920,15 @@ async function startDownload(packageKey) {
   document.getElementById("arome-dl-status").textContent =
     `Downloading ${resources.length} ${packageKey} files (${runSummary})…`;
   renderDownloadItems(resources);
-
-  let availableCount = 0;
-  let legendInitialized = false;
-
-  async function handleAvailableBlock(block, buffer, status) {
-    if (modelState !== downloadKey) return;
-    const hadBuffer = modelState.buffers.has(block.key);
-    if (hadBuffer) {
-      modelState.messageIndex.delete(block.key);
-      invalidateBlockRenderCache(block);
-    }
-    modelState.buffers.set(block.key, buffer);
-    setBlockStatus(block, status);
-    if (!hadBuffer) availableCount++;
-
-    document.getElementById(`dl-${block.key}`)?.style.setProperty("--pct", "100%");
-    document.getElementById("arome-dl-status").textContent =
-      `Available… ${availableCount} / ${resources.length} files (${runSummary})`;
-
-    // On first arrival: populate legend/info from header (no CCSDS decode)
-    if (!legendInitialized) {
-      legendInitialized = true;
-      const curVarDef = pkgVars.find(
-        (v) => (v.varKey ?? v.shortName) === modelState.variable,
-      );
-      const curShortName = curVarDef?.shortName ?? modelState.variable;
-      for (const msg of iterateGRIB2Messages(buffer)) {
-        const p = msg.product;
-        if (!p || p.shortName !== curShortName) continue;
-        if (curVarDef?.levelValue != null && p.levelValue !== curVarDef.levelValue) continue;
-        modelState.lastRunInfo = `${packageKey} · run ${fmtRefTime(msg.header)}`;
-        applyDefaultPalette(modelState.variable);
-        updateParamInfo(
-          p.name,
-          PARAM_DESCRIPTIONS[curShortName] ?? "",
-          modelState.lastRunInfo,
-        );
-        updateLevelInfo(curVarDef);
-        const staticScale = STATIC_SCALES[curShortName];
-        if (staticScale && curVarDef) {
-          showColorScale(
-            staticScale.min,
-            staticScale.max,
-            displayUnitsFor(curShortName, curVarDef.units),
-          );
-        }
-        break;
-      }
-    }
-
-    const currentIdx = parseInt(slider.value, 10);
-    const currentHour = modelState.hourList[currentIdx];
-    if (availableCount === 1) {
-      setMapSceneVisible(true);
-      await initMap();
-      if (modelState !== downloadKey) return;
-      map.fitBounds(pkg.bounds, { padding: 20, animate: false });
-      await showHour(currentIdx);
-    } else if (blockForHour(currentHour)?.key === block.key) {
-      await showHour(currentIdx);
-    }
-
-    if (availableCount === resources.length) {
-      document.getElementById("arome-dl-status").textContent =
-        `Available ${resources.length} / ${resources.length} files (${runSummary})`;
-      queuePrerenderForAllBlocks();
-    }
-  }
+  const session = createModelDownloadSession({ packageKey, pkg, resources, runSummary, downloadKey });
 
   await runWithConcurrency(
     resources,
     MAX_PARALLEL_DOWNLOADS,
     async (block) => {
-      await loadModelBlockWithCache(packageKey, block, downloadKey, handleAvailableBlock);
+      await loadModelBlockWithCache(packageKey, block, downloadKey, async (block, buffer, status) => {
+        await presentAvailableModelBlock(block, buffer, status, session);
+      });
     },
   );
 }
