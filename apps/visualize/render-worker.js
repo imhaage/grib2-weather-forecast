@@ -2,6 +2,8 @@
 // Pixel loop for heatmap rendering — runs in a Web Worker.
 // Receives raw decoded values + unit transform + LUT + grid params.
 // Returns an ImageBitmap plus field statistics (min/max/mean/count).
+import { applyUnitTransform } from "./unit-transforms.js";
+
 self.onmessage = async ({ data }) => {
   const {
     callId, gen,
@@ -16,17 +18,6 @@ self.onmessage = async ({ data }) => {
   } = data;
 
   try {
-    function applyUnit(v) {
-      switch (unitTransform) {
-        case "t":    return v - 273.15;
-        case "wspd": return v * 3.6;
-        case "p":    return v / 100;
-        case "msl":  return v / 100;
-        case "tcc":  return v * 100;
-        default:     return v;
-      }
-    }
-
     let dataMin = Infinity, dataMax = -Infinity, dataSum = 0, dataCount = 0;
 
     const img = new ImageData(outW, outH);
@@ -46,7 +37,7 @@ self.onmessage = async ({ data }) => {
       for (let col = 0; col < outW; col++) {
         const raw = values[rowOff + col];
         if (raw <= missingValue) continue;
-        const v = applyUnit(raw);
+        const v = applyUnitTransform(unitTransform, raw);
         if (zeroThreshold > 0 && v <= zeroThreshold) continue;
 
         if (v < dataMin) dataMin = v;

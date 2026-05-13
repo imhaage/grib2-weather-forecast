@@ -3,6 +3,11 @@ import maplibregl from "https://esm.sh/maplibre-gl@4";
 const PROXY = "https://grib2-cors-proxy.imh.workers.dev";
 import chroma from "https://esm.sh/chroma-js@2.4.2";
 import {
+  displayUnitsFor,
+  unitFnFor,
+  unitTransformFor,
+} from "./unit-transforms.js";
+import {
   iterateGRIB2Messages,
   decodeGRIB2,
   MISSING_VALUE,
@@ -446,7 +451,10 @@ function setMapSceneVisible(visible) {
 
 function initRenderWorker() {
   if (renderWorker) return;
-  renderWorker = new Worker(new URL("./render-worker.js", import.meta.url));
+  renderWorker = new Worker(
+    new URL("./render-worker.js", import.meta.url),
+    { type: "module" },
+  );
 }
 
 async function timedDecodeGRIB2(buffer) {
@@ -719,26 +727,6 @@ const STATIC_SCALES = {
   wspd: { min: 0, max: 200 },
   wdir: { min: 0, max: 360 },
 };
-
-function displayUnitsFor(shortName, rawUnits) {
-  if (shortName === "t")    return "°C";
-  if (shortName === "p")    return "hPa";
-  if (shortName === "msl")  return "hPa";
-  if (shortName === "wspd") return "km/h";
-  return rawUnits;
-}
-
-// Returns a unit-conversion function for the given unitTransform key, or null if none.
-function unitFnFor(ut) {
-  switch (ut) {
-    case "t":    return (v) => v - 273.15;
-    case "wspd": return (v) => v * 3.6;
-    case "p":    return (v) => v / 100;
-    case "msl":  return (v) => v / 100;
-    case "tcc":  return (v) => v * 100;
-    default:     return null;
-  }
-}
 
 function applyDefaultPalette(shortName) {
   const pal = VARIABLE_PALETTES[shortName];
@@ -1044,12 +1032,6 @@ function toDisplayValues(values) {
   const out = new Float32Array(values.length);
   out.set(values);
   return out;
-}
-
-function unitTransformFor(shortName) {
-  return ["t", "wspd", "p", "msl", "tcc"].includes(shortName)
-    ? shortName
-    : null;
 }
 
 function makeRenderParams(data, {

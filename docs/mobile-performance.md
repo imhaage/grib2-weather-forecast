@@ -317,10 +317,9 @@ Expected effect: faster iteration on real mobile devices.
 
 ## DRY Issues To Address Before Refactoring
 
-- Unit conversion logic is still duplicated between `unitFnFor()` in `index.js`
-  and `applyUnit()` in `render-worker.js`. The main thread currently needs it
-  for tooltip display, while the worker needs it for bitmap and stats
-  generation.
+- Unit conversion logic is centralized in
+  `apps/visualize/unit-transforms.js` and shared by `index.js` and the module
+  render worker.
 - Variable metadata is spread across `PACKAGES`, `PARAM_DESCRIPTIONS`,
   `STATIC_SCALES`, and `VARIABLE_PALETTES`.
 

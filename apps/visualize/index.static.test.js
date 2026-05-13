@@ -4,6 +4,8 @@ import assert from "node:assert/strict";
 
 const source = readFileSync(new URL("./index.js", import.meta.url), "utf8");
 const html = readFileSync(new URL("./index.html", import.meta.url), "utf8");
+const renderWorker = readFileSync(new URL("./render-worker.js", import.meta.url), "utf8");
+const unitTransforms = readFileSync(new URL("./unit-transforms.js", import.meta.url), "utf8");
 
 test("visualizer DOM references and repeated UI ids are centralized", () => {
   assert.match(
@@ -247,6 +249,29 @@ test("model visual refresh after palette or variable changes is shared", () => {
     source,
     /addEventListener\("change", async \(e\) => \{[\s\S]*await refreshCurrentModelVisuals\(\{ clearDecoded: true \}\);/,
     "expected variable changes to use the shared model refresh helper and clear decoded values",
+  );
+});
+
+test("unit conversion rules are shared between the main thread and render worker", () => {
+  assert.match(
+    source,
+    /import \{[\s\S]*displayUnitsFor,[\s\S]*unitFnFor,[\s\S]*unitTransformFor,[\s\S]*\} from "\.\/unit-transforms\.js";/,
+    "expected main thread unit conversion helpers to come from the shared module",
+  );
+  assert.match(
+    source,
+    /new Worker\(\s*new URL\("\.\/render-worker\.js", import\.meta\.url\),\s*\{ type: "module" \},\s*\)/,
+    "expected render worker to load as a module so it can share unit transforms",
+  );
+  assert.match(
+    renderWorker,
+    /import \{ applyUnitTransform \} from "\.\/unit-transforms\.js";/,
+    "expected render worker unit conversion to come from the shared module",
+  );
+  assert.match(
+    unitTransforms,
+    /const UNIT_TRANSFORMS = Object\.freeze\(\{[\s\S]*displayUnits: "°C"[\s\S]*apply: \(value\) => value - 273\.15[\s\S]*displayUnits: "km\/h"[\s\S]*apply: \(value\) => value \* 3\.6/,
+    "expected shared unit transform definitions to include display units and conversion logic",
   );
 });
 
