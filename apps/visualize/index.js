@@ -1774,6 +1774,39 @@ function renderDownloadItems(resources) {
   }
 }
 
+async function loadModelBlockWithCache(packageKey, block, downloadKey, onAvailable) {
+  const cachedBuffer = await readCachedGribBlock(packageKey, block);
+  if (modelState !== downloadKey) return;
+  if (cachedBuffer) {
+    await onAvailable(block, cachedBuffer, BLOCK_STATUS.LOADED_FROM_CACHE);
+    return;
+  }
+
+  const staleCachedBlock = await readLatestCachedGribBlock(packageKey, block);
+  if (modelState !== downloadKey) return;
+  if (staleCachedBlock) {
+    await onAvailable(block, staleCachedBlock.buffer, BLOCK_STATUS.LOADED_FROM_CACHE);
+  }
+
+  setBlockStatus(block, BLOCK_STATUS.DOWNLOADING);
+  const buffer = await downloadFileProg(
+    block.url,
+    block.filesize,
+    (loaded, total) => {
+      if (modelState !== downloadKey) return;
+      document
+        .getElementById(`dl-${block.key}`)
+        ?.style.setProperty(
+          "--pct",
+          Math.round((loaded / total) * 100) + "%",
+        );
+    },
+  );
+  await writeCachedGribBlock(packageKey, block, buffer);
+  if (modelState !== downloadKey) return;
+  await onAvailable(block, buffer, BLOCK_STATUS.READY);
+}
+
 async function startDownload(packageKey) {
   const pkg = PACKAGES[packageKey];
   modelState = createModelState(packageKey);
@@ -1882,36 +1915,7 @@ async function startDownload(packageKey) {
     resources,
     MAX_PARALLEL_DOWNLOADS,
     async (block) => {
-      const cachedBuffer = await readCachedGribBlock(packageKey, block);
-      if (modelState !== downloadKey) return;
-      if (cachedBuffer) {
-        await handleAvailableBlock(block, cachedBuffer, BLOCK_STATUS.LOADED_FROM_CACHE);
-        return;
-      }
-
-      const staleCachedBlock = await readLatestCachedGribBlock(packageKey, block);
-      if (modelState !== downloadKey) return;
-      if (staleCachedBlock) {
-        await handleAvailableBlock(block, staleCachedBlock.buffer, BLOCK_STATUS.LOADED_FROM_CACHE);
-      }
-
-      setBlockStatus(block, BLOCK_STATUS.DOWNLOADING);
-      const buffer = await downloadFileProg(
-        block.url,
-        block.filesize,
-        (loaded, total) => {
-          if (modelState !== downloadKey) return;
-          document
-            .getElementById(`dl-${block.key}`)
-            ?.style.setProperty(
-              "--pct",
-              Math.round((loaded / total) * 100) + "%",
-            );
-        },
-      );
-      await writeCachedGribBlock(packageKey, block, buffer);
-      if (modelState !== downloadKey) return;
-      await handleAvailableBlock(block, buffer, BLOCK_STATUS.READY);
+      await loadModelBlockWithCache(packageKey, block, downloadKey, handleAvailableBlock);
     },
   );
 }

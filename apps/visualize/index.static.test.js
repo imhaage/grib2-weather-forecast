@@ -87,6 +87,24 @@ test("model download startup is split into focused helpers", () => {
   );
 });
 
+test("model block loading through cache and network is isolated", () => {
+  assert.match(
+    source,
+    /async function loadModelBlockWithCache\(packageKey, block, downloadKey, onAvailable\)/,
+    "expected per-block cache/network loading to be isolated from startDownload",
+  );
+  assert.match(
+    source,
+    /await loadModelBlockWithCache\(packageKey, block, downloadKey, handleAvailableBlock\);/,
+    "expected startDownload concurrency worker to delegate per-block loading",
+  );
+  assert.match(
+    source,
+    /async function loadModelBlockWithCache\(packageKey, block, downloadKey, onAvailable\) \{[\s\S]*readCachedGribBlock\(packageKey, block\)[\s\S]*readLatestCachedGribBlock\(packageKey, block\)[\s\S]*downloadFileProg\(/,
+    "expected the helper to keep exact cache, older cache, and network fallback in one flow",
+  );
+});
+
 test("model map scene appears after the first available downloaded or cached file", () => {
   assert.match(
     source,
@@ -460,7 +478,7 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
   );
   assert.match(
     source,
-    /if \(cachedBuffer\) \{[\s\S]*await handleAvailableBlock\(block, cachedBuffer, BLOCK_STATUS\.LOADED_FROM_CACHE\);[\s\S]*return;/,
+    /if \(cachedBuffer\) \{[\s\S]*await onAvailable\(block, cachedBuffer, BLOCK_STATUS\.LOADED_FROM_CACHE\);[\s\S]*return;/,
     "expected exact cache hits to count as loaded from cache in the data status summary",
   );
   assert.match(
@@ -488,12 +506,12 @@ test("stale cached files can be displayed while newer remote files download", ()
   );
   assert.match(
     source,
-    /const staleCachedBlock = await readLatestCachedGribBlock\(packageKey, block\);[\s\S]*await handleAvailableBlock\(block, staleCachedBlock\.buffer, BLOCK_STATUS\.LOADED_FROM_CACHE\);[\s\S]*const buffer = await downloadFileProg/,
+    /const staleCachedBlock = await readLatestCachedGribBlock\(packageKey, block\);[\s\S]*await onAvailable\(block, staleCachedBlock\.buffer, BLOCK_STATUS\.LOADED_FROM_CACHE\);[\s\S]*const buffer = await downloadFileProg/,
     "expected stale cache to be presented before downloading the latest file",
   );
   assert.match(
     source,
-    /handleAvailableBlock\(block, staleCachedBlock\.buffer, BLOCK_STATUS\.LOADED_FROM_CACHE\)/,
+    /onAvailable\(block, staleCachedBlock\.buffer, BLOCK_STATUS\.LOADED_FROM_CACHE\)/,
     "expected cache-loaded status to be visible in the data status panel",
   );
   assert.match(
@@ -503,7 +521,7 @@ test("stale cached files can be displayed while newer remote files download", ()
   );
   assert.match(
     source,
-    /handleAvailableBlock\(block, buffer, BLOCK_STATUS\.READY\)/,
+    /onAvailable\(block, buffer, BLOCK_STATUS\.READY\)/,
     "expected freshly downloaded files to replace stale status",
   );
   assert.match(
