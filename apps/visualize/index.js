@@ -1871,7 +1871,7 @@ async function startDownload(packageKey) {
       const cachedBuffer = await readCachedGribBlock(packageKey, block);
       if (modelState !== downloadKey) return;
       if (cachedBuffer) {
-        await handleAvailableBlock(block, cachedBuffer, BLOCK_STATUS.READY);
+        await handleAvailableBlock(block, cachedBuffer, BLOCK_STATUS.LOADED_FROM_CACHE);
         return;
       }
 

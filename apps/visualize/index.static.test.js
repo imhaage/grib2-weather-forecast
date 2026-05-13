@@ -432,6 +432,11 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
   );
   assert.match(
     source,
+    /if \(cachedBuffer\) \{[\s\S]*await handleAvailableBlock\(block, cachedBuffer, BLOCK_STATUS\.LOADED_FROM_CACHE\);[\s\S]*return;/,
+    "expected exact cache hits to count as loaded from cache in the data status summary",
+  );
+  assert.match(
+    source,
     /await writeCachedGribBlock\(packageKey, block, buffer\);/,
     "expected downloaded misses to be written to IndexedDB",
   );
