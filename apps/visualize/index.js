@@ -397,7 +397,7 @@ async function readLatestCachedGribBlock(packageKey, block) {
 async function writeCachedGribBlock(packageKey, block, buffer) {
   try {
     const db = await openGribCacheDb();
-    if (!db) return;
+    if (!db) return false;
     const transaction = db.transaction(GRIB_BLOCK_STORE, "readwrite");
     const record = {
       id: gribBlockCacheKey(packageKey, block),
@@ -411,31 +411,38 @@ async function writeCachedGribBlock(packageKey, block, buffer) {
     };
     transaction.objectStore(GRIB_BLOCK_STORE).put(record);
     await idbTransactionDone(transaction);
-    await deleteObsoleteCachedGribBlocks(db, packageKey, block);
+    return true;
   } catch (error) {
     console.warn("IndexedDB cache write failed:", error);
+    return false;
   }
 }
 
-async function deleteObsoleteCachedGribBlocks(db, packageKey, block) {
-  const currentId = gribBlockCacheKey(packageKey, block);
-  const transaction = db.transaction(GRIB_BLOCK_STORE, "readwrite");
-  const index = transaction.objectStore(GRIB_BLOCK_STORE).index("byPackageBlock");
-  const range = IDBKeyRange.only([packageKey, block.key]);
-  await new Promise((resolve, reject) => {
-    const request = index.openCursor(range);
-    request.onsuccess = () => {
-      const cursor = request.result;
-      if (!cursor) {
-        resolve();
-        return;
-      }
-      if (cursor.value.id !== currentId) cursor.delete();
-      cursor.continue();
-    };
-    request.onerror = () => reject(request.error);
-  });
-  await idbTransactionDone(transaction);
+async function deleteObsoleteCachedGribBlocks(packageKey, block) {
+  try {
+    const db = await openGribCacheDb();
+    if (!db) return;
+    const currentId = gribBlockCacheKey(packageKey, block);
+    const transaction = db.transaction(GRIB_BLOCK_STORE, "readwrite");
+    const index = transaction.objectStore(GRIB_BLOCK_STORE).index("byPackageBlock");
+    const range = IDBKeyRange.only([packageKey, block.key]);
+    await new Promise((resolve, reject) => {
+      const request = index.openCursor(range);
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) {
+          resolve();
+          return;
+        }
+        if (cursor.value.id !== currentId) cursor.delete();
+        cursor.continue();
+      };
+      request.onerror = () => reject(request.error);
+    });
+    await idbTransactionDone(transaction);
+  } catch (error) {
+    console.warn("IndexedDB obsolete cache cleanup failed:", error);
+  }
 }
 
 async function clearGribCache() {
@@ -1659,12 +1666,12 @@ function renderDownloadItems(resources) {
   }
 }
 
-async function loadModelBlockWithCache(packageKey, block, downloadKey, onAvailable) {
+async function loadCachedModelBlock(packageKey, block, downloadKey, onAvailable) {
   const cachedBuffer = await readCachedGribBlock(packageKey, block);
   if (modelState !== downloadKey) return;
   if (cachedBuffer) {
     await onAvailable(block, cachedBuffer, BLOCK_STATUS.LOADED_FROM_CACHE);
-    return;
+    return null;
   }
 
   const staleCachedBlock = await readLatestCachedGribBlock(packageKey, block);
@@ -1673,6 +1680,11 @@ async function loadModelBlockWithCache(packageKey, block, downloadKey, onAvailab
     await onAvailable(block, staleCachedBlock.buffer, BLOCK_STATUS.LOADED_FROM_CACHE);
   }
 
+  return block;
+}
+
+async function refreshModelBlockFromNetwork(packageKey, block, downloadKey, onAvailable) {
+  if (modelState !== downloadKey) return;
   setBlockStatus(block, BLOCK_STATUS.DOWNLOADING);
   resetBlockDownloadProgress(block);
   const buffer = await downloadFileProg(
@@ -1683,9 +1695,10 @@ async function loadModelBlockWithCache(packageKey, block, downloadKey, onAvailab
       setBlockDownloadProgress(block, Math.round((loaded / total) * 100) + "%");
     },
   );
-  await writeCachedGribBlock(packageKey, block, buffer);
+  const cacheWriteSucceeded = await writeCachedGribBlock(packageKey, block, buffer);
   if (modelState !== downloadKey) return;
   await onAvailable(block, buffer, BLOCK_STATUS.READY);
+  if (cacheWriteSucceeded) await deleteObsoleteCachedGribBlocks(packageKey, block);
 }
 
 function createModelDownloadSession({ packageKey, pkg, resources, runSummary, downloadKey }) {
@@ -1818,11 +1831,26 @@ async function startDownload(packageKey) {
   renderDownloadItems(resources);
   const session = createModelDownloadSession({ packageKey, pkg, resources, runSummary, downloadKey });
 
-  await runWithConcurrency(
+  const blocksNeedingRefresh = (await runWithConcurrency(
     resources,
     MAX_PARALLEL_DOWNLOADS,
     async (block) => {
-      await loadModelBlockWithCache(packageKey, block, downloadKey, async (block, buffer, status) => {
+      return loadCachedModelBlock(packageKey, block, downloadKey, async (block, buffer, status) => {
+        await presentAvailableModelBlock(block, buffer, status, session);
+      });
+    },
+  )).filter(Boolean);
+
+  if (modelState !== downloadKey) return;
+  queuePrerenderForAllBlocks();
+  await waitForPrerenderIdle();
+  if (modelState !== downloadKey) return;
+
+  await runWithConcurrency(
+    blocksNeedingRefresh,
+    MAX_PARALLEL_DOWNLOADS,
+    async (block) => {
+      await refreshModelBlockFromNetwork(packageKey, block, downloadKey, async (block, buffer, status) => {
         await presentAvailableModelBlock(block, buffer, status, session);
       });
     },

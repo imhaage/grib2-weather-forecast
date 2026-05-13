@@ -111,18 +111,23 @@ test("model download startup is split into focused helpers", () => {
 test("model block loading through cache and network is isolated", () => {
   assert.match(
     source,
-    /async function loadModelBlockWithCache\(packageKey, block, downloadKey, onAvailable\)/,
-    "expected per-block cache/network loading to be isolated from startDownload",
+    /async function loadCachedModelBlock\(packageKey, block, downloadKey, onAvailable\)/,
+    "expected per-block cache loading to be isolated from startDownload",
   );
   assert.match(
     source,
-    /await loadModelBlockWithCache\(packageKey, block, downloadKey, async \(block, buffer, status\) => \{[\s\S]*await presentAvailableModelBlock\(block, buffer, status, session\);[\s\S]*\}\);/,
-    "expected startDownload concurrency worker to delegate per-block loading",
+    /async function refreshModelBlockFromNetwork\(packageKey, block, downloadKey, onAvailable\)/,
+    "expected per-block network refreshes to be isolated from cache presentation",
   );
   assert.match(
     source,
-    /async function loadModelBlockWithCache\(packageKey, block, downloadKey, onAvailable\) \{[\s\S]*readCachedGribBlock\(packageKey, block\)[\s\S]*readLatestCachedGribBlock\(packageKey, block\)[\s\S]*downloadFileProg\(/,
-    "expected the helper to keep exact cache, older cache, and network fallback in one flow",
+    /async function loadCachedModelBlock\(packageKey, block, downloadKey, onAvailable\) \{[\s\S]*readCachedGribBlock\(packageKey, block\)[\s\S]*readLatestCachedGribBlock\(packageKey, block\)[\s\S]*return block;/,
+    "expected cache loading to present exact or stale cache before marking the block for network refresh",
+  );
+  assert.match(
+    source,
+    /async function refreshModelBlockFromNetwork\(packageKey, block, downloadKey, onAvailable\) \{[\s\S]*setBlockStatus\(block, BLOCK_STATUS\.DOWNLOADING\)[\s\S]*downloadFileProg\(/,
+    "expected network refreshes to start only in the network helper",
   );
 });
 
@@ -750,8 +755,13 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
   );
   assert.match(
     source,
-    /const cachedBuffer = await readCachedGribBlock\(packageKey, block\);[\s\S]*if \(cachedBuffer\) \{[\s\S]*return;[\s\S]*const buffer = await downloadFileProg/,
-    "expected IndexedDB reads before falling back to network",
+    /async function loadCachedModelBlock\(packageKey, block, downloadKey, onAvailable\)/,
+    "expected cached model block loading to be isolated from network refreshes",
+  );
+  assert.match(
+    source,
+    /const blocksNeedingRefresh = \(await runWithConcurrency\([\s\S]*loadCachedModelBlock\(packageKey, block, downloadKey,[\s\S]*\)\)\.filter\(Boolean\);[\s\S]*await waitForPrerenderIdle\(\);[\s\S]*await runWithConcurrency\(\s*blocksNeedingRefresh,/,
+    "expected all cached blocks to be presented and pre-rendered before network refreshes start",
   );
   assert.match(
     source,
@@ -775,13 +785,18 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
   );
   assert.match(
     source,
-    /await writeCachedGribBlock\(packageKey, block, buffer\);/,
-    "expected downloaded misses to be written to IndexedDB",
+    /const cacheWriteSucceeded = await writeCachedGribBlock\(packageKey, block, buffer\);/,
+    "expected downloaded misses to report whether IndexedDB replacement is safe",
   );
   assert.match(
     source,
-    /async function deleteObsoleteCachedGribBlocks\(db, packageKey, block\)[\s\S]*cursor\.value\.id !== currentId[\s\S]*cursor\.delete\(\)/,
-    "expected old runs for the same package/block to be removed after replacement",
+    /await onAvailable\(block, buffer, BLOCK_STATUS\.READY\);[\s\S]*if \(cacheWriteSucceeded\) await deleteObsoleteCachedGribBlocks\(packageKey, block\);/,
+    "expected old cached files to be deleted only after the new block is available in memory",
+  );
+  assert.match(
+    source,
+    /async function deleteObsoleteCachedGribBlocks\(packageKey, block\)[\s\S]*cursor\.value\.id !== currentId[\s\S]*cursor\.delete\(\)/,
+    "expected old runs for the same package/block to be removed after safe replacement",
   );
   assert.match(
     source,
@@ -798,7 +813,7 @@ test("stale cached files can be displayed while newer remote files download", ()
   );
   assert.match(
     source,
-    /function isOlderCachedGribBlock\(record, block\)[\s\S]*runTimeValue\(record\.runId\) < runTimeValue\(block\.runId\)[\s\S]*const staleCachedBlock = await readLatestCachedGribBlock\(packageKey, block\);[\s\S]*await onAvailable\(block, staleCachedBlock\.buffer, BLOCK_STATUS\.LOADED_FROM_CACHE\);[\s\S]*const buffer = await downloadFileProg/,
+    /function isOlderCachedGribBlock\(record, block\)[\s\S]*runTimeValue\(record\.runId\) < runTimeValue\(block\.runId\)[\s\S]*const staleCachedBlock = await readLatestCachedGribBlock\(packageKey, block\);[\s\S]*await onAvailable\(block, staleCachedBlock\.buffer, BLOCK_STATUS\.LOADED_FROM_CACHE\);/,
     "expected stale cache to be presented before downloading the latest file",
   );
   assert.match(
