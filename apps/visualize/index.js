@@ -1951,83 +1951,103 @@ function route() {
   }
 }
 
-(function buildModelList() {
-  const container = document.getElementById("model-list");
+function groupPackagesByModel(packages) {
   const groups = {};
-  for (const [key, pkg] of Object.entries(PACKAGES)) {
+  for (const [key, pkg] of Object.entries(packages)) {
     if (!groups[pkg.model]) groups[pkg.model] = [];
     groups[pkg.model].push({ key, pkg });
   }
-  for (const [modelName, entries] of Object.entries(groups)) {
-    const info = MODEL_INFO[modelName];
+  return groups;
+}
 
-    const section = document.createElement("div");
-    section.className = "model-section";
-
-    const title = document.createElement("h2");
-    title.className = "model-section-title";
-    title.textContent = modelName;
-    section.appendChild(title);
-
-    const desc = document.createElement("p");
-    desc.className = "model-section-desc";
-    desc.textContent = info.description;
-    section.appendChild(desc);
-
-    const meta = document.createElement("div");
-    meta.className = "model-meta";
-    for (const [label, value, wide] of [
-      ["Resolution", info.resolution],
-      ["Forecast horizon", info.horizon],
-      ["Files", info.filesInfo],
-      ["Coverage", `${info.domain} — ${info.domainDesc}`, true],
-    ]) {
-      const item = document.createElement("div");
-      item.className = wide ? "meta-item meta-item-full" : "meta-item";
-      const lbl = document.createElement("span");
-      lbl.className = "meta-label";
-      lbl.textContent = label;
-      const val = document.createElement("span");
-      val.className = "meta-value";
-      val.textContent = value;
-      item.appendChild(lbl);
-      item.appendChild(val);
-      meta.appendChild(item);
-    }
-    section.appendChild(meta);
-
-    const pkgsLabel = document.createElement("p");
-    pkgsLabel.className = "model-packages-label";
-    pkgsLabel.textContent = "Last available run";
-    section.appendChild(pkgsLabel);
-
-    const pkgsEl = document.createElement("div");
-    pkgsEl.className = "model-packages";
-    for (const { key, pkg } of entries) {
-      const pkgEl = document.createElement("div");
-      pkgEl.className = "model-package";
-
-      const btn = document.createElement("button");
-      btn.className = "btn-primary";
-      btn.textContent = key.split("_").pop();
-      btn.addEventListener("click", () => { location.hash = `#arome/${key}`; });
-      pkgEl.appendChild(btn);
-
-      const vars = document.createElement("ul");
-      vars.className = "model-package-vars";
-      for (const v of pkg.variables) {
-        const li = document.createElement("li");
-        li.textContent = v.name;
-        vars.appendChild(li);
-      }
-      pkgEl.appendChild(vars);
-
-      pkgsEl.appendChild(pkgEl);
-    }
-    section.appendChild(pkgsEl);
-    container.appendChild(section);
+function createModelMetaElement(info) {
+  const meta = document.createElement("div");
+  meta.className = "model-meta";
+  for (const [label, value, wide] of [
+    ["Resolution", info.resolution],
+    ["Forecast horizon", info.horizon],
+    ["Files", info.filesInfo],
+    ["Coverage", `${info.domain} — ${info.domainDesc}`, true],
+  ]) {
+    const item = document.createElement("div");
+    item.className = wide ? "meta-item meta-item-full" : "meta-item";
+    const lbl = document.createElement("span");
+    lbl.className = "meta-label";
+    lbl.textContent = label;
+    const val = document.createElement("span");
+    val.className = "meta-value";
+    val.textContent = value;
+    item.appendChild(lbl);
+    item.appendChild(val);
+    meta.appendChild(item);
   }
-})();
+  return meta;
+}
+
+function createModelPackageElement(key, pkg) {
+  const pkgEl = document.createElement("div");
+  pkgEl.className = "model-package";
+
+  const btn = document.createElement("button");
+  btn.className = "btn-primary";
+  btn.textContent = key.split("_").pop();
+  btn.addEventListener("click", () => { location.hash = `#arome/${key}`; });
+  pkgEl.appendChild(btn);
+
+  const vars = document.createElement("ul");
+  vars.className = "model-package-vars";
+  for (const v of pkg.variables) {
+    const li = document.createElement("li");
+    li.textContent = v.name;
+    vars.appendChild(li);
+  }
+  pkgEl.appendChild(vars);
+
+  return pkgEl;
+}
+
+function createModelSectionElement(modelName, entries) {
+  const info = MODEL_INFO[modelName];
+
+  const section = document.createElement("div");
+  section.className = "model-section";
+
+  const title = document.createElement("h2");
+  title.className = "model-section-title";
+  title.textContent = modelName;
+  section.appendChild(title);
+
+  const desc = document.createElement("p");
+  desc.className = "model-section-desc";
+  desc.textContent = info.description;
+  section.appendChild(desc);
+
+  section.appendChild(createModelMetaElement(info));
+
+  const pkgsLabel = document.createElement("p");
+  pkgsLabel.className = "model-packages-label";
+  pkgsLabel.textContent = "Last available run";
+  section.appendChild(pkgsLabel);
+
+  const pkgsEl = document.createElement("div");
+  pkgsEl.className = "model-packages";
+  for (const { key, pkg } of entries) {
+    pkgsEl.appendChild(createModelPackageElement(key, pkg));
+  }
+  section.appendChild(pkgsEl);
+
+  return section;
+}
+
+function renderModelList() {
+  const container = document.getElementById("model-list");
+  const groups = groupPackagesByModel(PACKAGES);
+  for (const [modelName, entries] of Object.entries(groups)) {
+    container.appendChild(createModelSectionElement(modelName, entries));
+  }
+}
+
+renderModelList();
 
 window.addEventListener("hashchange", route);
 route();

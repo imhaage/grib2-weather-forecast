@@ -275,6 +275,34 @@ test("unit conversion rules are shared between the main thread and render worker
   );
 });
 
+test("home model list rendering is split into focused builders", () => {
+  assert.match(
+    source,
+    /function groupPackagesByModel\(packages\)/,
+    "expected model package grouping to be isolated",
+  );
+  assert.match(
+    source,
+    /function createModelMetaElement\(info\)/,
+    "expected model metadata DOM creation to be isolated",
+  );
+  assert.match(
+    source,
+    /function createModelPackageElement\(key, pkg\)/,
+    "expected model package DOM creation to be isolated",
+  );
+  assert.match(
+    source,
+    /function renderModelList\(\)/,
+    "expected model list rendering to have a named entry point",
+  );
+  assert.match(
+    source,
+    /renderModelList\(\);[\s\S]*window\.addEventListener\("hashchange", route\);/,
+    "expected startup to call the named model list renderer",
+  );
+});
+
 test("decoded value cache is limited to current and adjacent working fields", () => {
   assert.match(
     source,
