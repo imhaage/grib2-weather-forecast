@@ -1821,8 +1821,7 @@ function createModelDownloadSession({ packageKey, pkg, resources, runSummary, do
   };
 }
 
-async function presentAvailableModelBlock(block, buffer, status, session) {
-  if (modelState !== session.downloadKey) return;
+function storeAvailableModelBlock(block, buffer, status, session) {
   const hadBuffer = modelState.buffers.has(block.key);
   if (hadBuffer) {
     modelState.messageIndex.delete(block.key);
@@ -1835,38 +1834,41 @@ async function presentAvailableModelBlock(block, buffer, status, session) {
   document.getElementById(`dl-${block.key}`)?.style.setProperty("--pct", "100%");
   document.getElementById("arome-dl-status").textContent =
     `Available… ${session.availableCount} / ${session.resources.length} files (${session.runSummary})`;
+}
 
+function initializeModelLegendFromBlock(buffer, session) {
   // On first arrival: populate legend/info from header (no CCSDS decode)
-  if (!session.legendInitialized) {
-    session.legendInitialized = true;
-    const curVarDef = session.pkgVars.find(
-      (v) => (v.varKey ?? v.shortName) === modelState.variable,
+  if (session.legendInitialized) return;
+  session.legendInitialized = true;
+  const curVarDef = session.pkgVars.find(
+    (v) => (v.varKey ?? v.shortName) === modelState.variable,
+  );
+  const curShortName = curVarDef?.shortName ?? modelState.variable;
+  for (const msg of iterateGRIB2Messages(buffer)) {
+    const p = msg.product;
+    if (!p || p.shortName !== curShortName) continue;
+    if (curVarDef?.levelValue != null && p.levelValue !== curVarDef.levelValue) continue;
+    modelState.lastRunInfo = `${session.packageKey} · run ${fmtRefTime(msg.header)}`;
+    applyDefaultPalette(modelState.variable);
+    updateParamInfo(
+      p.name,
+      PARAM_DESCRIPTIONS[curShortName] ?? "",
+      modelState.lastRunInfo,
     );
-    const curShortName = curVarDef?.shortName ?? modelState.variable;
-    for (const msg of iterateGRIB2Messages(buffer)) {
-      const p = msg.product;
-      if (!p || p.shortName !== curShortName) continue;
-      if (curVarDef?.levelValue != null && p.levelValue !== curVarDef.levelValue) continue;
-      modelState.lastRunInfo = `${session.packageKey} · run ${fmtRefTime(msg.header)}`;
-      applyDefaultPalette(modelState.variable);
-      updateParamInfo(
-        p.name,
-        PARAM_DESCRIPTIONS[curShortName] ?? "",
-        modelState.lastRunInfo,
+    updateLevelInfo(curVarDef);
+    const staticScale = STATIC_SCALES[curShortName];
+    if (staticScale && curVarDef) {
+      showColorScale(
+        staticScale.min,
+        staticScale.max,
+        displayUnitsFor(curShortName, curVarDef.units),
       );
-      updateLevelInfo(curVarDef);
-      const staticScale = STATIC_SCALES[curShortName];
-      if (staticScale && curVarDef) {
-        showColorScale(
-          staticScale.min,
-          staticScale.max,
-          displayUnitsFor(curShortName, curVarDef.units),
-        );
-      }
-      break;
     }
+    break;
   }
+}
 
+async function refreshMapForAvailableModelBlock(block, session) {
   const currentIdx = parseInt(session.slider.value, 10);
   const currentHour = modelState.hourList[currentIdx];
   if (session.availableCount === 1) {
@@ -1878,12 +1880,21 @@ async function presentAvailableModelBlock(block, buffer, status, session) {
   } else if (blockForHour(currentHour)?.key === block.key) {
     await showHour(currentIdx);
   }
+}
 
-  if (session.availableCount === session.resources.length) {
-    document.getElementById("arome-dl-status").textContent =
-      `Available ${session.resources.length} / ${session.resources.length} files (${session.runSummary})`;
-    queuePrerenderForAllBlocks();
-  }
+function completeModelDownloadIfReady(session) {
+  if (session.availableCount !== session.resources.length) return;
+  document.getElementById("arome-dl-status").textContent =
+    `Available ${session.resources.length} / ${session.resources.length} files (${session.runSummary})`;
+  queuePrerenderForAllBlocks();
+}
+
+async function presentAvailableModelBlock(block, buffer, status, session) {
+  if (modelState !== session.downloadKey) return;
+  storeAvailableModelBlock(block, buffer, status, session);
+  initializeModelLegendFromBlock(buffer, session);
+  await refreshMapForAvailableModelBlock(block, session);
+  completeModelDownloadIfReady(session);
 }
 
 async function startDownload(packageKey) {

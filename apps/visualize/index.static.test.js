@@ -123,8 +123,36 @@ test("model block availability presentation is isolated", () => {
   );
   assert.match(
     source,
-    /presentAvailableModelBlock\(block, buffer, status, session\)[\s\S]*session\.availableCount[\s\S]*session\.legendInitialized/,
+    /function createModelDownloadSession\(\{ packageKey, pkg, resources, runSummary, downloadKey \}\) \{[\s\S]*availableCount: 0,[\s\S]*legendInitialized: false,/,
     "expected availability counters and legend state to live on the session object",
+  );
+});
+
+test("model block availability presentation delegates focused responsibilities", () => {
+  assert.match(
+    source,
+    /function storeAvailableModelBlock\(block, buffer, status, session\)/,
+    "expected model buffer registration and cache invalidation to be isolated",
+  );
+  assert.match(
+    source,
+    /function initializeModelLegendFromBlock\(buffer, session\)/,
+    "expected first-block legend initialization to be isolated",
+  );
+  assert.match(
+    source,
+    /async function refreshMapForAvailableModelBlock\(block, session\)/,
+    "expected first/visible block map refresh to be isolated",
+  );
+  assert.match(
+    source,
+    /function completeModelDownloadIfReady\(session\)/,
+    "expected download completion UI and pre-render scheduling to be isolated",
+  );
+  assert.match(
+    source,
+    /async function presentAvailableModelBlock\(block, buffer, status, session\) \{[\s\S]*storeAvailableModelBlock\(block, buffer, status, session\);[\s\S]*initializeModelLegendFromBlock\(buffer, session\);[\s\S]*await refreshMapForAvailableModelBlock\(block, session\);[\s\S]*completeModelDownloadIfReady\(session\);/,
+    "expected available block presentation to read as orchestration",
   );
 });
 
