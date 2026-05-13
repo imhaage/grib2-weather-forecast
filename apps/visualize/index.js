@@ -2100,20 +2100,28 @@ document.getElementById("back-btn").addEventListener("click", () => {
   location.hash = "";
 });
 
+async function refreshCurrentModelVisuals({ clearDecoded = false } = {}) {
+  stopPlayer();
+  await new Promise(r => requestAnimationFrame(r));
+  setRendering(true);
+  await new Promise(r => setTimeout(r, 0));
+  if (clearDecoded) {
+    modelState.decoded.clear();
+    modelState.decodedOrder = [];
+  }
+  invalidateBitmapCache();
+  const myGen = renderGen;
+  showHour(parseInt(dom.aromeSlider.value, 10));
+  queuePrerenderForAllBlocks();
+  if (renderGen === myGen) setRendering(false);
+}
+
 async function onPaletteChange(e) {
   currentPalette = e.target.value;
   setPaletteSelectValues(currentPalette);
   if (!gridState) return;
   if (modelState) {
-    stopPlayer();
-    await new Promise(r => requestAnimationFrame(r));
-    setRendering(true);
-    await new Promise(r => setTimeout(r, 0));
-    invalidateBitmapCache();
-    const myGen = renderGen;
-    showHour(parseInt(document.getElementById("arome-slider").value, 10));
-    queuePrerenderForAllBlocks();
-    if (renderGen === myGen) setRendering(false);
+    await refreshCurrentModelVisuals();
   } else {
     await rerenderUploadedGridView();
   }
@@ -2135,7 +2143,6 @@ document
   .getElementById("arome-var-select")
   .addEventListener("change", async (e) => {
     if (!modelState) return;
-    stopPlayer();
     const varKey = e.target.value;
     modelState.variable = varKey;
     const varDef = PACKAGES[modelState.packageKey].variables.find(
@@ -2154,20 +2161,7 @@ document
       updateLevelInfo(varDef);
     }
 
-    // 1. Yield so the browser paints the new select value before anything else
-    await new Promise(r => requestAnimationFrame(r));
-    // 2. Hide elements so the freeze is invisible
-    setRendering(true);
-    await new Promise(r => setTimeout(r, 0));
-    // 3. Now run the expensive synchronous work
-    modelState.decoded.clear();
-    modelState.decodedOrder = [];
-    invalidateBitmapCache();
-    const myGen = renderGen;
-    const idx = parseInt(document.getElementById("arome-slider").value, 10);
-    showHour(idx);
-    queuePrerenderForAllBlocks();
-    if (renderGen === myGen) setRendering(false);
+    await refreshCurrentModelVisuals({ clearDecoded: true });
   });
 
 const aromeSlider = document.getElementById("arome-slider");

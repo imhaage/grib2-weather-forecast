@@ -227,6 +227,29 @@ test("model pre-rendering is scheduled through a single queue", () => {
   );
 });
 
+test("model visual refresh after palette or variable changes is shared", () => {
+  assert.match(
+    source,
+    /async function refreshCurrentModelVisuals\(\{ clearDecoded = false \} = \{\}\)/,
+    "expected palette and variable changes to share the same expensive refresh path",
+  );
+  assert.match(
+    source,
+    /if \(clearDecoded\) \{[\s\S]*modelState\.decoded\.clear\(\);[\s\S]*modelState\.decodedOrder = \[\];[\s\S]*\}/,
+    "expected decoded cache clearing to be explicit and optional",
+  );
+  assert.match(
+    source,
+    /async function onPaletteChange\(e\) \{[\s\S]*await refreshCurrentModelVisuals\(\);/,
+    "expected palette changes to use the shared model refresh helper",
+  );
+  assert.match(
+    source,
+    /addEventListener\("change", async \(e\) => \{[\s\S]*await refreshCurrentModelVisuals\(\{ clearDecoded: true \}\);/,
+    "expected variable changes to use the shared model refresh helper and clear decoded values",
+  );
+});
+
 test("decoded value cache is limited to current and adjacent working fields", () => {
   assert.match(
     source,
@@ -384,13 +407,18 @@ test("player warms the bitmap cache before starting animation", () => {
 test("palette and variable changes stop playback before invalidating bitmap cache", () => {
   assert.match(
     source,
-    /async function onPaletteChange\(e\) \{[\s\S]*if \(modelState\) \{[\s\S]*stopPlayer\(\);[\s\S]*invalidateBitmapCache\(\);/,
-    "expected palette changes to stop animation before cache invalidation",
+    /async function refreshCurrentModelVisuals\(\{ clearDecoded = false \} = \{\}\) \{[\s\S]*stopPlayer\(\);[\s\S]*invalidateBitmapCache\(\);/,
+    "expected shared model visual refresh to stop animation before cache invalidation",
   );
   assert.match(
     source,
-    /\.getElementById\("arome-var-select"\)[\s\S]*\.addEventListener\("change", async \(e\) => \{[\s\S]*stopPlayer\(\);[\s\S]*invalidateBitmapCache\(\);/,
-    "expected variable changes to stop animation before cache invalidation",
+    /async function onPaletteChange\(e\) \{[\s\S]*await refreshCurrentModelVisuals\(\);/,
+    "expected palette changes to use the shared refresh path",
+  );
+  assert.match(
+    source,
+    /\.getElementById\("arome-var-select"\)[\s\S]*\.addEventListener\("change", async \(e\) => \{[\s\S]*await refreshCurrentModelVisuals\(\{ clearDecoded: true \}\);/,
+    "expected variable changes to use the shared refresh path",
   );
 });
 
