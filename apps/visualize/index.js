@@ -50,6 +50,11 @@ const BLOCK_STATUS_CLASSES = [
   "done",
   "cached",
 ];
+const CACHE_LOAD_RESULT = Object.freeze({
+  CURRENT: "current",
+  STALE: "stale",
+  MISSING: "missing",
+});
 const dom = {
   get aromeDownloadBars() { return byId("arome-dl-bars"); },
   get aromeDownloadFileList() { return byId("arome-dl-file-list"); },
@@ -1671,16 +1676,17 @@ async function loadCachedModelBlock(packageKey, block, downloadKey, onAvailable)
   if (modelState !== downloadKey) return;
   if (cachedBuffer) {
     await onAvailable(block, cachedBuffer, BLOCK_STATUS.LOADED_FROM_CACHE);
-    return null;
+    return { status: CACHE_LOAD_RESULT.CURRENT, block };
   }
 
   const staleCachedBlock = await readLatestCachedGribBlock(packageKey, block);
   if (modelState !== downloadKey) return;
   if (staleCachedBlock) {
     await onAvailable(block, staleCachedBlock.buffer, BLOCK_STATUS.LOADED_FROM_CACHE);
+    return { status: CACHE_LOAD_RESULT.STALE, block };
   }
 
-  return block;
+  return { status: CACHE_LOAD_RESULT.MISSING, block };
 }
 
 async function refreshModelBlockFromNetwork(packageKey, block, downloadKey, onAvailable) {
@@ -1831,7 +1837,7 @@ async function startDownload(packageKey) {
   renderDownloadItems(resources);
   const session = createModelDownloadSession({ packageKey, pkg, resources, runSummary, downloadKey });
 
-  const blocksNeedingRefresh = (await runWithConcurrency(
+  const cacheResults = await runWithConcurrency(
     resources,
     MAX_PARALLEL_DOWNLOADS,
     async (block) => {
@@ -1839,9 +1845,26 @@ async function startDownload(packageKey) {
         await presentAvailableModelBlock(block, buffer, status, session);
       });
     },
-  )).filter(Boolean);
+  );
+  const missingBlocks = cacheResults
+    .filter((result) => result?.status === CACHE_LOAD_RESULT.MISSING)
+    .map((result) => result.block);
+  const blocksNeedingRefresh = cacheResults
+    .filter((result) => result?.status === CACHE_LOAD_RESULT.STALE)
+    .map((result) => result.block);
 
   if (modelState !== downloadKey) return;
+  await runWithConcurrency(
+    missingBlocks,
+    MAX_PARALLEL_DOWNLOADS,
+    async (block) => {
+      await refreshModelBlockFromNetwork(packageKey, block, downloadKey, async (block, buffer, status) => {
+        await presentAvailableModelBlock(block, buffer, status, session);
+      });
+    },
+  );
+  if (modelState !== downloadKey) return;
+
   queuePrerenderForAllBlocks();
   await waitForPrerenderIdle();
   if (modelState !== downloadKey) return;

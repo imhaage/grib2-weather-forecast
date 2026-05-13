@@ -121,8 +121,8 @@ test("model block loading through cache and network is isolated", () => {
   );
   assert.match(
     source,
-    /async function loadCachedModelBlock\(packageKey, block, downloadKey, onAvailable\) \{[\s\S]*readCachedGribBlock\(packageKey, block\)[\s\S]*readLatestCachedGribBlock\(packageKey, block\)[\s\S]*return block;/,
-    "expected cache loading to present exact or stale cache before marking the block for network refresh",
+    /async function loadCachedModelBlock\(packageKey, block, downloadKey, onAvailable\) \{[\s\S]*readCachedGribBlock\(packageKey, block\)[\s\S]*readLatestCachedGribBlock\(packageKey, block\)[\s\S]*CACHE_LOAD_RESULT\.MISSING/,
+    "expected cache loading to present exact or stale cache before marking missing blocks for network download",
   );
   assert.match(
     source,
@@ -756,8 +756,8 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
   );
   assert.match(
     source,
-    /const blocksNeedingRefresh = \(await runWithConcurrency\([\s\S]*loadCachedModelBlock\(packageKey, block, downloadKey,[\s\S]*\)\)\.filter\(Boolean\);[\s\S]*await waitForPrerenderIdle\(\);[\s\S]*await runWithConcurrency\(\s*blocksNeedingRefresh,/,
-    "expected all cached blocks to be presented and pre-rendered before network refreshes start",
+    /const cacheResults = await runWithConcurrency\([\s\S]*loadCachedModelBlock\(packageKey, block, downloadKey,[\s\S]*const missingBlocks = cacheResults[\s\S]*const blocksNeedingRefresh = cacheResults[\s\S]*await runWithConcurrency\(\s*missingBlocks,[\s\S]*await waitForPrerenderIdle\(\);[\s\S]*await runWithConcurrency\(\s*blocksNeedingRefresh,/,
+    "expected cached blocks and missing network blocks to be presented and pre-rendered before stale refreshes start",
   );
   assert.match(
     source,
@@ -776,7 +776,7 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
   );
   assert.match(
     source,
-    /if \(cachedBuffer\) \{[\s\S]*await onAvailable\(block, cachedBuffer, BLOCK_STATUS\.LOADED_FROM_CACHE\);[\s\S]*return;/,
+    /if \(cachedBuffer\) \{[\s\S]*await onAvailable\(block, cachedBuffer, BLOCK_STATUS\.LOADED_FROM_CACHE\);[\s\S]*return \{ status: CACHE_LOAD_RESULT\.CURRENT, block \};/,
     "expected exact cache hits to count as loaded from cache in the data status summary",
   );
   assert.match(
@@ -831,5 +831,33 @@ test("stale cached files can be displayed while newer remote files download", ()
     html,
     /id="data-status-panel"[\s\S]*id="data-status-summary"[\s\S]*id="clear-grib-cache"/,
     "expected a collapsible data/cache status panel with cache controls",
+  );
+});
+
+test("missing cached files are downloaded before stale cached files refresh", () => {
+  assert.match(
+    source,
+    /const CACHE_LOAD_RESULT = Object\.freeze\(\{[\s\S]*CURRENT: "current"[\s\S]*STALE: "stale"[\s\S]*MISSING: "missing"[\s\S]*\}\);/,
+    "expected cache loading to distinguish current, stale, and missing blocks",
+  );
+  assert.match(
+    source,
+    /const cacheResults = await runWithConcurrency\([\s\S]*loadCachedModelBlock\(packageKey, block, downloadKey,[\s\S]*\);/,
+    "expected startDownload to gather typed cache load results before network work",
+  );
+  assert.match(
+    source,
+    /const missingBlocks = cacheResults[\s\S]*filter\(\(result\) => result\?\.status === CACHE_LOAD_RESULT\.MISSING\)[\s\S]*map\(\(result\) => result\.block\);/,
+    "expected missing blocks to be separated from stale cached refreshes",
+  );
+  assert.match(
+    source,
+    /const blocksNeedingRefresh = cacheResults[\s\S]*filter\(\(result\) => result\?\.status === CACHE_LOAD_RESULT\.STALE\)[\s\S]*map\(\(result\) => result\.block\);/,
+    "expected stale cached blocks to refresh only after missing downloads",
+  );
+  assert.match(
+    source,
+    /await runWithConcurrency\(\s*missingBlocks,\s*MAX_PARALLEL_DOWNLOADS,[\s\S]*refreshModelBlockFromNetwork[\s\S]*\);[\s\S]*queuePrerenderForAllBlocks\(\);[\s\S]*await waitForPrerenderIdle\(\);[\s\S]*await runWithConcurrency\(\s*blocksNeedingRefresh,\s*MAX_PARALLEL_DOWNLOADS,/,
+    "expected missing files to download before animation warm-up and stale refreshes",
   );
 });
