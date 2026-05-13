@@ -20,6 +20,23 @@ const STAT_VALUE_IDS = [
   "gv-mean",
   "gv-valid",
 ];
+const BLOCK_STATUS = Object.freeze({
+  MISSING: "missing",
+  LOADED_FROM_CACHE: "loaded-from-cache",
+  DOWNLOADING: "downloading",
+  READY: "ready",
+});
+const BLOCK_STATUS_LABELS = Object.freeze({
+  [BLOCK_STATUS.MISSING]: "missing",
+  [BLOCK_STATUS.LOADED_FROM_CACHE]: "loaded from cache",
+  [BLOCK_STATUS.DOWNLOADING]: "updating",
+  [BLOCK_STATUS.READY]: "ready",
+});
+const BLOCK_STATUS_CLASSES = [
+  ...Object.values(BLOCK_STATUS),
+  "done",
+  "cached",
+];
 const dom = {
   get aromeSlider() { return byId("arome-slider"); },
   get cacheWarmup() { return byId("cache-warmup"); },
@@ -1664,9 +1681,9 @@ function setBlockStatus(block, status) {
   modelState?.blockStatus?.set(block.key, status);
   const item = document.getElementById(`dl-${block.key}`);
   if (item) {
-    item.classList.remove("missing", "cached-stale", "downloading", "ready", "done", "cached");
+    item.classList.remove(...BLOCK_STATUS_CLASSES);
     item.classList.add(status);
-    if (status === "ready") item.classList.add("done");
+    if (status === BLOCK_STATUS.READY) item.classList.add("done");
     item.title = `${formatRunSummary([block])} · ${status}`;
   }
   updateDataStatusSummary();
@@ -1675,16 +1692,19 @@ function setBlockStatus(block, status) {
 function updateDataStatusSummary() {
   const summary = document.getElementById("data-status-summary");
   if (!summary || !modelState?.resources.length) return;
-  const counts = { missing: 0, "cached-stale": 0, downloading: 0, ready: 0 };
+  const counts = Object.fromEntries(
+    Object.values(BLOCK_STATUS).map((status) => [status, 0]),
+  );
   for (const block of modelState.resources) {
-    counts[block.status ?? "missing"] ??= 0;
-    counts[block.status ?? "missing"]++;
+    const status = block.status ?? BLOCK_STATUS.MISSING;
+    counts[status] ??= 0;
+    counts[status]++;
   }
   summary.textContent = [
-    `${counts.ready} ready`,
-    `${counts["cached-stale"]} loaded from cache`,
-    `${counts.downloading} updating`,
-    `${counts.missing} missing`,
+    `${counts[BLOCK_STATUS.READY]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.READY]}`,
+    `${counts[BLOCK_STATUS.LOADED_FROM_CACHE]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.LOADED_FROM_CACHE]}`,
+    `${counts[BLOCK_STATUS.DOWNLOADING]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.DOWNLOADING]}`,
+    `${counts[BLOCK_STATUS.MISSING]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.MISSING]}`,
     formatRunSummary(modelState.resources),
   ].join(" · ");
 }
@@ -1764,9 +1784,9 @@ async function startDownload(packageKey) {
   barsEl.innerHTML = "";
   fileListEl.innerHTML = "";
   for (const r of resources) {
-    setBlockStatus(r, "missing");
+    setBlockStatus(r, BLOCK_STATUS.MISSING);
     const item = document.createElement("div");
-    item.className = "arome-dl-item missing";
+    item.className = `arome-dl-item ${BLOCK_STATUS.MISSING}`;
     item.id = `dl-${r.key}`;
     item.textContent = r.key;
     item.title = formatRunSummary([r]);
@@ -1852,17 +1872,17 @@ async function startDownload(packageKey) {
       const cachedBuffer = await readCachedGribBlock(packageKey, block);
       if (modelState !== downloadKey) return;
       if (cachedBuffer) {
-        await handleAvailableBlock(block, cachedBuffer, "ready");
+        await handleAvailableBlock(block, cachedBuffer, BLOCK_STATUS.READY);
         return;
       }
 
       const staleCachedBlock = await readLatestCachedGribBlock(packageKey, block);
       if (modelState !== downloadKey) return;
       if (staleCachedBlock) {
-        await handleAvailableBlock(block, staleCachedBlock.buffer, "cached-stale");
+        await handleAvailableBlock(block, staleCachedBlock.buffer, BLOCK_STATUS.LOADED_FROM_CACHE);
       }
 
-      setBlockStatus(block, "downloading");
+      setBlockStatus(block, BLOCK_STATUS.DOWNLOADING);
       const buffer = await downloadFileProg(
         block.url,
         block.filesize,
@@ -1878,7 +1898,7 @@ async function startDownload(packageKey) {
       );
       await writeCachedGribBlock(packageKey, block, buffer);
       if (modelState !== downloadKey) return;
-      await handleAvailableBlock(block, buffer, "ready");
+      await handleAvailableBlock(block, buffer, BLOCK_STATUS.READY);
     },
   );
 }

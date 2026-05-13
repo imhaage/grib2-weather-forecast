@@ -742,7 +742,7 @@ header span {
   background: var(--color-success);
   color: var(--color-surface);
 }
-.arome-dl-item.cached-stale {
+.arome-dl-item.loaded-from-cache {
   background: #7c3aed;
   color: #ffffff;
 }

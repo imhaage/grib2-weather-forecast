@@ -23,6 +23,24 @@ test("visualizer DOM references and repeated UI ids are centralized", () => {
   );
 });
 
+test("model block statuses are centralized and use clear cache wording", () => {
+  assert.match(
+    source,
+    /const BLOCK_STATUS = Object\.freeze\(\{[\s\S]*LOADED_FROM_CACHE: "loaded-from-cache"[\s\S]*\}\);/,
+    "expected block status strings to be centralized with loaded-from-cache wording",
+  );
+  assert.doesNotMatch(
+    source,
+    /cached-stale/,
+    "expected stale cache wording not to leak into state names or CSS classes",
+  );
+  assert.match(
+    source,
+    /BLOCK_STATUS_LABELS\[BLOCK_STATUS\.LOADED_FROM_CACHE\]/,
+    "expected UI text to be driven by status labels",
+  );
+});
+
 test("model map scene appears after the first available downloaded or cached file", () => {
   assert.match(
     source,
@@ -419,22 +437,22 @@ test("stale cached files can be displayed while newer remote files download", ()
   );
   assert.match(
     source,
-    /const staleCachedBlock = await readLatestCachedGribBlock\(packageKey, block\);[\s\S]*await handleAvailableBlock\(block, staleCachedBlock\.buffer, "cached-stale"\);[\s\S]*const buffer = await downloadFileProg/,
+    /const staleCachedBlock = await readLatestCachedGribBlock\(packageKey, block\);[\s\S]*await handleAvailableBlock\(block, staleCachedBlock\.buffer, BLOCK_STATUS\.LOADED_FROM_CACHE\);[\s\S]*const buffer = await downloadFileProg/,
     "expected stale cache to be presented before downloading the latest file",
   );
   assert.match(
     source,
-    /handleAvailableBlock\(block, staleCachedBlock\.buffer, "cached-stale"\)/,
-    "expected stale cache status to be visible in the data status panel",
+    /handleAvailableBlock\(block, staleCachedBlock\.buffer, BLOCK_STATUS\.LOADED_FROM_CACHE\)/,
+    "expected cache-loaded status to be visible in the data status panel",
   );
   assert.match(
     source,
-    /setBlockStatus\(block, "downloading"\)/,
+    /setBlockStatus\(block, BLOCK_STATUS\.DOWNLOADING\)/,
     "expected newer downloads to remain visible while stale data is displayed",
   );
   assert.match(
     source,
-    /handleAvailableBlock\(block, buffer, "ready"\)/,
+    /handleAvailableBlock\(block, buffer, BLOCK_STATUS\.READY\)/,
     "expected freshly downloaded files to replace stale status",
   );
   assert.match(

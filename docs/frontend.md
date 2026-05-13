@@ -111,7 +111,7 @@ blocks for a 102-hour run).
    currently capped at 6 active fetches. Each callback checks `modelState !== downloadKey` to
    handle cancellation. For each block, IndexedDB is checked before network download. Exact cache
    hits are used immediately. If the exact run is missing, the latest cached older version for the
-   same logical file can be displayed as `cached-stale` while the current remote file downloads.
+   same logical file can be displayed as `loaded-from-cache` while the current remote file downloads.
    Cache misses are written back after download, then older cached versions for the same
    `packageKey + block.key` are deleted. On block availability: stores in `modelState.buffers`
    (keyed by block key string), optionally initialises the legend, and reveals the map as soon as
