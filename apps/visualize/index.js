@@ -1667,6 +1667,14 @@ function setBlockStatus(block, status) {
   updateDataStatusSummary();
 }
 
+function setBlockDownloadProgress(block, pct) {
+  document.getElementById(`dl-${block.key}`)?.style.setProperty("--pct", pct);
+}
+
+function resetBlockDownloadProgress(block) {
+  setBlockDownloadProgress(block, "0%");
+}
+
 function updateDataStatusSummary() {
   const summary = document.getElementById("data-status-summary");
   if (!summary || !modelState?.resources.length) return;
@@ -1768,17 +1776,13 @@ async function loadModelBlockWithCache(packageKey, block, downloadKey, onAvailab
   }
 
   setBlockStatus(block, BLOCK_STATUS.DOWNLOADING);
+  resetBlockDownloadProgress(block);
   const buffer = await downloadFileProg(
     block.url,
     block.filesize,
     (loaded, total) => {
       if (modelState !== downloadKey) return;
-      document
-        .getElementById(`dl-${block.key}`)
-        ?.style.setProperty(
-          "--pct",
-          Math.round((loaded / total) * 100) + "%",
-        );
+      setBlockDownloadProgress(block, Math.round((loaded / total) * 100) + "%");
     },
   );
   await writeCachedGribBlock(packageKey, block, buffer);
@@ -1810,7 +1814,7 @@ function storeAvailableModelBlock(block, buffer, status, session) {
   setBlockStatus(block, status);
   if (!hadBuffer) session.availableCount++;
 
-  document.getElementById(`dl-${block.key}`)?.style.setProperty("--pct", "100%");
+  setBlockDownloadProgress(block, "100%");
   document.getElementById("arome-dl-status").textContent =
     `Available… ${session.availableCount} / ${session.resources.length} files (${session.runSummary})`;
 }
@@ -1866,11 +1870,17 @@ function completeModelDownloadIfReady(session) {
   queuePrerenderForAllBlocks();
 }
 
+function queueUpdatedBlockPrerender(block, status) {
+  if (status !== BLOCK_STATUS.READY) return;
+  queuePrerenderBlock(block.key);
+}
+
 async function presentAvailableModelBlock(block, buffer, status, session) {
   if (modelState !== session.downloadKey) return;
   storeAvailableModelBlock(block, buffer, status, session);
   initializeModelLegendFromBlock(buffer, session);
   await refreshMapForAvailableModelBlock(block, session);
+  queueUpdatedBlockPrerender(block, status);
   completeModelDownloadIfReady(session);
 }
 

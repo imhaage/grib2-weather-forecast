@@ -158,6 +158,29 @@ test("model block availability presentation delegates focused responsibilities",
   );
 });
 
+test("cached block updates reset download progress and refresh the changed bitmap cache", () => {
+  assert.match(
+    source,
+    /function resetBlockDownloadProgress\(block\)/,
+    "expected block download progress reset to be isolated",
+  );
+  assert.match(
+    source,
+    /setBlockStatus\(block, BLOCK_STATUS\.DOWNLOADING\);[\s\S]*resetBlockDownloadProgress\(block\);[\s\S]*const buffer = await downloadFileProg/,
+    "expected stale cached blocks to switch from 100% violet to a fresh blue progress bar",
+  );
+  assert.match(
+    source,
+    /function queueUpdatedBlockPrerender\(block, status\)/,
+    "expected fresh network updates to schedule only the changed block for bitmap refresh",
+  );
+  assert.match(
+    source,
+    /async function presentAvailableModelBlock\(block, buffer, status, session\) \{[\s\S]*await refreshMapForAvailableModelBlock\(block, session\);[\s\S]*queueUpdatedBlockPrerender\(block, status\);/,
+    "expected new downloaded blocks to update visible map first, then refresh animation cache for that block",
+  );
+});
+
 test("model map scene appears after the first available downloaded or cached file", () => {
   assert.match(
     source,
