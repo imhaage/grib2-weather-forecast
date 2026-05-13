@@ -180,6 +180,20 @@ const PARAM_DESCRIPTIONS = {
     "Intensity of snowfall (liquid equivalent), in mm/h. Even modest values can rapidly create dangerous road conditions and reduce visibility, especially at temperatures well below 0°C.",
 };
 
+function variableKeyFor(varDef) {
+  return varDef.varKey ?? varDef.shortName;
+}
+
+function findPackageVariable(packageKey, key) {
+  return PACKAGES[packageKey]?.variables.find(
+    (v) => variableKeyFor(v) === key,
+  ) ?? null;
+}
+
+function parameterDescriptionFor(shortName) {
+  return PARAM_DESCRIPTIONS[shortName] ?? "";
+}
+
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let fileState = null; // { messages: Array }
@@ -1190,7 +1204,7 @@ async function showGridView(shortName) {
   // Populate toolbar
   updateParamInfo(
     product.name,
-    PARAM_DESCRIPTIONS[product.shortName] ?? "",
+    parameterDescriptionFor(product.shortName),
     fmtValidTime(msg.header, product),
   );
 
@@ -1315,9 +1329,7 @@ async function getCachedDecode(hour) {
 
   if (!modelState.messageIndex.has(block.key)) indexBlock(block.key);
 
-  const varDef = PACKAGES[modelState.packageKey]?.variables.find(
-    (v) => (v.varKey ?? v.shortName) === variable,
-  );
+  const varDef = findPackageVariable(modelState.packageKey, variable);
   const lookupKey = varDef?.levelValue != null
     ? `${hour}_${varDef.shortName}_${varDef.levelValue}`
     : `${hour}_${variable}`;
@@ -1429,7 +1441,7 @@ async function presentBitmapEntry(hour, entry, { values } = {}) {
   modelState.lastRunInfo = `${modelState.packageKey} · run ${fmtRefTime(header)}`;
   updateParamInfo(
     product.name,
-    PARAM_DESCRIPTIONS[product.shortName] ?? "",
+    parameterDescriptionFor(product.shortName),
     modelState.lastRunInfo + (entry.isFallback ? " · (cumulative — prev not loaded)" : ""),
   );
 
@@ -1701,12 +1713,12 @@ function configureModelVariableControls(pkg) {
 
   const pkgVars = pkg.variables;
   const firstVar = pkgVars[0];
-  modelState.variable = firstVar.varKey ?? firstVar.shortName;
-  applyDefaultPalette(firstVar.varKey ?? firstVar.shortName);
+  modelState.variable = variableKeyFor(firstVar);
+  applyDefaultPalette(variableKeyFor(firstVar));
   varSelect.innerHTML = pkgVars
     .map(
       (v) =>
-        `<option value="${v.varKey ?? v.shortName}">${v.name}</option>`,
+        `<option value="${variableKeyFor(v)}">${v.name}</option>`,
     )
     .join("");
   varSelect.value = modelState.variable;
@@ -1807,9 +1819,7 @@ function initializeModelLegendFromBlock(buffer, session) {
   // On first arrival: populate legend/info from header (no CCSDS decode)
   if (session.legendInitialized) return;
   session.legendInitialized = true;
-  const curVarDef = session.pkgVars.find(
-    (v) => (v.varKey ?? v.shortName) === modelState.variable,
-  );
+  const curVarDef = findPackageVariable(session.packageKey, modelState.variable);
   const curShortName = curVarDef?.shortName ?? modelState.variable;
   for (const msg of iterateGRIB2Messages(buffer)) {
     const p = msg.product;
@@ -1818,10 +1828,10 @@ function initializeModelLegendFromBlock(buffer, session) {
     modelState.lastRunInfo = `${session.packageKey} · run ${fmtRefTime(msg.header)}`;
     applyDefaultPalette(modelState.variable);
     updateParamInfo(
-      p.name,
-      PARAM_DESCRIPTIONS[curShortName] ?? "",
-      modelState.lastRunInfo,
-    );
+        p.name,
+        parameterDescriptionFor(curShortName),
+        modelState.lastRunInfo,
+      );
     updateLevelInfo(curVarDef);
     const staticScale = STATIC_SCALES[curShortName];
     if (staticScale && curVarDef) {
@@ -2132,9 +2142,7 @@ document
     if (!modelState) return;
     const varKey = e.target.value;
     modelState.variable = varKey;
-    const varDef = PACKAGES[modelState.packageKey].variables.find(
-      (v) => (v.varKey ?? v.shortName) === varKey,
-    );
+    const varDef = findPackageVariable(modelState.packageKey, varKey);
     const shortName = varDef?.shortName ?? varKey;
     applyDefaultPalette(varKey);
 
@@ -2142,7 +2150,7 @@ document
     if (varDef) {
       updateParamInfo(
         varDef.name,
-        PARAM_DESCRIPTIONS[shortName] ?? "",
+        parameterDescriptionFor(shortName),
         modelState.lastRunInfo ?? modelState.packageKey,
       );
       updateLevelInfo(varDef);

@@ -303,6 +303,29 @@ test("home model list rendering is split into focused builders", () => {
   );
 });
 
+test("variable metadata access uses shared helpers", () => {
+  assert.match(
+    source,
+    /function variableKeyFor\(varDef\)/,
+    "expected variable key resolution to be centralized",
+  );
+  assert.match(
+    source,
+    /function findPackageVariable\(packageKey, key\)/,
+    "expected package variable lookup to be centralized",
+  );
+  assert.match(
+    source,
+    /function parameterDescriptionFor\(shortName\)/,
+    "expected parameter description fallback to be centralized",
+  );
+  assert.doesNotMatch(
+    source,
+    /\(v\) => \(v\.varKey \?\? v\.shortName\) ===/,
+    "expected repeated inline variable-key comparisons to be replaced",
+  );
+});
+
 test("decoded value cache is limited to current and adjacent working fields", () => {
   assert.match(
     source,
