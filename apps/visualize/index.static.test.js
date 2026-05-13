@@ -59,6 +59,34 @@ test("map rendering pipeline has shared frame helpers", () => {
   );
 });
 
+test("model download startup is split into focused helpers", () => {
+  assert.match(
+    source,
+    /function createModelState\(packageKey\)/,
+    "expected model state creation to be isolated from download orchestration",
+  );
+  assert.match(
+    source,
+    /function configureModelVariableControls\(pkg\)/,
+    "expected variable select setup to be isolated from download orchestration",
+  );
+  assert.match(
+    source,
+    /function buildHourList\(resources\)/,
+    "expected hour-list expansion to be isolated from download orchestration",
+  );
+  assert.match(
+    source,
+    /function renderDownloadItems\(resources\)/,
+    "expected download item DOM rendering to be isolated from download orchestration",
+  );
+  assert.match(
+    source,
+    /async function startDownload\(packageKey\) \{[\s\S]*modelState = createModelState\(packageKey\);[\s\S]*configureModelVariableControls\(pkg\);[\s\S]*modelState\.hourList = buildHourList\(resources\);[\s\S]*renderDownloadItems\(resources\);/,
+    "expected startDownload to orchestrate the extracted startup helpers",
+  );
+});
+
 test("model map scene appears after the first available downloaded or cached file", () => {
   assert.match(
     source,

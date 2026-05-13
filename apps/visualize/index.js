@@ -1712,9 +1712,8 @@ function blockForHour(hour) {
   return modelState?.resources.find((r) => hour >= r.startHour && hour <= r.endHour) ?? null;
 }
 
-async function startDownload(packageKey) {
-  const pkg = PACKAGES[packageKey];
-  modelState = {
+function createModelState(packageKey) {
+  return {
     packageKey,
     resources: [],
     buffers: new Map(),
@@ -1727,9 +1726,9 @@ async function startDownload(packageKey) {
     currentHour: null,
     lastRunInfo: null,
   };
-  setMapSceneVisible(false);
-  const downloadKey = modelState;
+}
 
+function configureModelVariableControls(pkg) {
   const varSelect = document.getElementById("arome-var-select");
   varSelect.innerHTML = "";
 
@@ -1745,6 +1744,44 @@ async function startDownload(packageKey) {
     .join("");
   varSelect.value = modelState.variable;
   updateLevelInfo(firstVar);
+}
+
+function buildHourList(resources) {
+  const hourList = [];
+  for (const r of resources) {
+    for (let h = r.startHour; h <= r.endHour; h++) hourList.push(h);
+  }
+  return hourList;
+}
+
+function renderDownloadItems(resources) {
+  const barsEl = document.getElementById("arome-dl-bars");
+  const fileListEl = document.getElementById("arome-dl-file-list");
+  barsEl.innerHTML = "";
+  fileListEl.innerHTML = "";
+  for (const r of resources) {
+    setBlockStatus(r, BLOCK_STATUS.MISSING);
+    const item = document.createElement("div");
+    item.className = `arome-dl-item ${BLOCK_STATUS.MISSING}`;
+    item.id = `dl-${r.key}`;
+    item.textContent = r.key;
+    item.title = formatRunSummary([r]);
+    barsEl.appendChild(item);
+
+    const li = document.createElement("li");
+    li.textContent = `${r.url.split("/").pop()} · ${formatRunId(r.runId)}`;
+    fileListEl.appendChild(li);
+  }
+}
+
+async function startDownload(packageKey) {
+  const pkg = PACKAGES[packageKey];
+  modelState = createModelState(packageKey);
+  setMapSceneVisible(false);
+  const downloadKey = modelState;
+
+  configureModelVariableControls(pkg);
+  const pkgVars = pkg.variables;
 
   const slider = document.getElementById("arome-slider");
   slider.value = 0;
@@ -1765,36 +1802,13 @@ async function startDownload(packageKey) {
   }
 
   modelState.resources = resources;
-
-  // Build hourList: expand each block's [startHour..endHour] range
-  const hourList = [];
-  for (const r of resources) {
-    for (let h = r.startHour; h <= r.endHour; h++) hourList.push(h);
-  }
-  modelState.hourList = hourList;
-  slider.max = hourList.length - 1;
+  modelState.hourList = buildHourList(resources);
+  slider.max = modelState.hourList.length - 1;
   const runSummary = formatRunSummary(resources);
 
   document.getElementById("arome-dl-status").textContent =
     `Downloading ${resources.length} ${packageKey} files (${runSummary})…`;
-
-  const barsEl = document.getElementById("arome-dl-bars");
-  const fileListEl = document.getElementById("arome-dl-file-list");
-  barsEl.innerHTML = "";
-  fileListEl.innerHTML = "";
-  for (const r of resources) {
-    setBlockStatus(r, BLOCK_STATUS.MISSING);
-    const item = document.createElement("div");
-    item.className = `arome-dl-item ${BLOCK_STATUS.MISSING}`;
-    item.id = `dl-${r.key}`;
-    item.textContent = r.key;
-    item.title = formatRunSummary([r]);
-    barsEl.appendChild(item);
-
-    const li = document.createElement("li");
-    li.textContent = `${r.url.split("/").pop()} · ${formatRunId(r.runId)}`;
-    fileListEl.appendChild(li);
-  }
+  renderDownloadItems(resources);
 
   let availableCount = 0;
   let legendInitialized = false;
