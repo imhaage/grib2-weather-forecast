@@ -34,12 +34,10 @@ export function createAnimationPlayer({
     const modelState = getModelState();
     const isAnimationCacheReady = !modelState || isBitmapCacheComplete();
     if (!isAnimationCacheReady && playerInterval !== null) stopPlayer();
-    playButton.disabled = !isAnimationCacheReady;
-    const label = !isAnimationCacheReady
-      ? "Wait until animation cache is ready"
-      : playerInterval !== null
-        ? "Pause"
-        : "Play";
+    playButton.disabled = false;
+    const label = playerInterval !== null
+      ? "Pause"
+      : "Play";
     playButton.title = label;
     playButton.setAttribute("aria-label", label);
   }
@@ -81,7 +79,6 @@ export function createAnimationPlayer({
 
   playButton.addEventListener("click", async () => {
     if (!getModelState()) return;
-    if (!isBitmapCacheComplete()) return;
     if (playerInterval !== null) {
       stopPlayer();
       return;

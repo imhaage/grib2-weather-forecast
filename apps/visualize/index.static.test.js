@@ -557,8 +557,13 @@ test("player warms the bitmap cache before starting animation", () => {
   );
   assert.match(
     animationPlayer,
-    /function syncPlayButtonAvailability\(\)[\s\S]*const isAnimationCacheReady = !modelState \|\| isBitmapCacheComplete\(\);[\s\S]*playButton\.disabled = !isAnimationCacheReady;[\s\S]*Wait until animation cache is ready/,
-    "expected Play availability to be driven by animation cache readiness",
+    /function syncPlayButtonAvailability\(\)[\s\S]*const isAnimationCacheReady = !modelState \|\| isBitmapCacheComplete\(\);[\s\S]*const label = playerInterval !== null[\s\S]*\? "Pause"[\s\S]*: "Play";/,
+    "expected Play label to reflect playback state without disabling warm-up clicks",
+  );
+  assert.doesNotMatch(
+    animationPlayer,
+    /playButton\.disabled = !isAnimationCacheReady;/,
+    "expected Play to stay clickable while cache warm-up catches up",
   );
   assert.match(
     animationPlayer,
@@ -580,16 +585,7 @@ test("player warms the bitmap cache before starting animation", () => {
     /const animationPlayer = createAnimationPlayer\(/,
     "expected index.js to wire an animation player controller",
   );
-  assert.doesNotMatch(
-    css,
-    /#player-play:disabled\s*\{[\s\S]*cursor:\s*progress/,
-    "expected disabled Play not to show a progress cursor",
-  );
-  assert.match(
-    css,
-    /#player-play:disabled\s*\{[\s\S]*background:\s*var\(--color-border-2\);[\s\S]*color:\s*var\(--color-text-hover\);/,
-    "expected disabled Play to use a lighter visual state",
-  );
+  assert.doesNotMatch(css, /#player-play:disabled/, "expected Play not to have disabled styling");
 });
 
 test("palette and variable changes stop playback before invalidating bitmap cache", () => {

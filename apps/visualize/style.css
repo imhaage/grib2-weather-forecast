@@ -873,15 +873,6 @@ header span {
 #player-play:hover {
   background: var(--color-border);
 }
-#player-play:disabled {
-  background: var(--color-border-2);
-  color: var(--color-text-hover);
-  cursor: default;
-  opacity: 1;
-}
-#player-play:disabled:hover {
-  background: var(--color-border-2);
-}
 #player-reset svg,
 #player-play svg {
   width: 14px;
