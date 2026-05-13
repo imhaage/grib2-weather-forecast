@@ -6,6 +6,7 @@ const source = readFileSync(new URL("./index.js", import.meta.url), "utf8");
 const html = readFileSync(new URL("./index.html", import.meta.url), "utf8");
 const renderWorker = readFileSync(new URL("./render-worker.js", import.meta.url), "utf8");
 const unitTransforms = readFileSync(new URL("./unit-transforms.js", import.meta.url), "utf8");
+const variableMetadata = readFileSync(new URL("./variable-metadata.js", import.meta.url), "utf8");
 
 test("visualizer DOM references and repeated UI ids are centralized", () => {
   assert.match(
@@ -328,14 +329,14 @@ test("home model list rendering is split into focused builders", () => {
 
 test("variable metadata access uses shared helpers", () => {
   assert.match(
-    source,
-    /const VARIABLE_METADATA = Object\.freeze\(\{/,
-    "expected shared variable metadata to have one source of truth",
+    variableMetadata,
+    /export const VARIABLE_METADATA = Object\.freeze\(\{/,
+    "expected shared variable metadata to have one pure module source of truth",
   );
   assert.match(
     source,
-    /function variableKeyFor\(varDef\)/,
-    "expected variable key resolution to be centralized",
+    /import \{[\s\S]*variableKeyFor,[\s\S]*\} from "\.\/variable-metadata\.js";/,
+    "expected variable key resolution to be imported from the pure metadata module",
   );
   assert.match(
     source,
@@ -343,17 +344,17 @@ test("variable metadata access uses shared helpers", () => {
     "expected package variable lookup to be centralized",
   );
   assert.match(
-    source,
+    variableMetadata,
     /function parameterDescriptionFor\(shortName\)/,
     "expected parameter description fallback to be centralized",
   );
   assert.match(
-    source,
+    variableMetadata,
     /function defaultPaletteFor\(shortName\)/,
     "expected default palette lookup to be centralized",
   );
   assert.match(
-    source,
+    variableMetadata,
     /function staticScaleFor\(shortName\)/,
     "expected static scale lookup to be centralized",
   );
