@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 const source = readFileSync(new URL("./index.js", import.meta.url), "utf8");
 const html = readFileSync(new URL("./index.html", import.meta.url), "utf8");
 const css = readFileSync(new URL("./style.css", import.meta.url), "utf8");
+const animationPlayer = readFileSync(new URL("./animation-player.js", import.meta.url), "utf8");
 const renderWorker = readFileSync(new URL("./render-worker.js", import.meta.url), "utf8");
 const unitTransforms = readFileSync(new URL("./unit-transforms.js", import.meta.url), "utf8");
 const variableMetadata = readFileSync(new URL("./variable-metadata.js", import.meta.url), "utf8");
@@ -499,7 +500,7 @@ test("cached bitmap hits hydrate tooltip values lazily after presentation", () =
   );
   assert.match(
     source,
-    /if \(playerInterval !== null\) return;/,
+    /if \(animationPlayer\.isPlaying\(\)\) return;/,
     "expected animation playback not to trigger tooltip value decoding",
   );
   assert.match(
@@ -508,7 +509,7 @@ test("cached bitmap hits hydrate tooltip values lazily after presentation", () =
     "expected a helper to hydrate the visible frame after playback stops",
   );
   assert.match(
-    source,
+    animationPlayer,
     /setPlaying\(false\);[\s\S]*queueCurrentTooltipValueHydration\(\);/,
     "expected stopping playback to restore tooltip values for the visible frame",
   );
@@ -534,27 +535,27 @@ test("player warms the bitmap cache before starting animation", () => {
     "expected warm-up progress to be rendered from bitmap cache state",
   );
   assert.match(
-    source,
+    animationPlayer,
     /async function warmUpBitmapCacheForAnimation\(/,
     "expected Play to warm the bitmap cache before animation",
   );
   assert.match(
-    source,
+    animationPlayer,
     /queuePrerenderForAllBlocks\(\);[\s\S]*await waitForPrerenderIdle\(\);/,
     "expected warm-up to wait for the pre-render queue",
   );
   assert.match(
-    source,
+    animationPlayer,
     /await warmUpBitmapCacheForAnimation\(\);[\s\S]*startPlayer\(\);/,
     "expected Play to start only after cache warm-up completes",
   );
   assert.match(
-    source,
+    animationPlayer,
     /function syncPlayButtonAvailability\(\)[\s\S]*const isAnimationCacheReady = !modelState \|\| isBitmapCacheComplete\(\);[\s\S]*playButton\.disabled = !isAnimationCacheReady;[\s\S]*Wait until animation cache is ready/,
     "expected Play availability to be driven by animation cache readiness",
   );
   assert.match(
-    source,
+    animationPlayer,
     /if \(!isAnimationCacheReady && playerInterval !== null\) stopPlayer\(\);/,
     "expected playback to stop whenever the animation cache becomes incomplete",
   );
@@ -562,6 +563,16 @@ test("player warms the bitmap cache before starting animation", () => {
     source,
     /function updateWarmupProgress\([\s\S]*syncPlayButtonAvailability\(\);/,
     "expected cache progress updates to sync the Play button",
+  );
+  assert.match(
+    source,
+    /import \{ createAnimationPlayer \} from "\.\/animation-player\.js";/,
+    "expected animation player behavior to live outside index.js",
+  );
+  assert.match(
+    source,
+    /const animationPlayer = createAnimationPlayer\(/,
+    "expected index.js to wire an animation player controller",
   );
   assert.doesNotMatch(
     css,

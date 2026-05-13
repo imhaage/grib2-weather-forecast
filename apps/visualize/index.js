@@ -13,6 +13,7 @@ import {
   staticScaleFor,
   variableKeyFor,
 } from "./variable-metadata.js";
+import { createAnimationPlayer } from "./animation-player.js";
 import {
   iterateGRIB2Messages,
   decodeGRIB2,
@@ -187,7 +188,6 @@ let heatCanvas = null; // offscreen canvas for heatmap rendering
 let modelState = null; // { packageKey, resources, buffers, messageIndex, hourList, decoded, decodedOrder, variable, currentHour, lastRunInfo }
 let isDecoding = false;
 let pendingHourIdx = null;
-let playerInterval = null;
 let renderWorker = null;
 let renderGen = 0;
 let nextCallId = 0;
@@ -198,7 +198,6 @@ let isPrerendering = false;
 let tooltipHydrateTimer = null;
 let tooltipHydrateToken = 0;
 let prerenderIdleResolvers = [];
-let isPreparingAnimation = false;
 const MAX_PARALLEL_DOWNLOADS = 6;
 const GRIB_CACHE_DB_NAME = "grib2-visualizer-cache";
 const GRIB_CACHE_DB_VERSION = 2;
@@ -614,7 +613,7 @@ function isBitmapCacheComplete() {
     bitmapCacheReadyCount() === modelState.hourList.length;
 }
 
-function updateWarmupProgress({ preparing = isPreparingAnimation } = {}) {
+function updateWarmupProgress({ preparing = false } = {}) {
   const container = dom.cacheWarmup;
   if (!container || !modelState?.hourList.length) {
     if (container) container.hidden = true;
@@ -1459,14 +1458,14 @@ function queueTooltipValueHydration(idx, hour) {
   tooltipHydrateToken++;
   if (tooltipHydrateTimer !== null) clearTimeout(tooltipHydrateTimer);
   tooltipHydrateTimer = null;
-  if (playerInterval !== null) return;
+  if (animationPlayer.isPlaying()) return;
 
   const token = tooltipHydrateToken;
   const capturedState = modelState;
   const capturedGen = renderGen;
   tooltipHydrateTimer = setTimeout(() => {
     tooltipHydrateTimer = null;
-    if (playerInterval !== null) return;
+    if (animationPlayer.isPlaying()) return;
     hydrateTooltipValues(idx, hour, token, capturedState, capturedGen)
       .catch((err) => console.error("hydrateTooltipValues:", err));
   }, 140);
@@ -2049,6 +2048,21 @@ function renderModelList() {
 
 renderModelList();
 
+const animationPlayer = createAnimationPlayer({
+  playButton: document.getElementById("player-play"),
+  resetButton: document.getElementById("player-reset"),
+  slider: dom.aromeSlider,
+  iconPlay: document.getElementById("icon-play"),
+  iconPause: document.getElementById("icon-pause"),
+  getModelState: () => modelState,
+  isBitmapCacheComplete,
+  queueCurrentTooltipValueHydration,
+  queuePrerenderForAllBlocks,
+  waitForPrerenderIdle,
+  showHour,
+  updateWarmupProgress,
+});
+
 window.addEventListener("hashchange", route);
 route();
 
@@ -2156,82 +2170,13 @@ aromeSlider.addEventListener("input", () => {
 
 // ── Mini-player ───────────────────────────────────────────────────────────────
 
-function setPlaying(playing) {
-  document.getElementById("icon-play").style.display = playing ? "none" : "";
-  document.getElementById("icon-pause").style.display = playing ? "" : "none";
-  syncPlayButtonAvailability();
-}
-
-function setPreparingAnimation(preparing) {
-  isPreparingAnimation = preparing;
-  updateWarmupProgress({ preparing });
+function stopPlayer() {
+  animationPlayer.stopPlayer();
 }
 
 function syncPlayButtonAvailability() {
-  const playButton = document.getElementById("player-play");
-  const isAnimationCacheReady = !modelState || isBitmapCacheComplete();
-  if (!isAnimationCacheReady && playerInterval !== null) stopPlayer();
-  playButton.disabled = !isAnimationCacheReady;
-  const label = !isAnimationCacheReady
-    ? "Wait until animation cache is ready"
-    : playerInterval !== null
-      ? "Pause"
-      : "Play";
-  playButton.title = label;
-  playButton.setAttribute("aria-label", label);
+  animationPlayer.syncPlayButtonAvailability();
 }
-
-async function warmUpBitmapCacheForAnimation() {
-  if (!modelState || isBitmapCacheComplete()) return true;
-  setPreparingAnimation(true);
-  try {
-    queuePrerenderForAllBlocks();
-    await waitForPrerenderIdle();
-    updateWarmupProgress({ preparing: false });
-    return isBitmapCacheComplete();
-  } finally {
-    setPreparingAnimation(false);
-  }
-}
-
-function startPlayer() {
-  setPlaying(true);
-  playerInterval = setInterval(() => {
-    if (!modelState) { stopPlayer(); return; }
-    const max = parseInt(aromeSlider.max, 10);
-    const next = (parseInt(aromeSlider.value, 10) + 1) % (max + 1);
-    aromeSlider.value = next;
-    showHour(next);
-  }, 120);
-}
-
-function stopPlayer() {
-  if (playerInterval === null) return;
-  clearInterval(playerInterval);
-  playerInterval = null;
-  setPlaying(false);
-  queueCurrentTooltipValueHydration();
-}
-
-document.getElementById("player-play").addEventListener("click", async () => {
-  if (!modelState) return;
-  if (!isBitmapCacheComplete()) return;
-  if (playerInterval !== null) {
-    stopPlayer();
-    return;
-  }
-  if (isPreparingAnimation) return;
-  const ready = await warmUpBitmapCacheForAnimation();
-  if (!ready || !modelState || playerInterval !== null) return;
-  startPlayer();
-});
-
-document.getElementById("player-reset").addEventListener("click", () => {
-  if (!modelState) return;
-  stopPlayer();
-  aromeSlider.value = 0;
-  showHour(0);
-});
 
 document.getElementById("clear-grib-cache").addEventListener("click", async () => {
   await clearGribCache();
