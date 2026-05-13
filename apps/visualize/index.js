@@ -618,6 +618,7 @@ function updateWarmupProgress({ preparing = isPreparingAnimation } = {}) {
   const container = dom.cacheWarmup;
   if (!container || !modelState?.hourList.length) {
     if (container) container.hidden = true;
+    syncPlayButtonAvailability();
     return;
   }
 
@@ -635,6 +636,7 @@ function updateWarmupProgress({ preparing = isPreparingAnimation } = {}) {
     : preparing
       ? "Preparing animation"
       : "Animation cache";
+  syncPlayButtonAvailability();
   updatePerfDiagnostics();
 }
 
@@ -2157,17 +2159,26 @@ aromeSlider.addEventListener("input", () => {
 function setPlaying(playing) {
   document.getElementById("icon-play").style.display = playing ? "none" : "";
   document.getElementById("icon-pause").style.display = playing ? "" : "none";
-  document.getElementById("player-play").title = playing ? "Pause" : "Play";
-  document.getElementById("player-play").setAttribute("aria-label", playing ? "Pause" : "Play");
+  syncPlayButtonAvailability();
 }
 
 function setPreparingAnimation(preparing) {
   isPreparingAnimation = preparing;
-  const playButton = document.getElementById("player-play");
-  playButton.disabled = preparing;
-  playButton.title = preparing ? "Preparing animation" : "Play";
-  playButton.setAttribute("aria-label", preparing ? "Preparing animation" : "Play");
   updateWarmupProgress({ preparing });
+}
+
+function syncPlayButtonAvailability() {
+  const playButton = document.getElementById("player-play");
+  const isAnimationCacheReady = !modelState || isBitmapCacheComplete();
+  if (!isAnimationCacheReady && playerInterval !== null) stopPlayer();
+  playButton.disabled = !isAnimationCacheReady;
+  const label = !isAnimationCacheReady
+    ? "Wait until animation cache is ready"
+    : playerInterval !== null
+      ? "Pause"
+      : "Play";
+  playButton.title = label;
+  playButton.setAttribute("aria-label", label);
 }
 
 async function warmUpBitmapCacheForAnimation() {
@@ -2204,6 +2215,7 @@ function stopPlayer() {
 
 document.getElementById("player-play").addEventListener("click", async () => {
   if (!modelState) return;
+  if (!isBitmapCacheComplete()) return;
   if (playerInterval !== null) {
     stopPlayer();
     return;

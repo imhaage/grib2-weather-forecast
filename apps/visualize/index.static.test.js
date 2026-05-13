@@ -547,6 +547,21 @@ test("player warms the bitmap cache before starting animation", () => {
     /await warmUpBitmapCacheForAnimation\(\);[\s\S]*startPlayer\(\);/,
     "expected Play to start only after cache warm-up completes",
   );
+  assert.match(
+    source,
+    /function syncPlayButtonAvailability\(\)[\s\S]*const isAnimationCacheReady = !modelState \|\| isBitmapCacheComplete\(\);[\s\S]*playButton\.disabled = !isAnimationCacheReady;[\s\S]*Wait until animation cache is ready/,
+    "expected Play availability to be driven by animation cache readiness",
+  );
+  assert.match(
+    source,
+    /if \(!isAnimationCacheReady && playerInterval !== null\) stopPlayer\(\);/,
+    "expected playback to stop whenever the animation cache becomes incomplete",
+  );
+  assert.match(
+    source,
+    /function updateWarmupProgress\([\s\S]*syncPlayButtonAvailability\(\);/,
+    "expected cache progress updates to sync the Play button",
+  );
 });
 
 test("palette and variable changes stop playback before invalidating bitmap cache", () => {
