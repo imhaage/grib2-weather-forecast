@@ -13,11 +13,31 @@ import {
   fmtValidTime,
 } from "grib2-decoder";
 
+const byId = (id) => document.getElementById(id);
+const STAT_VALUE_IDS = [
+  "gv-min",
+  "gv-max",
+  "gv-mean",
+  "gv-valid",
+];
+const dom = {
+  get aromeSlider() { return byId("arome-slider"); },
+  get cacheWarmup() { return byId("cache-warmup"); },
+  get dataStatusPanel() { return byId("data-status-panel"); },
+  get mapScene() { return byId("map-scene"); },
+  get paletteOptions() { return byId("palette-options"); },
+  get paletteSelect() { return byId("palette-select"); },
+  get paletteSelectArome() { return byId("palette-select-arome"); },
+};
+
+function setPaletteSelectValues(palette) {
+  dom.paletteSelect.value = palette;
+  dom.paletteSelectArome.value = palette;
+}
+
 // Populate all palette selects from the shared template
-const paletteTemplate = document.getElementById("palette-options");
-for (const sel of document.querySelectorAll(
-  "#palette-select, #palette-select-arome",
-)) {
+for (const sel of [dom.paletteSelect, dom.paletteSelectArome]) {
+  const paletteTemplate = dom.paletteOptions;
   sel.appendChild(paletteTemplate.content.cloneNode(true));
   sel.value = "Plasma";
 }
@@ -397,12 +417,12 @@ function updatePerfDiagnostics() {
 }
 
 function setRendering(on) {
-  document.getElementById("map-scene").classList.toggle("rendering", on);
+  dom.mapScene.classList.toggle("rendering", on);
   updatePerfDiagnostics();
 }
 
 function setMapSceneVisible(visible) {
-  const scene = document.getElementById("map-scene");
+  const scene = dom.mapScene;
   scene.hidden = !visible;
   if (visible && map) map.resize();
 }
@@ -533,7 +553,7 @@ function isBitmapCacheComplete() {
 }
 
 function updateWarmupProgress({ preparing = isPreparingAnimation } = {}) {
-  const container = document.getElementById("cache-warmup");
+  const container = dom.cacheWarmup;
   if (!container || !modelState?.hourList.length) {
     if (container) container.hidden = true;
     return;
@@ -707,8 +727,7 @@ function applyDefaultPalette(shortName) {
   const pal = VARIABLE_PALETTES[shortName];
   if (!pal) return;
   currentPalette = pal;
-  document.getElementById("palette-select").value = pal;
-  document.getElementById("palette-select-arome").value = pal;
+  setPaletteSelectValues(pal);
 }
 
 function makeScale(paletteName) {
@@ -935,8 +954,8 @@ function clearMapLayer() {
 }
 
 function clearStats() {
-  for (const id of ["gv-min", "gv-max", "gv-mean", "gv-valid"]) {
-    document.getElementById(id).textContent = "—";
+  for (const id of STAT_VALUE_IDS) {
+    byId(id).textContent = "—";
   }
 }
 
@@ -1106,7 +1125,7 @@ async function initMap(fitBoundsArgs) {
   if (fitBoundsArgs) map.fitBounds(...fitBoundsArgs);
   map.addControl(
     new maplibregl.FullscreenControl({
-      container: document.getElementById("map-scene"),
+      container: dom.mapScene,
     }),
   );
   setupHoverTooltip();
@@ -1133,7 +1152,7 @@ function resetApp() {
   document.getElementById("file-summary").style.display = "none";
   document.getElementById("results").style.display = "none";
   document.getElementById("cards").innerHTML = "";
-  document.getElementById("data-status-panel").style.display = "none";
+  dom.dataStatusPanel.style.display = "none";
   location.hash = "";
 }
 
@@ -1163,9 +1182,7 @@ async function showGridView(shortName) {
   );
 
   // Reset stats
-  for (const id of ["gv-min", "gv-max", "gv-mean", "gv-valid"]) {
-    document.getElementById(id).textContent = "—";
-  }
+  clearStats();
   hideColorScale();
 
   // Switch view
@@ -1896,7 +1913,7 @@ function route() {
     }
     showView("view-grid");
     setToolbarMode("arome");
-    document.getElementById("data-status-panel").style.display = "block";
+    dom.dataStatusPanel.style.display = "block";
     if (modelState?.packageKey !== packageKey) {
       resetModelState();
       startDownload(packageKey);
@@ -2024,8 +2041,7 @@ document.getElementById("back-btn").addEventListener("click", () => {
 
 async function onPaletteChange(e) {
   currentPalette = e.target.value;
-  document.getElementById("palette-select").value = currentPalette;
-  document.getElementById("palette-select-arome").value = currentPalette;
+  setPaletteSelectValues(currentPalette);
   if (!gridState) return;
   if (modelState) {
     stopPlayer();

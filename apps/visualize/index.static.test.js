@@ -5,6 +5,24 @@ import assert from "node:assert/strict";
 const source = readFileSync(new URL("./index.js", import.meta.url), "utf8");
 const html = readFileSync(new URL("./index.html", import.meta.url), "utf8");
 
+test("visualizer DOM references and repeated UI ids are centralized", () => {
+  assert.match(
+    source,
+    /const dom = \{/,
+    "expected shared DOM references to have a single home before larger UI refactors",
+  );
+  assert.match(
+    source,
+    /const STAT_VALUE_IDS = \[\s*"gv-min",\s*"gv-max",\s*"gv-mean",\s*"gv-valid",\s*\];/,
+    "expected repeated stat ids to be centralized",
+  );
+  assert.match(
+    source,
+    /function setPaletteSelectValues\(palette\)/,
+    "expected palette select synchronization to be handled by one helper",
+  );
+});
+
 test("model map scene appears after the first available downloaded or cached file", () => {
   assert.match(
     source,
