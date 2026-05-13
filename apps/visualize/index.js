@@ -49,9 +49,14 @@ const BLOCK_STATUS_CLASSES = [
   "cached",
 ];
 const dom = {
+  get aromeDownloadBars() { return byId("arome-dl-bars"); },
+  get aromeDownloadFileList() { return byId("arome-dl-file-list"); },
+  get aromeDownloadStatus() { return byId("arome-dl-status"); },
   get aromeSlider() { return byId("arome-slider"); },
+  get aromeVarSelect() { return byId("arome-var-select"); },
   get cacheWarmup() { return byId("cache-warmup"); },
   get dataStatusPanel() { return byId("data-status-panel"); },
+  get dataStatusSummary() { return byId("data-status-summary"); },
   get mapScene() { return byId("map-scene"); },
   get paletteOptions() { return byId("palette-options"); },
   get paletteSelect() { return byId("palette-select"); },
@@ -1099,8 +1104,8 @@ function resetModelState() {
   pendingHourIdx = null;
   gridState = null;
   updateWarmupProgress();
-  document.getElementById("arome-dl-bars").innerHTML = "";
-  document.getElementById("arome-dl-file-list").innerHTML = "";
+  dom.aromeDownloadBars.innerHTML = "";
+  dom.aromeDownloadFileList.innerHTML = "";
 }
 
 function resetApp() {
@@ -1426,7 +1431,7 @@ function queueTooltipValueHydration(idx, hour) {
 
 function queueCurrentTooltipValueHydration() {
   if (!modelState || gridState?.values) return;
-  const slider = document.getElementById("arome-slider");
+  const slider = dom.aromeSlider;
   const idx = parseInt(slider.value, 10);
   const hour = modelState.hourList[idx];
   if (bitmapCache.has(bitmapCacheKey(hour))) queueTooltipValueHydration(idx, hour);
@@ -1608,7 +1613,7 @@ function resetBlockDownloadProgress(block) {
 }
 
 function updateDataStatusSummary() {
-  const summary = document.getElementById("data-status-summary");
+  const summary = dom.dataStatusSummary;
   if (!summary || !modelState?.resources.length) return;
   const counts = Object.fromEntries(
     Object.values(BLOCK_STATUS).map((status) => [status, 0]),
@@ -1648,7 +1653,7 @@ function createModelState(packageKey) {
 }
 
 function configureModelVariableControls(pkg) {
-  const varSelect = document.getElementById("arome-var-select");
+  const varSelect = dom.aromeVarSelect;
   varSelect.innerHTML = "";
 
   const pkgVars = pkg.variables;
@@ -1674,8 +1679,8 @@ function buildHourList(resources) {
 }
 
 function renderDownloadItems(resources) {
-  const barsEl = document.getElementById("arome-dl-bars");
-  const fileListEl = document.getElementById("arome-dl-file-list");
+  const barsEl = dom.aromeDownloadBars;
+  const fileListEl = dom.aromeDownloadFileList;
   barsEl.innerHTML = "";
   fileListEl.innerHTML = "";
   for (const r of resources) {
@@ -1730,7 +1735,7 @@ function createModelDownloadSession({ packageKey, pkg, resources, runSummary, do
     resources,
     runSummary,
     downloadKey,
-    slider: document.getElementById("arome-slider"),
+    slider: dom.aromeSlider,
     availableCount: 0,
     legendInitialized: false,
   };
@@ -1747,7 +1752,7 @@ function storeAvailableModelBlock(block, buffer, status, session) {
   if (!hadBuffer) session.availableCount++;
 
   setBlockDownloadProgress(block, "100%");
-  document.getElementById("arome-dl-status").textContent =
+  dom.aromeDownloadStatus.textContent =
     `Available… ${session.availableCount} / ${session.resources.length} files (${session.runSummary})`;
 }
 
@@ -1797,7 +1802,7 @@ async function refreshMapForAvailableModelBlock(block, session) {
 
 function completeModelDownloadIfReady(session) {
   if (session.availableCount !== session.resources.length) return;
-  document.getElementById("arome-dl-status").textContent =
+  dom.aromeDownloadStatus.textContent =
     `Available ${session.resources.length} / ${session.resources.length} files (${session.runSummary})`;
   queuePrerenderForAllBlocks();
 }
@@ -1824,10 +1829,10 @@ async function startDownload(packageKey) {
 
   configureModelVariableControls(pkg);
 
-  const slider = document.getElementById("arome-slider");
+  const slider = dom.aromeSlider;
   slider.value = 0;
 
-  document.getElementById("arome-dl-status").textContent =
+  dom.aromeDownloadStatus.textContent =
     "Fetching file list…";
 
   let resources;
@@ -1837,7 +1842,7 @@ async function startDownload(packageKey) {
     if (pkg.skipHour0) resources = resources.filter((r) => r.startHour > 0);
   } catch (e) {
     if (modelState !== downloadKey) return;
-    document.getElementById("arome-dl-status").textContent =
+    dom.aromeDownloadStatus.textContent =
       "API error: " + e.message;
     return;
   }
@@ -1847,7 +1852,7 @@ async function startDownload(packageKey) {
   slider.max = modelState.hourList.length - 1;
   const runSummary = formatRunSummary(resources);
 
-  document.getElementById("arome-dl-status").textContent =
+  dom.aromeDownloadStatus.textContent =
     `Downloading ${resources.length} ${packageKey} files (${runSummary})…`;
   renderDownloadItems(resources);
   const session = createModelDownloadSession({ packageKey, pkg, resources, runSummary, downloadKey });
@@ -2078,8 +2083,7 @@ document
   .getElementById("arome-back-btn")
   .addEventListener("click", resetApp);
 
-document
-  .getElementById("arome-var-select")
+dom.aromeVarSelect
   .addEventListener("change", async (e) => {
     if (!modelState) return;
     const varKey = e.target.value;
@@ -2101,7 +2105,7 @@ document
     await refreshCurrentModelVisuals({ clearDecoded: true });
   });
 
-const aromeSlider = document.getElementById("arome-slider");
+const aromeSlider = dom.aromeSlider;
 aromeSlider.addEventListener("input", () => {
   if (!modelState) return;
   showHour(parseInt(aromeSlider.value, 10));
@@ -2178,7 +2182,7 @@ document.getElementById("player-reset").addEventListener("click", () => {
 
 document.getElementById("clear-grib-cache").addEventListener("click", async () => {
   await clearGribCache();
-  document.getElementById("arome-dl-status").textContent = "Download cache cleared.";
+  dom.aromeDownloadStatus.textContent = "Download cache cleared.";
 });
 
 document.addEventListener("keydown", (e) => {

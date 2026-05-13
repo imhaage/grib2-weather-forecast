@@ -24,6 +24,21 @@ test("visualizer DOM references and repeated UI ids are centralized", () => {
     /function setPaletteSelectValues\(palette\)/,
     "expected palette select synchronization to be handled by one helper",
   );
+  assert.match(
+    source,
+    /get aromeDownloadStatus\(\) \{ return byId\("arome-dl-status"\); \}/,
+    "expected model download status DOM access to be centralized",
+  );
+  assert.match(
+    source,
+    /get aromeVarSelect\(\) \{ return byId\("arome-var-select"\); \}/,
+    "expected model variable select DOM access to be centralized",
+  );
+  assert.doesNotMatch(
+    source,
+    /document\.getElementById\("(arome-dl-status|arome-dl-bars|arome-dl-file-list|data-status-summary|arome-var-select)"\)/,
+    "expected model download DOM ids to be accessed through dom getters",
+  );
 });
 
 test("model block statuses are centralized and use clear cache wording", () => {
@@ -547,7 +562,7 @@ test("palette and variable changes stop playback before invalidating bitmap cach
   );
   assert.match(
     source,
-    /\.getElementById\("arome-var-select"\)[\s\S]*\.addEventListener\("change", async \(e\) => \{[\s\S]*await refreshCurrentModelVisuals\(\{ clearDecoded: true \}\);/,
+    /dom\.aromeVarSelect[\s\S]*\.addEventListener\("change", async \(e\) => \{[\s\S]*await refreshCurrentModelVisuals\(\{ clearDecoded: true \}\);/,
     "expected variable changes to use the shared refresh path",
   );
 });
