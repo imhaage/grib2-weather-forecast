@@ -1144,21 +1144,6 @@ function updateStatsAndColorScale(entry) {
   showColorScale(legendMin, legendMax, entry.displayUnits);
 }
 
-async function decodeVariableFromBuffer(buffer, shortName) {
-  for (const msg of iterateGRIB2Messages(buffer)) {
-    if (msg.product.shortName === shortName) {
-      const dec = await timedDecodeGRIB2(msg.buffer);
-      return {
-        values: dec.values,
-        grid: dec.grid,
-        product: dec.product,
-        header: dec.header,
-      };
-    }
-  }
-  return null;
-}
-
 // Create the MapLibre map once. fitBoundsArgs is optional [bounds, options].
 async function initMap(fitBoundsArgs) {
   if (map) return;
