@@ -109,11 +109,13 @@ blocks for a 102-hour run).
    run or mixed runs
 6. Launches block downloads through `runWithConcurrency(..., MAX_PARALLEL_DOWNLOADS, ...)`,
    currently capped at 6 active fetches. Each callback checks `modelState !== downloadKey` to
-   handle cancellation. For each block, IndexedDB is checked before network download. Cache misses
-   are written back after download, then older cached versions for the same `packageKey + block.key`
-   are deleted. On block availability: stores in `modelState.buffers` (keyed by block key string),
-   optionally initialises the legend, and triggers the first render only after all listed files are
-   available.
+   handle cancellation. For each block, IndexedDB is checked before network download. Exact cache
+   hits are used immediately. If the exact run is missing, the latest cached older version for the
+   same logical file can be displayed as `cached-stale` while the current remote file downloads.
+   Cache misses are written back after download, then older cached versions for the same
+   `packageKey + block.key` are deleted. On block availability: stores in `modelState.buffers`
+   (keyed by block key string), optionally initialises the legend, and reveals the map as soon as
+   the first file is available.
 
 ### Download cache
 
@@ -126,13 +128,17 @@ grib2:{packageKey}:{block.key}:{runId}:{filesize}:{url}
 ```
 
 The app intentionally still fills `modelState.buffers` after a cache hit. IndexedDB is used first
-to avoid downloading the same files again after refresh; it is not yet used as a low-memory backing
-store during a session.
+to avoid downloading the same files again after refresh, and to display stale cached data while a
+new run is downloading; it is not yet used as a low-memory backing store during a session.
 
 When a new version of a logical file is successfully written, older cached entries with the same
 `packageKey + block.key` are removed. This supports progressive upstream publication: one forecast
 hour can advance to a newer run without deleting cached files for other hours that have not been
 published yet.
+
+The slider keeps the full known forecast range. If the selected hour has no available block yet,
+`showHour()` clears the heatmap and shows `Data not available yet` instead of keeping the previous
+frame visible.
 
 ### Block indexing
 

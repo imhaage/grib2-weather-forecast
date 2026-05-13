@@ -281,6 +281,41 @@ async function readCachedGribBlock(packageKey, block) {
   }
 }
 
+async function readLatestCachedGribBlock(packageKey, block) {
+  try {
+    const db = await openGribCacheDb();
+    if (!db) return null;
+    const transaction = db.transaction(GRIB_BLOCK_STORE, "readonly");
+    const index = transaction.objectStore(GRIB_BLOCK_STORE).index("byPackageBlock");
+    const range = IDBKeyRange.only([packageKey, block.key]);
+    const currentId = gribBlockCacheKey(packageKey, block);
+    let latest = null;
+    await new Promise((resolve, reject) => {
+      const request = index.openCursor(range);
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (!cursor) {
+          resolve();
+          return;
+        }
+        const record = cursor.value;
+        if (
+          record.id !== currentId &&
+          (!latest || String(record.savedAt) > String(latest.savedAt))
+        ) {
+          latest = record;
+        }
+        cursor.continue();
+      };
+      request.onerror = () => reject(request.error);
+    });
+    return latest?.buffer ? { ...latest, buffer: new Uint8Array(latest.buffer) } : null;
+  } catch (error) {
+    console.warn("IndexedDB stale cache read failed:", error);
+    return null;
+  }
+}
+
 async function writeCachedGribBlock(packageKey, block, buffer) {
   try {
     const db = await openGribCacheDb();
@@ -323,6 +358,18 @@ async function deleteObsoleteCachedGribBlocks(db, packageKey, block) {
     request.onerror = () => reject(request.error);
   });
   await idbTransactionDone(transaction);
+}
+
+async function clearGribCache() {
+  try {
+    const db = await openGribCacheDb();
+    if (!db) return;
+    const transaction = db.transaction(GRIB_BLOCK_STORE, "readwrite");
+    transaction.objectStore(GRIB_BLOCK_STORE).clear();
+    await idbTransactionDone(transaction);
+  } catch (error) {
+    console.warn("IndexedDB cache clear failed:", error);
+  }
 }
 
 function updatePerfDiagnostics() {
@@ -454,6 +501,17 @@ function invalidateBitmapCache() {
   renderGen++;
   updateWarmupProgress();
   updatePerfDiagnostics();
+}
+
+function invalidateBlockRenderCache(block) {
+  if (!block) return;
+  for (let hour = block.startHour; hour <= block.endHour; hour++) {
+    const entry = bitmapCache.get(bitmapCacheKey(hour));
+    entry?.bitmap.close();
+    bitmapCache.delete(bitmapCacheKey(hour));
+    evictDecodedHour(hour);
+  }
+  updateWarmupProgress();
 }
 
 function bitmapCacheKey(hour) {
@@ -873,6 +931,42 @@ function clearMapLayer() {
   removeMapLayerIfExists();
   gridState = null;
   hideColorScale();
+  hideMapUnavailable();
+}
+
+function clearStats() {
+  for (const id of ["gv-min", "gv-max", "gv-mean", "gv-valid"]) {
+    document.getElementById(id).textContent = "—";
+  }
+}
+
+function showUnavailableHour(hour) {
+  clearMapLayer();
+  clearStats();
+  document.getElementById("arome-valid-time").textContent =
+    `Forecast time: ${fmtUnavailableValidTime(hour)}`;
+  showMapUnavailable();
+}
+
+function showMapUnavailable() {
+  const el = document.getElementById("map-unavailable");
+  el.hidden = false;
+}
+
+function hideMapUnavailable() {
+  const el = document.getElementById("map-unavailable");
+  if (el) el.hidden = true;
+}
+
+function fmtUnavailableValidTime(hour) {
+  const block = blockForHour(hour);
+  const runId = block?.runId;
+  const runTime = runId ? Date.parse(runId) : NaN;
+  if (!Number.isNaN(runTime)) {
+    const valid = new Date(runTime + hour * 60 * 60 * 1000);
+    return valid.toISOString().slice(0, 16).replace("T", " ") + " UTC";
+  }
+  return fmtHourLabel(hour);
 }
 
 // Populate and show the color scale legend bar.
@@ -1039,7 +1133,7 @@ function resetApp() {
   document.getElementById("file-summary").style.display = "none";
   document.getElementById("results").style.display = "none";
   document.getElementById("cards").innerHTML = "";
-  document.getElementById("arome-dl-panel").style.display = "none";
+  document.getElementById("data-status-panel").style.display = "none";
   location.hash = "";
 }
 
@@ -1297,6 +1391,7 @@ async function computeRenderParams(data, idx) {
 
 async function presentBitmapEntry(hour, entry, { values } = {}) {
   const { grid, product, header } = entry;
+  hideMapUnavailable();
 
   gridState = makeGridState(entry, values ?? null);
 
@@ -1415,7 +1510,7 @@ async function showHour(idx) {
 
     const data = await getCachedDecode(hour);
     if (!data) {
-      clearMapLayer();
+      showUnavailableHour(hour);
       return;
     }
 
@@ -1431,7 +1526,7 @@ async function showHour(idx) {
 
   } catch (err) {
     console.error("showHour:", err);
-    clearMapLayer();
+    showUnavailableHour(modelState?.hourList[idx] ?? idx);
   } finally {
     isDecoding = false;
     if (pendingHourIdx !== null) {
@@ -1547,6 +1642,40 @@ async function drainPrerenderQueue() {
   }
 }
 
+function setBlockStatus(block, status) {
+  block.status = status;
+  modelState?.blockStatus?.set(block.key, status);
+  const item = document.getElementById(`dl-${block.key}`);
+  if (item) {
+    item.classList.remove("missing", "cached-stale", "downloading", "ready", "done", "cached");
+    item.classList.add(status);
+    if (status === "ready") item.classList.add("done");
+    item.title = `${formatRunSummary([block])} · ${status}`;
+  }
+  updateDataStatusSummary();
+}
+
+function updateDataStatusSummary() {
+  const summary = document.getElementById("data-status-summary");
+  if (!summary || !modelState?.resources.length) return;
+  const counts = { missing: 0, "cached-stale": 0, downloading: 0, ready: 0 };
+  for (const block of modelState.resources) {
+    counts[block.status ?? "missing"] ??= 0;
+    counts[block.status ?? "missing"]++;
+  }
+  summary.textContent = [
+    `${counts.ready} ready`,
+    `${counts["cached-stale"]} loaded from cache`,
+    `${counts.downloading} updating`,
+    `${counts.missing} missing`,
+    formatRunSummary(modelState.resources),
+  ].join(" · ");
+}
+
+function blockForHour(hour) {
+  return modelState?.resources.find((r) => hour >= r.startHour && hour <= r.endHour) ?? null;
+}
+
 async function startDownload(packageKey) {
   const pkg = PACKAGES[packageKey];
   modelState = {
@@ -1557,6 +1686,7 @@ async function startDownload(packageKey) {
     hourList: [],
     decoded: new Map(),
     decodedOrder: [],
+    blockStatus: new Map(),
     variable: null,
     currentHour: null,
     lastRunInfo: null,
@@ -1617,8 +1747,9 @@ async function startDownload(packageKey) {
   barsEl.innerHTML = "";
   fileListEl.innerHTML = "";
   for (const r of resources) {
+    setBlockStatus(r, "missing");
     const item = document.createElement("div");
-    item.className = "arome-dl-item";
+    item.className = "arome-dl-item missing";
     item.id = `dl-${r.key}`;
     item.textContent = r.key;
     item.title = formatRunSummary([r]);
@@ -1629,15 +1760,93 @@ async function startDownload(packageKey) {
     fileListEl.appendChild(li);
   }
 
-  let doneCount = 0;
+  let availableCount = 0;
   let legendInitialized = false;
+
+  async function handleAvailableBlock(block, buffer, status) {
+    if (modelState !== downloadKey) return;
+    const hadBuffer = modelState.buffers.has(block.key);
+    if (hadBuffer) {
+      modelState.messageIndex.delete(block.key);
+      invalidateBlockRenderCache(block);
+    }
+    modelState.buffers.set(block.key, buffer);
+    setBlockStatus(block, status);
+    if (!hadBuffer) availableCount++;
+
+    document.getElementById(`dl-${block.key}`)?.style.setProperty("--pct", "100%");
+    document.getElementById("arome-dl-status").textContent =
+      `Available… ${availableCount} / ${resources.length} files (${runSummary})`;
+
+    // On first arrival: populate legend/info from header (no CCSDS decode)
+    if (!legendInitialized) {
+      legendInitialized = true;
+      const curVarDef = pkgVars.find(
+        (v) => (v.varKey ?? v.shortName) === modelState.variable,
+      );
+      const curShortName = curVarDef?.shortName ?? modelState.variable;
+      for (const msg of iterateGRIB2Messages(buffer)) {
+        const p = msg.product;
+        if (!p || p.shortName !== curShortName) continue;
+        if (curVarDef?.levelValue != null && p.levelValue !== curVarDef.levelValue) continue;
+        modelState.lastRunInfo = `${packageKey} · run ${fmtRefTime(msg.header)}`;
+        applyDefaultPalette(modelState.variable);
+        updateParamInfo(
+          p.name,
+          PARAM_DESCRIPTIONS[curShortName] ?? "",
+          modelState.lastRunInfo,
+        );
+        updateLevelInfo(curVarDef);
+        const staticScale = STATIC_SCALES[curShortName];
+        if (staticScale && curVarDef) {
+          showColorScale(
+            staticScale.min,
+            staticScale.max,
+            displayUnitsFor(curShortName, curVarDef.units),
+          );
+        }
+        break;
+      }
+    }
+
+    const currentIdx = parseInt(slider.value, 10);
+    const currentHour = modelState.hourList[currentIdx];
+    if (availableCount === 1) {
+      setMapSceneVisible(true);
+      await initMap();
+      if (modelState !== downloadKey) return;
+      map.fitBounds(pkg.bounds, { padding: 20, animate: false });
+      await showHour(currentIdx);
+    } else if (blockForHour(currentHour)?.key === block.key) {
+      await showHour(currentIdx);
+    }
+
+    if (availableCount === resources.length) {
+      document.getElementById("arome-dl-status").textContent =
+        `Available ${resources.length} / ${resources.length} files (${runSummary})`;
+      queuePrerenderForAllBlocks();
+    }
+  }
+
   await runWithConcurrency(
     resources,
     MAX_PARALLEL_DOWNLOADS,
     async (block) => {
       const cachedBuffer = await readCachedGribBlock(packageKey, block);
       if (modelState !== downloadKey) return;
-      const buffer = cachedBuffer ?? await downloadFileProg(
+      if (cachedBuffer) {
+        await handleAvailableBlock(block, cachedBuffer, "ready");
+        return;
+      }
+
+      const staleCachedBlock = await readLatestCachedGribBlock(packageKey, block);
+      if (modelState !== downloadKey) return;
+      if (staleCachedBlock) {
+        await handleAvailableBlock(block, staleCachedBlock.buffer, "cached-stale");
+      }
+
+      setBlockStatus(block, "downloading");
+      const buffer = await downloadFileProg(
         block.url,
         block.filesize,
         (loaded, total) => {
@@ -1650,68 +1859,9 @@ async function startDownload(packageKey) {
             );
         },
       );
-      if (cachedBuffer) {
-        document
-          .getElementById(`dl-${block.key}`)
-          ?.style.setProperty("--pct", "100%");
-        document.getElementById(`dl-${block.key}`)?.classList.add("cached");
-      }
-      if (!cachedBuffer) await writeCachedGribBlock(packageKey, block, buffer);
+      await writeCachedGribBlock(packageKey, block, buffer);
       if (modelState !== downloadKey) return;
-      modelState.buffers.set(block.key, buffer);
-
-      document.getElementById(`dl-${block.key}`)?.classList.add("done");
-      doneCount++;
-      document.getElementById("arome-dl-status").textContent =
-        `Downloading… ${doneCount} / ${resources.length} files`;
-
-      // On first arrival: populate legend/info from header (no CCSDS decode)
-      if (!legendInitialized) {
-        legendInitialized = true;
-        const curVarDef = pkgVars.find(
-          (v) => (v.varKey ?? v.shortName) === modelState.variable,
-        );
-        const curShortName = curVarDef?.shortName ?? modelState.variable;
-        for (const msg of iterateGRIB2Messages(buffer)) {
-          const p = msg.product;
-          if (!p || p.shortName !== curShortName) continue;
-          if (curVarDef?.levelValue != null && p.levelValue !== curVarDef.levelValue) continue;
-          modelState.lastRunInfo = `${packageKey} · run ${fmtRefTime(msg.header)}`;
-          applyDefaultPalette(modelState.variable);
-          updateParamInfo(
-            p.name,
-            PARAM_DESCRIPTIONS[curShortName] ?? "",
-            modelState.lastRunInfo,
-          );
-          updateLevelInfo(curVarDef);
-          const staticScale = STATIC_SCALES[curShortName];
-          if (staticScale && curVarDef) {
-            showColorScale(
-              staticScale.min,
-              staticScale.max,
-              displayUnitsFor(curShortName, curVarDef.units),
-            );
-          }
-          break;
-        }
-      }
-
-      if (doneCount === resources.length) {
-        document.getElementById("arome-dl-status").textContent =
-          `Downloaded ${resources.length} / ${resources.length} files (${runSummary})`;
-        setMapSceneVisible(true);
-        setRendering(true);
-        await initMap();
-        if (modelState !== downloadKey) return;
-        map.fitBounds(pkg.bounds, { padding: 20, animate: false });
-        await new Promise(r => setTimeout(r, 0));
-        const myGen = renderGen;
-        const currentIdx = parseInt(slider.value, 10);
-        await showHour(currentIdx);
-        if (modelState !== downloadKey || renderGen !== myGen) return;
-        if (renderGen === myGen) setRendering(false);
-        queuePrerenderForAllBlocks();
-      }
+      await handleAvailableBlock(block, buffer, "ready");
     },
   );
 }
@@ -1746,7 +1896,7 @@ function route() {
     }
     showView("view-grid");
     setToolbarMode("arome");
-    document.getElementById("arome-dl-panel").style.display = "block";
+    document.getElementById("data-status-panel").style.display = "block";
     if (modelState?.packageKey !== packageKey) {
       resetModelState();
       startDownload(packageKey);
@@ -2016,6 +2166,11 @@ document.getElementById("player-reset").addEventListener("click", () => {
   stopPlayer();
   aromeSlider.value = 0;
   showHour(0);
+});
+
+document.getElementById("clear-grib-cache").addEventListener("click", async () => {
+  await clearGribCache();
+  document.getElementById("arome-dl-status").textContent = "Download cache cleared.";
 });
 
 document.addEventListener("keydown", (e) => {

@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 const source = readFileSync(new URL("./index.js", import.meta.url), "utf8");
 const html = readFileSync(new URL("./index.html", import.meta.url), "utf8");
 
-test("model downloads keep the map scene hidden until every file is downloaded", () => {
+test("model map scene appears after the first available downloaded or cached file", () => {
   assert.match(
     source,
     /function setMapSceneVisible\(/,
@@ -18,8 +18,38 @@ test("model downloads keep the map scene hidden until every file is downloaded",
   );
   assert.match(
     source,
-    /if \(doneCount === resources\.length\) \{[\s\S]*setMapSceneVisible\(true\)/,
-    "expected download completion to reveal the map scene explicitly",
+    /let availableCount = 0;/,
+    "expected progressive availability to be tracked independently from download completion",
+  );
+  assert.match(
+    source,
+    /async function handleAvailableBlock\(block, buffer, status\)/,
+    "expected one shared path for cached and downloaded blocks becoming available",
+  );
+  assert.match(
+    source,
+    /if \(availableCount === 1\) \{[\s\S]*setMapSceneVisible\(true\)/,
+    "expected the map scene to appear as soon as the first block is available",
+  );
+  assert.match(
+    source,
+    /showUnavailableHour\(hour\)/,
+    "expected unavailable slider hours to clear the heatmap instead of keeping stale pixels",
+  );
+  assert.match(
+    html,
+    /id="map-unavailable" hidden[\s\S]*Data not available yet/,
+    "expected unavailable data to be shown as an overlay above the map",
+  );
+  assert.match(
+    source,
+    /function fmtUnavailableValidTime\(hour\)/,
+    "expected unavailable hours to still display a forecast date and time",
+  );
+  assert.match(
+    source,
+    /document\.getElementById\("arome-valid-time"\)\.textContent =\s*`Forecast time: \$\{fmtUnavailableValidTime\(hour\)\}`;/,
+    "expected unavailable state not to replace the forecast time with the warning text",
   );
 });
 
@@ -343,12 +373,12 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
   );
   assert.match(
     source,
-    /await readCachedGribBlock\(packageKey, block\)[\s\S]*cachedBuffer \?\? await downloadFileProg/,
+    /const cachedBuffer = await readCachedGribBlock\(packageKey, block\);[\s\S]*if \(cachedBuffer\) \{[\s\S]*return;[\s\S]*const buffer = await downloadFileProg/,
     "expected IndexedDB reads before falling back to network",
   );
   assert.match(
     source,
-    /if \(!cachedBuffer\) await writeCachedGribBlock\(packageKey, block, buffer\);/,
+    /await writeCachedGribBlock\(packageKey, block, buffer\);/,
     "expected downloaded misses to be written to IndexedDB",
   );
   assert.match(
@@ -360,5 +390,38 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
     source,
     /formatRunSummary\(resources\)/,
     "expected the UI to expose whether the listed files come from one run or mixed runs",
+  );
+});
+
+test("stale cached files can be displayed while newer remote files download", () => {
+  assert.match(
+    source,
+    /async function readLatestCachedGribBlock\(packageKey, block\)/,
+    "expected a fallback lookup for older cached versions of the same logical file",
+  );
+  assert.match(
+    source,
+    /const staleCachedBlock = await readLatestCachedGribBlock\(packageKey, block\);[\s\S]*await handleAvailableBlock\(block, staleCachedBlock\.buffer, "cached-stale"\);[\s\S]*const buffer = await downloadFileProg/,
+    "expected stale cache to be presented before downloading the latest file",
+  );
+  assert.match(
+    source,
+    /handleAvailableBlock\(block, staleCachedBlock\.buffer, "cached-stale"\)/,
+    "expected stale cache status to be visible in the data status panel",
+  );
+  assert.match(
+    source,
+    /setBlockStatus\(block, "downloading"\)/,
+    "expected newer downloads to remain visible while stale data is displayed",
+  );
+  assert.match(
+    source,
+    /handleAvailableBlock\(block, buffer, "ready"\)/,
+    "expected freshly downloaded files to replace stale status",
+  );
+  assert.match(
+    html,
+    /id="data-status-panel"[\s\S]*id="data-status-summary"[\s\S]*id="clear-grib-cache"/,
+    "expected a collapsible data/cache status panel with cache controls",
   );
 });

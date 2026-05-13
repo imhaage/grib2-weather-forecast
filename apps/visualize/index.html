@@ -90,14 +90,19 @@
           ← Home
         </button>
         <div id="gv-sub"></div>
-        <div id="arome-dl-panel" style="display: none">
+        <details id="data-status-panel" open style="display: none">
+          <summary>
+            <span id="data-status-summary">Data status</span>
+            <span id="data-status-chevron">▼</span>
+          </summary>
           <p id="arome-dl-status"></p>
           <div id="arome-dl-bars"></div>
+          <button type="button" id="clear-grib-cache">Clear cache</button>
           <details id="arome-dl-details">
             <summary>Files <span id="arome-dl-chevron">▼</span></summary>
             <ul id="arome-dl-file-list"></ul>
           </details>
-        </div>
+        </details>
         <div id="grid-toolbar">
           <div id="grid-stats">
             <div class="stat-item">
@@ -184,6 +189,7 @@
 
           <div id="map-wrap">
             <div id="map"></div>
+            <div id="map-unavailable" hidden>Data not available yet</div>
             <div id="map-tooltip" hidden></div>
             <div id="colorscale">
               <span id="cs-min"></span>

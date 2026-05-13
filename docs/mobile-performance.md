@@ -2,7 +2,7 @@
 
 ## Optimization Checklist
 
-- [x] Hide `#map-scene` until all files are downloaded.
+- [x] Show `#map-scene` when the first file is available.
 - [x] Replace global block pre-rendering with a single render queue.
 - [x] Reduce decoded value retention (`DECODED_CACHE_SIZE = 2`).
 - [x] Stop keeping copied message buffers in `messageIndex`.
@@ -17,6 +17,7 @@
 - [x] Add lightweight runtime diagnostics.
 - [x] Limit model file downloads to 6 parallel fetches.
 - [x] Cache downloaded GRIB2 blocks in IndexedDB by file run.
+- [x] Display stale cached files while newer files download.
 
 ## Context
 
@@ -49,8 +50,9 @@ messages with `decodeGRIB2()`, renders heatmaps in
 `bitmapCache`.
 
 IndexedDB is currently used to avoid re-downloading the same remote files after
-a refresh. It does not yet reduce in-session RAM usage because cache hits still
-fill `modelState.buffers` before rendering.
+a refresh and to display the latest cached version of each logical file while a
+newer remote version downloads. It does not yet reduce in-session RAM usage
+because cache hits still fill `modelState.buffers` before rendering.
 
 Keeping an `ImageBitmap` cache is still a good direction because cache hits make
 animation cheap: the visible frame becomes a `drawImage()` call instead of a
@@ -83,12 +85,14 @@ Approximate AROME memory costs:
 
 ## UX Adjustment
 
-For now, hide `#map-scene` while the model files are still downloading. Show it
-only when all files for the selected package have been downloaded.
+For now, hide `#map-scene` only while no model file is available. Show it as
+soon as at least one block is available from exact cache, stale cache, or
+network download.
 
-This keeps the experience simpler and avoids showing a map that may be only
-partially interactive. It also gives us a cleaner performance baseline: first
-download, then decode and render.
+The slider keeps the full known forecast range. If the selected hour has no
+available block, clear the heatmap and show a `Data not available yet` state
+instead of keeping the previous frame visible. A collapsible data status panel
+tracks file states: missing, loaded from cache, downloading, and ready.
 
 ## Suspected Hot Spots
 
@@ -134,18 +138,21 @@ download, then decode and render.
 Apply and test these changes one by one. Stop when the mobile experience is good
 enough, rather than chasing a perfect architecture.
 
-### 1. Hide `#map-scene` until all files are downloaded
+### 1. Show `#map-scene` when the first file is available
 
-Goal: remove partial-render edge cases during download and make the loading
-state easier to reason about.
+Goal: avoid a blank app while cached or partially downloaded data is already
+usable.
 
-Expected effect: better UX consistency, not a major memory reduction.
+Expected effect: faster perceived startup and a clearer progressive loading
+model.
 
 Validation:
 
 - Start AROME and ARPEGE packages.
-- Confirm `#map-scene` appears only after all package files are downloaded.
-- Confirm the first selected parameter renders after download completion.
+- Confirm `#map-scene` appears after the first exact cache hit, stale cache hit,
+  or network download.
+- Confirm selecting an unavailable hour clears the heatmap instead of retaining
+  the previous frame.
 
 ### 2. Replace global block pre-rendering with a single render queue
 
