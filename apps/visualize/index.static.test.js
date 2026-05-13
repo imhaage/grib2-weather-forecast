@@ -677,6 +677,11 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
   );
   assert.match(
     source,
+    /const GRIB_CACHE_DB_VERSION = 2;/,
+    "expected IndexedDB schema upgrades to create the package/block lookup index for existing caches",
+  );
+  assert.match(
+    source,
     /function extractRunId\(/,
     "expected each remote resource to expose its run id",
   );
@@ -699,6 +704,16 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
     source,
     /const cachedBuffer = await readCachedGribBlock\(packageKey, block\);[\s\S]*if \(cachedBuffer\) \{[\s\S]*return;[\s\S]*const buffer = await downloadFileProg/,
     "expected IndexedDB reads before falling back to network",
+  );
+  assert.match(
+    source,
+    /function isCurrentRunCachedGribBlock\(record, block\)[\s\S]*record\.runId === block\.runId[\s\S]*record\.filesize === block\.filesize/,
+    "expected current-run cache hits to survive URL changes while respecting known file sizes",
+  );
+  assert.match(
+    source,
+    /findCachedGribBlock\([\s\S]*\(record\) => isCurrentRunCachedGribBlock\(record, block\),/,
+    "expected current-run cache lookup to use the relaxed cache matcher",
   );
   assert.match(
     source,
