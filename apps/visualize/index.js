@@ -14,6 +14,7 @@ import {
   variableKeyFor,
 } from "./variable-metadata.js";
 import { createAnimationPlayer } from "./animation-player.js";
+import { setupMapTooltip } from "./map-tooltip.js";
 import {
   iterateGRIB2Messages,
   decodeGRIB2,
@@ -183,7 +184,6 @@ let fileState = null; // { messages: Array }
 let gridState = null; // { values, min, range, grid, product }
 let currentPalette = "Plasma";
 let map = null; // MapLibre instance (created once, reused)
-let mapClickMarker = null;
 let heatCanvas = null; // offscreen canvas for heatmap rendering
 let modelState = null; // { packageKey, resources, buffers, messageIndex, hourList, decoded, decodedOrder, variable, currentHour, lastRunInfo }
 let isDecoding = false;
@@ -774,94 +774,6 @@ function mercatorCanvasHeight(grid) {
   return Math.round((ni * spanY) / spanX);
 }
 
-// ── Hover tooltip ─────────────────────────────────────────────────────────────
-
-function showMapClickMarker(lngLat) {
-  if (!mapClickMarker) {
-    const element = document.createElement("div");
-    element.className = "map-click-marker";
-    mapClickMarker = new maplibregl.Marker({ element, anchor: "center" });
-  }
-  mapClickMarker.setLngLat(lngLat).addTo(map);
-}
-
-function shouldShowMapClickMarker(event) {
-  return event.pointerType === "touch" ||
-    event.sourceCapabilities?.firesTouchEvents === true ||
-    window.matchMedia("(pointer: coarse)").matches;
-}
-
-function showTooltipForMapEvent(e) {
-  const tooltip = document.getElementById("map-tooltip");
-  const mapCanvas = map.getCanvas();
-
-  if (!gridState) return;
-  const { lat, lng } = e.lngLat;
-  const { grid, values, product } = gridState;
-  if (!values) {
-    tooltip.hidden = true;
-    mapCanvas.style.cursor = "";
-    return;
-  }
-  const {
-    ni,
-    latitudeOfFirstPoint: la1,
-    longitudeOfFirstPoint: lo1,
-    latitudeOfLastPoint: la2,
-    longitudeOfLastPoint: lo2,
-    di,
-    dj,
-  } = grid;
-
-  const northLat = Math.max(la1, la2);
-  const southLat = Math.min(la1, la2);
-  const isStoN = la2 > la1;
-
-  // Outside domain
-  if (lat > northLat || lat < southLat || lng < lo1 || lng > lo2) {
-    tooltip.hidden = true;
-    mapCanvas.style.cursor = "";
-    return;
-  }
-
-  const rowFromNorth = Math.round((northLat - lat) / dj);
-  const row = isStoN ? grid.nj - 1 - rowFromNorth : rowFromNorth;
-  const col = Math.round((lng - lo1) / di);
-  const idx = row * ni + col;
-  const rawVal = idx >= 0 && idx < values.length ? values[idx] : MISSING_VALUE;
-  if (rawVal <= MISSING_VALUE) {
-    tooltip.hidden = true;
-    mapCanvas.style.cursor = "default";
-    return;
-  }
-
-  const val = gridState.unitFn ? gridState.unitFn(rawVal) : rawVal;
-  mapCanvas.style.cursor = "crosshair";
-  tooltip.hidden = false;
-  tooltip.textContent = `${product.name} : ${val.toFixed(2)} ${gridState.displayUnits ?? product.units}`;
-  const wrap = document.getElementById("map-wrap");
-  const rect = wrap.getBoundingClientRect();
-  tooltip.style.left = e.originalEvent.clientX - rect.left + 14 + "px";
-  tooltip.style.top = e.originalEvent.clientY - rect.top - 36 + "px";
-}
-
-function setupHoverTooltip() {
-  const tooltip = document.getElementById("map-tooltip");
-  const mapCanvas = map.getCanvas();
-
-  map.on("mousemove", showTooltipForMapEvent);
-
-  map.on("click", (e) => {
-    if (shouldShowMapClickMarker(e.originalEvent)) showMapClickMarker(e.lngLat);
-    showTooltipForMapEvent(e);
-  });
-
-  map.on("mouseout", () => {
-    tooltip.hidden = true;
-    mapCanvas.style.cursor = "";
-  });
-}
-
 // ── Card builder ──────────────────────────────────────────────────────────────
 
 function buildCard(msg) {
@@ -1134,7 +1046,14 @@ async function initMap(fitBoundsArgs) {
       container: dom.mapScene,
     }),
   );
-  setupHoverTooltip();
+  setupMapTooltip({
+    map,
+    maplibregl,
+    getGridState: () => gridState,
+    missingValue: MISSING_VALUE,
+    tooltipEl: document.getElementById("map-tooltip"),
+    wrapEl: document.getElementById("map-wrap"),
+  });
 }
 
 function resetModelState() {

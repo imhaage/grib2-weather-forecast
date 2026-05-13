@@ -6,6 +6,7 @@ const source = readFileSync(new URL("./index.js", import.meta.url), "utf8");
 const html = readFileSync(new URL("./index.html", import.meta.url), "utf8");
 const css = readFileSync(new URL("./style.css", import.meta.url), "utf8");
 const animationPlayer = readFileSync(new URL("./animation-player.js", import.meta.url), "utf8");
+const mapTooltip = readFileSync(new URL("./map-tooltip.js", import.meta.url), "utf8");
 const renderWorker = readFileSync(new URL("./render-worker.js", import.meta.url), "utf8");
 const unitTransforms = readFileSync(new URL("./unit-transforms.js", import.meta.url), "utf8");
 const variableMetadata = readFileSync(new URL("./variable-metadata.js", import.meta.url), "utf8");
@@ -606,29 +607,39 @@ test("palette and variable changes stop playback before invalidating bitmap cach
 
 test("map clicks show a thin cross marker for mobile tooltip location", () => {
   assert.match(
-    source,
+    mapTooltip,
     /let mapClickMarker = null;/,
     "expected the clicked location to be tracked with a MapLibre marker",
   );
   assert.match(
-    source,
+    mapTooltip,
     /new maplibregl\.Marker\(\{ element, anchor: "center" \}\)/,
     "expected the click marker to stay anchored to clicked map coordinates",
   );
   assert.match(
-    source,
+    mapTooltip,
     /function shouldShowMapClickMarker\(event\)/,
     "expected click markers to be limited to touch-style interactions",
   );
   assert.match(
-    source,
+    mapTooltip,
     /event\.pointerType === "touch"[\s\S]*matchMedia\("\(pointer: coarse\)"\)\.matches/,
     "expected touch pointers and coarse pointers to request a click marker",
   );
   assert.match(
-    source,
+    mapTooltip,
     /map\.on\("click", \(e\) => \{[\s\S]*if \(shouldShowMapClickMarker\(e\.originalEvent\)\) showMapClickMarker\(e\.lngLat\);[\s\S]*showTooltipForMapEvent\(e\);[\s\S]*\}\);/,
     "expected map clicks to place the marker only when the input needs it",
+  );
+  assert.match(
+    source,
+    /import \{ setupMapTooltip \} from "\.\/map-tooltip\.js";/,
+    "expected tooltip behavior to live outside index.js",
+  );
+  assert.match(
+    source,
+    /setupMapTooltip\(\{[\s\S]*getGridState: \(\) => gridState,[\s\S]*missingValue: MISSING_VALUE,/,
+    "expected index.js to wire the map tooltip controller",
   );
 });
 
