@@ -1115,6 +1115,35 @@ function setMapLayer(canvas, corners) {
   });
 }
 
+function ensureHeatCanvas(grid) {
+  const needH = mercatorCanvasHeight(grid);
+  const canvasChanged = !heatCanvas || heatCanvas.width !== grid.ni || heatCanvas.height !== needH;
+  if (canvasChanged) {
+    heatCanvas = document.createElement("canvas");
+    heatCanvas.width = grid.ni;
+    heatCanvas.height = needH;
+  }
+  return {
+    canvas: heatCanvas,
+    canvasChanged,
+    outW: grid.ni,
+    outH: needH,
+  };
+}
+
+function drawBitmapToHeatCanvas(bitmap) {
+  const ctx = heatCanvas.getContext("2d");
+  ctx.clearRect(0, 0, heatCanvas.width, heatCanvas.height);
+  ctx.drawImage(bitmap, 0, 0);
+}
+
+function updateStatsAndColorScale(entry) {
+  updateStats(entry.dataMin, entry.dataMax, entry.mean, entry.count, entry.displayUnits);
+  const legendMin = entry.staticScale ? entry.renderMin : entry.dataMin;
+  const legendMax = entry.staticScale ? entry.renderMin + entry.range : entry.dataMax;
+  showColorScale(legendMin, legendMax, entry.displayUnits);
+}
+
 async function decodeVariableFromBuffer(buffer, shortName) {
   for (const msg of iterateGRIB2Messages(buffer)) {
     if (msg.product.shortName === shortName) {
@@ -1221,19 +1250,13 @@ async function showGridView(shortName) {
   const p = makeRenderParams(decoded);
   gridState = makeGridState(p);
 
-  // Offscreen canvas: full grid width, Mercator-proportional height
-  const needH = mercatorCanvasHeight(gr);
-  heatCanvas = document.createElement("canvas");
-  heatCanvas.width = gr.ni;
-  heatCanvas.height = needH;
-
+  const { outH } = ensureHeatCanvas(gr);
   const corners = gridCorners(gr);
-  const statsEntry = await renderViaWorker(p.values, p, gr.ni, needH);
+  const statsEntry = await renderViaWorker(p.values, p, gr.ni, outH);
   if (!statsEntry) return;
+  const entry = makeBitmapCacheEntry(statsEntry, p);
 
-  const ctx = heatCanvas.getContext("2d");
-  ctx.clearRect(0, 0, heatCanvas.width, heatCanvas.height);
-  ctx.drawImage(statsEntry.bitmap, 0, 0);
+  drawBitmapToHeatCanvas(statsEntry.bitmap);
   statsEntry.bitmap.close();
 
   await initMap();
@@ -1246,34 +1269,22 @@ async function showGridView(shortName) {
     { padding: 20, animate: false },
   );
 
-  updateStats(statsEntry.dataMin, statsEntry.dataMax, statsEntry.mean, statsEntry.count, p.displayUnits);
-  const legendMin = p.staticScale ? p.renderMin : statsEntry.dataMin;
-  const legendMax = p.staticScale ? p.renderMax : statsEntry.dataMax;
-  showColorScale(legendMin, legendMax, p.displayUnits);
+  updateStatsAndColorScale(entry);
 }
 
 async function rerenderUploadedGridView() {
   if (!gridState || modelState) return;
   const { grid } = gridState;
-  const needH = mercatorCanvasHeight(grid);
-  if (!heatCanvas || heatCanvas.width !== grid.ni || heatCanvas.height !== needH) {
-    heatCanvas = document.createElement("canvas");
-    heatCanvas.width = grid.ni;
-    heatCanvas.height = needH;
-  }
+  const { outH } = ensureHeatCanvas(grid);
 
-  const statsEntry = await renderViaWorker(gridState.values, gridState, grid.ni, needH);
+  const statsEntry = await renderViaWorker(gridState.values, gridState, grid.ni, outH);
   if (!statsEntry) return;
+  const entry = makeBitmapCacheEntry(statsEntry, gridState);
 
-  const ctx = heatCanvas.getContext("2d");
-  ctx.clearRect(0, 0, heatCanvas.width, heatCanvas.height);
-  ctx.drawImage(statsEntry.bitmap, 0, 0);
+  drawBitmapToHeatCanvas(statsEntry.bitmap);
   statsEntry.bitmap.close();
 
-  updateStats(statsEntry.dataMin, statsEntry.dataMax, statsEntry.mean, statsEntry.count, gridState.displayUnits);
-  const legendMin = gridState.staticScale ? gridState.renderMin : statsEntry.dataMin;
-  const legendMax = gridState.staticScale ? gridState.renderMax : statsEntry.dataMax;
-  showColorScale(legendMin, legendMax, gridState.displayUnits);
+  updateStatsAndColorScale(entry);
   if (map) map.triggerRepaint();
 }
 
@@ -1429,18 +1440,9 @@ async function presentBitmapEntry(hour, entry, { values } = {}) {
 
   gridState = makeGridState(entry, values ?? null);
 
-  const needH = mercatorCanvasHeight(grid);
-  const canvasChanged = !heatCanvas || heatCanvas.width !== grid.ni || heatCanvas.height !== needH;
-  if (canvasChanged) {
-    heatCanvas = document.createElement("canvas");
-    heatCanvas.width = grid.ni;
-    heatCanvas.height = needH;
-  }
-
+  const { canvasChanged } = ensureHeatCanvas(grid);
   const corners = gridCorners(grid);
-  const ctx = heatCanvas.getContext("2d");
-  ctx.clearRect(0, 0, heatCanvas.width, heatCanvas.height);
-  ctx.drawImage(entry.bitmap, 0, 0);
+  drawBitmapToHeatCanvas(entry.bitmap);
 
   const sc = makeScale(currentPalette);
   const stops = Array.from({ length: 8 }, (_, i) => sc(i / 7).css()).join(", ");
@@ -1464,10 +1466,7 @@ async function presentBitmapEntry(hour, entry, { values } = {}) {
     modelState.lastRunInfo + (entry.isFallback ? " · (cumulative — prev not loaded)" : ""),
   );
 
-  updateStats(entry.dataMin, entry.dataMax, entry.mean, entry.count, entry.displayUnits);
-  const legendMin = entry.staticScale ? entry.renderMin : entry.dataMin;
-  const legendMax = entry.staticScale ? entry.renderMin + entry.range : entry.dataMax;
-  showColorScale(legendMin, legendMax, entry.displayUnits);
+  updateStatsAndColorScale(entry);
 
   const validTimeProduct = product.pdtNumber === 8
     ? { ...product, forecastTime: hour, timeUnit: 1 }

@@ -41,6 +41,24 @@ test("model block statuses are centralized and use clear cache wording", () => {
   );
 });
 
+test("map rendering pipeline has shared frame helpers", () => {
+  assert.match(
+    source,
+    /function ensureHeatCanvas\(grid\)/,
+    "expected canvas sizing to be shared across uploaded and model rendering",
+  );
+  assert.match(
+    source,
+    /function drawBitmapToHeatCanvas\(bitmap\)/,
+    "expected bitmap drawing to be shared instead of duplicated per view",
+  );
+  assert.match(
+    source,
+    /function updateStatsAndColorScale\(entry\)/,
+    "expected stats and legend updates to use one shared helper",
+  );
+});
+
 test("model map scene appears after the first available downloaded or cached file", () => {
   assert.match(
     source,
@@ -310,7 +328,7 @@ test("map clicks show a thin cross marker for mobile tooltip location", () => {
 test("uploaded file view uses the worker render pipeline for stats and bitmap", () => {
   assert.match(
     source,
-    /async function showGridView\(shortName\) \{[\s\S]*const p = makeRenderParams\(decoded\);[\s\S]*const statsEntry = await renderViaWorker\(p\.values, p, gr\.ni, needH\);/,
+    /async function showGridView\(shortName\) \{[\s\S]*const p = makeRenderParams\(decoded\);[\s\S]*const \{ outH \} = ensureHeatCanvas\(gr\);[\s\S]*const statsEntry = await renderViaWorker\(p\.values, p, gr\.ni, outH\);/,
     "expected uploaded-file rendering to use renderViaWorker",
   );
   assert.doesNotMatch(
