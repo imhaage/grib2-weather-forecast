@@ -11,6 +11,29 @@ const renderWorker = readFileSync(new URL("./render-worker.js", import.meta.url)
 const unitTransforms = readFileSync(new URL("./unit-transforms.js", import.meta.url), "utf8");
 const variableMetadata = readFileSync(new URL("./variable-metadata.js", import.meta.url), "utf8");
 
+test("app header exposes the project title and GitHub link", () => {
+  assert.match(
+    html,
+    /<title>GRIB2 Weather forecast<\/title>/,
+    "expected the browser title to use the current app name",
+  );
+  assert.match(
+    html,
+    /<h1>GRIB2 Weather forecast<\/h1>/,
+    "expected the visible app title to use the current app name",
+  );
+  assert.doesNotMatch(
+    html,
+    /GRIB2 files decoded in the browser/,
+    "expected the redundant app subtitle to be removed",
+  );
+  assert.match(
+    html,
+    /<a[\s\S]*class="github-link"[\s\S]*href="https:\/\/github\.com\/imhaage\/arome-forecast-visualizer"[\s\S]*aria-label="Open project repository on GitHub"[\s\S]*<svg/,
+    "expected an icon-only GitHub repository link in the title bar",
+  );
+});
+
 test("visualizer DOM references and repeated UI ids are centralized", () => {
   assert.match(
     source,
@@ -144,8 +167,8 @@ test("model block availability presentation is isolated", () => {
   );
   assert.match(
     source,
-    /await presentAvailableModelBlock\(block, buffer, status, session\);/,
-    "expected startDownload to delegate available block presentation",
+    /await enqueueAvailableModelBlockPresentation\(block, buffer, status, session\);/,
+    "expected startDownload to delegate available block presentation through the integration queue",
   );
   assert.match(
     source,
@@ -179,6 +202,34 @@ test("model block availability presentation delegates focused responsibilities",
     source,
     /async function presentAvailableModelBlock\(block, buffer, status, session\) \{[\s\S]*storeAvailableModelBlock\(block, buffer, status, session\);[\s\S]*initializeModelLegendFromBlock\(buffer, session\);[\s\S]*await refreshMapForAvailableModelBlock\(block, session\);[\s\S]*completeModelDownloadIfReady\(session\);/,
     "expected available block presentation to read as orchestration",
+  );
+});
+
+test("network block presentation is integrated one block at a time", () => {
+  assert.match(
+    source,
+    /function scheduleLowPriorityWork\(/,
+    "expected a helper for yielding to the browser before heavy block integration",
+  );
+  assert.match(
+    source,
+    /async function enqueueAvailableModelBlockPresentation\(block, buffer, status, session\)/,
+    "expected downloaded blocks to enter a serialized integration queue",
+  );
+  assert.match(
+    source,
+    /while \(session\.presentationQueue\.length > 0\)[\s\S]*await scheduleLowPriorityWork\(\);[\s\S]*await presentAvailableModelBlock\(job\.block, job\.buffer, job\.status, job\.session\);/,
+    "expected queued blocks to yield between each presentation",
+  );
+  assert.match(
+    source,
+    /presentationQueue: \[\],[\s\S]*isPresentingQueuedBlock: false,/,
+    "expected presentation queue state to live on the download session",
+  );
+  assert.match(
+    source,
+    /refreshModelBlockFromNetwork\(packageKey, block, downloadKey, async \(block, buffer, status\) => \{[\s\S]*await enqueueAvailableModelBlockPresentation\(block, buffer, status, session\);/,
+    "expected network refreshes to avoid presenting completed files immediately in parallel",
   );
 });
 
@@ -557,8 +608,8 @@ test("player warms the bitmap cache before starting animation", () => {
   );
   assert.match(
     animationPlayer,
-    /function syncPlayButtonAvailability\(\)[\s\S]*const isAnimationCacheReady = !modelState \|\| isBitmapCacheComplete\(\);[\s\S]*const label = playerInterval !== null[\s\S]*\? "Pause"[\s\S]*: "Play";/,
-    "expected Play label to reflect playback state without disabling warm-up clicks",
+    /function syncPlayButtonAvailability\(\)[\s\S]*const isAnimationCacheReady = !modelState \|\| isAnimationCacheReadyForPlayback\(\);[\s\S]*const label = playerInterval !== null[\s\S]*\? "Pause"[\s\S]*: "Play";/,
+    "expected Play label to use the latched animation cache readiness state",
   );
   assert.doesNotMatch(
     animationPlayer,
@@ -568,7 +619,22 @@ test("player warms the bitmap cache before starting animation", () => {
   assert.match(
     animationPlayer,
     /if \(!isAnimationCacheReady && playerInterval !== null\) stopPlayer\(\);/,
-    "expected playback to stop whenever the animation cache becomes incomplete",
+    "expected playback to stop only before the animation cache has been primed",
+  );
+  assert.match(
+    source,
+    /animationCachePrimed: false,/,
+    "expected model state to track whether the animation cache has completed once",
+  );
+  assert.match(
+    source,
+    /function isAnimationCacheReadyForPlayback\(\)[\s\S]*modelState\.animationCachePrimed \|\| isBitmapCacheComplete\(\)/,
+    "expected playback readiness to stay true after the first completed warm-up",
+  );
+  assert.match(
+    source,
+    /function updateWarmupProgress\([\s\S]*if \(complete\) modelState\.animationCachePrimed = true;[\s\S]*const visibleReady = modelState\.animationCachePrimed \? total : ready;/,
+    "expected the warm-up indicator not to regress after the cache has been primed",
   );
   assert.match(
     source,

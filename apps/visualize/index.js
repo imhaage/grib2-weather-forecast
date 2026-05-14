@@ -235,6 +235,15 @@ async function runWithConcurrency(items, limit, worker) {
   return results;
 }
 
+function scheduleLowPriorityWork() {
+  if ("requestIdleCallback" in window) {
+    return new Promise((resolve) => {
+      window.requestIdleCallback(resolve, { timeout: 300 });
+    });
+  }
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()));
+}
+
 function idbRequest(request) {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
@@ -583,6 +592,7 @@ function renderViaWorker(values, renderParams, outW, outH, { transferValues = fa
 }
 
 function invalidateBitmapCache() {
+  if (modelState) modelState.animationCachePrimed = false;
   for (const entry of bitmapCache.values()) entry.bitmap.close();
   bitmapCache = new Map();
   prerenderQueue = [];
@@ -625,6 +635,10 @@ function isBitmapCacheComplete() {
     bitmapCacheReadyCount() === modelState.hourList.length;
 }
 
+function isAnimationCacheReadyForPlayback() {
+  return Boolean(modelState && (modelState.animationCachePrimed || isBitmapCacheComplete()));
+}
+
 function updateWarmupProgress({ preparing = false } = {}) {
   const container = dom.cacheWarmup;
   if (!container || !modelState?.hourList.length) {
@@ -635,14 +649,16 @@ function updateWarmupProgress({ preparing = false } = {}) {
 
   const total = modelState.hourList.length;
   const ready = bitmapCacheReadyCount();
-  const pct = total ? Math.round((ready / total) * 100) : 0;
   const complete = ready === total;
+  if (complete) modelState.animationCachePrimed = true;
+  const visibleReady = modelState.animationCachePrimed ? total : ready;
+  const pct = total ? Math.round((visibleReady / total) * 100) : 0;
 
   container.hidden = false;
-  container.classList.toggle("ready", complete);
+  container.classList.toggle("ready", modelState.animationCachePrimed);
   document.getElementById("cache-warmup-bar").style.width = `${pct}%`;
-  document.getElementById("cache-warmup-count").textContent = `${ready} / ${total}`;
-  document.getElementById("cache-warmup-label").textContent = complete
+  document.getElementById("cache-warmup-count").textContent = `${visibleReady} / ${total}`;
+  document.getElementById("cache-warmup-label").textContent = modelState.animationCachePrimed
     ? "Animation ready"
     : preparing
       ? "Preparing animation"
@@ -1622,6 +1638,7 @@ function createModelState(packageKey) {
     variable: null,
     currentHour: null,
     lastRunInfo: null,
+    animationCachePrimed: false,
   };
 }
 
@@ -1718,6 +1735,8 @@ function createModelDownloadSession({ packageKey, pkg, resources, runSummary, do
     slider: dom.aromeSlider,
     availableCount: 0,
     legendInitialized: false,
+    presentationQueue: [],
+    isPresentingQueuedBlock: false,
   };
 }
 
@@ -1801,6 +1820,28 @@ async function presentAvailableModelBlock(block, buffer, status, session) {
   completeModelDownloadIfReady(session);
 }
 
+async function enqueueAvailableModelBlockPresentation(block, buffer, status, session) {
+  if (status !== BLOCK_STATUS.READY) {
+    await presentAvailableModelBlock(block, buffer, status, session);
+    return;
+  }
+
+  session.presentationQueue.push({ block, buffer, status, session });
+  if (session.isPresentingQueuedBlock) return;
+
+  session.isPresentingQueuedBlock = true;
+  try {
+    while (session.presentationQueue.length > 0) {
+      const job = session.presentationQueue.shift();
+      await scheduleLowPriorityWork();
+      if (modelState !== session.downloadKey) return;
+      await presentAvailableModelBlock(job.block, job.buffer, job.status, job.session);
+    }
+  } finally {
+    session.isPresentingQueuedBlock = false;
+  }
+}
+
 async function startDownload(packageKey) {
   const pkg = PACKAGES[packageKey];
   modelState = createModelState(packageKey);
@@ -1842,7 +1883,7 @@ async function startDownload(packageKey) {
     MAX_PARALLEL_DOWNLOADS,
     async (block) => {
       return loadCachedModelBlock(packageKey, block, downloadKey, async (block, buffer, status) => {
-        await presentAvailableModelBlock(block, buffer, status, session);
+        await enqueueAvailableModelBlockPresentation(block, buffer, status, session);
       });
     },
   );
@@ -1859,7 +1900,7 @@ async function startDownload(packageKey) {
     MAX_PARALLEL_DOWNLOADS,
     async (block) => {
       await refreshModelBlockFromNetwork(packageKey, block, downloadKey, async (block, buffer, status) => {
-        await presentAvailableModelBlock(block, buffer, status, session);
+        await enqueueAvailableModelBlockPresentation(block, buffer, status, session);
       });
     },
   );
@@ -1874,7 +1915,7 @@ async function startDownload(packageKey) {
     MAX_PARALLEL_DOWNLOADS,
     async (block) => {
       await refreshModelBlockFromNetwork(packageKey, block, downloadKey, async (block, buffer, status) => {
-        await presentAvailableModelBlock(block, buffer, status, session);
+        await enqueueAvailableModelBlockPresentation(block, buffer, status, session);
       });
     },
   );
@@ -2026,6 +2067,7 @@ const animationPlayer = createAnimationPlayer({
   iconPause: document.getElementById("icon-pause"),
   getModelState: () => modelState,
   isBitmapCacheComplete,
+  isAnimationCacheReadyForPlayback,
   queueCurrentTooltipValueHydration,
   queuePrerenderForAllBlocks,
   waitForPrerenderIdle,

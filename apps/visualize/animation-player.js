@@ -6,6 +6,7 @@ export function createAnimationPlayer({
   iconPause,
   getModelState,
   isBitmapCacheComplete,
+  isAnimationCacheReadyForPlayback,
   queueCurrentTooltipValueHydration,
   queuePrerenderForAllBlocks,
   waitForPrerenderIdle,
@@ -32,7 +33,7 @@ export function createAnimationPlayer({
 
   function syncPlayButtonAvailability() {
     const modelState = getModelState();
-    const isAnimationCacheReady = !modelState || isBitmapCacheComplete();
+    const isAnimationCacheReady = !modelState || isAnimationCacheReadyForPlayback();
     if (!isAnimationCacheReady && playerInterval !== null) stopPlayer();
     playButton.disabled = false;
     const label = playerInterval !== null
@@ -43,13 +44,13 @@ export function createAnimationPlayer({
   }
 
   async function warmUpBitmapCacheForAnimation() {
-    if (!getModelState() || isBitmapCacheComplete()) return true;
+    if (!getModelState() || isAnimationCacheReadyForPlayback()) return true;
     setPreparingAnimation(true);
     try {
       queuePrerenderForAllBlocks();
       await waitForPrerenderIdle();
       updateWarmupProgress({ preparing: false });
-      return isBitmapCacheComplete();
+      return isAnimationCacheReadyForPlayback();
     } finally {
       setPreparingAnimation(false);
     }
