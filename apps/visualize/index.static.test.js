@@ -9,6 +9,7 @@ const animationPlayer = readFileSync(new URL("./animation-player.js", import.met
 const mapTooltip = readFileSync(new URL("./map-tooltip.js", import.meta.url), "utf8");
 const renderWorker = readFileSync(new URL("./render-worker.js", import.meta.url), "utf8");
 const modelBlockWorker = readFileSync(new URL("./model-block-worker.js", import.meta.url), "utf8");
+const downloadWorker = readFileSync(new URL("./download-worker.js", import.meta.url), "utf8");
 const unitTransforms = readFileSync(new URL("./unit-transforms.js", import.meta.url), "utf8");
 const variableMetadata = readFileSync(new URL("./variable-metadata.js", import.meta.url), "utf8");
 
@@ -274,6 +275,34 @@ test("model forecast block decoding and rendering runs in a dedicated worker", (
     source,
     /async function prerenderBlock\(blockKey\)[\s\S]*await renderModelHourViaWorker\(idx\);[\s\S]*bitmapCache\.set\(cacheKey, makeBitmapCacheEntryFromWorker\(entry\)\);/,
     "expected background animation cache rendering to avoid main-thread GRIB decode",
+  );
+});
+
+test("network file assembly runs in a dedicated download worker", () => {
+  assert.match(
+    downloadWorker,
+    /const chunks = \[\];[\s\S]*const out = new Uint8Array\(total\);[\s\S]*self\.postMessage\(\{ callId, buffer: out\.buffer \}, \[out\.buffer\]\);/,
+    "expected downloaded chunks to be assembled off the main thread and transferred back",
+  );
+  assert.match(
+    source,
+    /new Worker\(\s*new URL\("\.\/download-worker\.js", import\.meta\.url\),[\s\S]*\{ type: "module" \},/,
+    "expected index.js to create a dedicated download worker",
+  );
+  assert.match(
+    source,
+    /async function downloadFileProg\(url, filesize, onProgress\)[\s\S]*downloadFileInWorker\(proxyUrl\(url\), filesize, onProgress\)/,
+    "expected downloadFileProg to delegate network assembly to the worker",
+  );
+  assert.doesNotMatch(
+    source,
+    /async function downloadFileProg\(url, filesize, onProgress\)[\s\S]*const chunks = \[\];[\s\S]*new Uint8Array\(total\)/,
+    "expected main-thread download code not to assemble chunk arrays",
+  );
+  assert.match(
+    source,
+    /const cacheBuffer = buffer\.byteOffset === 0 && buffer\.byteLength === buffer\.buffer\.byteLength[\s\S]*\? buffer\.buffer[\s\S]*: buffer\.buffer\.slice/,
+    "expected IndexedDB writes to avoid an extra ArrayBuffer slice when the downloaded buffer is already exact",
   );
 });
 

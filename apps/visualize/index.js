@@ -195,6 +195,7 @@ let isDecoding = false;
 let pendingHourIdx = null;
 let renderWorker = null;
 let modelBlockWorker = null;
+let downloadWorker = null;
 let renderGen = 0;
 let nextCallId = 0;
 let bitmapCache = new Map(); // cacheKey → {bitmap, dataMin, dataMax, mean, count}
@@ -413,6 +414,9 @@ async function writeCachedGribBlock(packageKey, block, buffer) {
   try {
     const db = await openGribCacheDb();
     if (!db) return false;
+    const cacheBuffer = buffer.byteOffset === 0 && buffer.byteLength === buffer.buffer.byteLength
+      ? buffer.buffer
+      : buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
     const transaction = db.transaction(GRIB_BLOCK_STORE, "readwrite");
     const record = {
       id: gribBlockCacheKey(packageKey, block),
@@ -422,7 +426,7 @@ async function writeCachedGribBlock(packageKey, block, buffer) {
       url: block.url,
       filesize: block.filesize ?? null,
       savedAt: new Date().toISOString(),
-      buffer: buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
+      buffer: cacheBuffer,
     };
     transaction.objectStore(GRIB_BLOCK_STORE).put(record);
     await idbTransactionDone(transaction);
@@ -521,6 +525,43 @@ function initModelBlockWorker() {
     new URL("./model-block-worker.js", import.meta.url),
     { type: "module" },
   );
+}
+
+function initDownloadWorker() {
+  if (downloadWorker) return;
+  downloadWorker = new Worker(
+    new URL("./download-worker.js", import.meta.url),
+    { type: "module" },
+  );
+}
+
+function downloadFileInWorker(url, filesize, onProgress) {
+  initDownloadWorker();
+  const callId = ++nextCallId;
+  return new Promise((resolve, reject) => {
+    function onMsg({ data }) {
+      if (data.callId !== callId) return;
+      if (data.progress) {
+        onProgress(data.loaded, data.total);
+        return;
+      }
+      downloadWorker.removeEventListener("message", onMsg);
+      downloadWorker.removeEventListener("error", onErr);
+      if (data.error) {
+        reject(new Error(data.error));
+        return;
+      }
+      resolve(new Uint8Array(data.buffer));
+    }
+    function onErr(error) {
+      downloadWorker.removeEventListener("message", onMsg);
+      downloadWorker.removeEventListener("error", onErr);
+      reject(error);
+    }
+    downloadWorker.addEventListener("message", onMsg);
+    downloadWorker.addEventListener("error", onErr);
+    downloadWorker.postMessage({ callId, url, filesize });
+  });
 }
 
 function postModelBlockWorker(message, transfer = []) {
@@ -1276,26 +1317,7 @@ async function fetchDataGouvResources(datasetId, titlePattern) {
 }
 
 async function downloadFileProg(url, filesize, onProgress) {
-  const resp = await fetch(proxyUrl(url));
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  const reader = resp.body.getReader();
-  const chunks = [];
-  let loaded = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    loaded += value.length;
-    onProgress(loaded, filesize || loaded);
-  }
-  const total = chunks.reduce((s, c) => s + c.length, 0);
-  const out = new Uint8Array(total);
-  let off = 0;
-  for (const c of chunks) {
-    out.set(c, off);
-    off += c.length;
-  }
-  return out;
+  return downloadFileInWorker(proxyUrl(url), filesize, onProgress);
 }
 
 async function getCachedDecode(hour) {
