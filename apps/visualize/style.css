@@ -833,6 +833,13 @@ header h1 {
 #cache-warmup[hidden] {
   display: none;
 }
+#cache-warmup.waiting {
+  grid-template-columns: 1fr;
+}
+#cache-warmup.waiting #cache-warmup-track,
+#cache-warmup.waiting #cache-warmup-count {
+  display: none;
+}
 #cache-warmup-track {
   height: 6px;
   overflow: hidden;
@@ -892,6 +899,11 @@ header h1 {
 #player-reset:hover,
 #player-play:hover {
   background: var(--color-border);
+}
+#player-play:disabled {
+  background: var(--color-border);
+  color: var(--color-text-muted);
+  cursor: default;
 }
 #player-reset svg,
 #player-play svg {

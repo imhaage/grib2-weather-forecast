@@ -8,13 +8,9 @@ export function createAnimationPlayer({
   isBitmapCacheComplete,
   isAnimationCacheReadyForPlayback,
   queueCurrentTooltipValueHydration,
-  queuePrerenderForAllBlocks,
-  waitForPrerenderIdle,
   showHour,
-  updateWarmupProgress,
 }) {
   let playerInterval = null;
-  let isPreparingAnimation = false;
 
   function isPlaying() {
     return playerInterval !== null;
@@ -26,34 +22,18 @@ export function createAnimationPlayer({
     syncPlayButtonAvailability();
   }
 
-  function setPreparingAnimation(preparing) {
-    isPreparingAnimation = preparing;
-    updateWarmupProgress({ preparing });
-  }
-
   function syncPlayButtonAvailability() {
     const modelState = getModelState();
     const isAnimationCacheReady = !modelState || isAnimationCacheReadyForPlayback();
     if (!isAnimationCacheReady && playerInterval !== null) stopPlayer();
-    playButton.disabled = false;
-    const label = playerInterval !== null
-      ? "Pause"
-      : "Play";
+    playButton.disabled = !isAnimationCacheReady;
+    const label = isAnimationCacheReady
+      ? playerInterval !== null
+        ? "Pause"
+        : "Play"
+      : "Preparing animation cache";
     playButton.title = label;
     playButton.setAttribute("aria-label", label);
-  }
-
-  async function warmUpBitmapCacheForAnimation() {
-    if (!getModelState() || isAnimationCacheReadyForPlayback()) return true;
-    setPreparingAnimation(true);
-    try {
-      queuePrerenderForAllBlocks();
-      await waitForPrerenderIdle();
-      updateWarmupProgress({ preparing: false });
-      return isAnimationCacheReadyForPlayback();
-    } finally {
-      setPreparingAnimation(false);
-    }
   }
 
   function startPlayer() {
@@ -84,9 +64,7 @@ export function createAnimationPlayer({
       stopPlayer();
       return;
     }
-    if (isPreparingAnimation) return;
-    const ready = await warmUpBitmapCacheForAnimation();
-    if (!ready || !getModelState() || playerInterval !== null) return;
+    if (!isAnimationCacheReadyForPlayback()) return;
     startPlayer();
   });
 

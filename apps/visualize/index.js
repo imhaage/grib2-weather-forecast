@@ -669,7 +669,7 @@ function renderViaWorker(values, renderParams, outW, outH, { transferValues = fa
 }
 
 function invalidateBitmapCache() {
-  if (modelState) modelState.animationCachePrimed = false;
+  if (modelState) modelState.animationCacheStatus = "waiting";
   for (const entry of bitmapCache.values()) entry.bitmap.close();
   bitmapCache = new Map();
   prerenderQueue = [];
@@ -713,10 +713,10 @@ function isBitmapCacheComplete() {
 }
 
 function isAnimationCacheReadyForPlayback() {
-  return Boolean(modelState && (modelState.animationCachePrimed || isBitmapCacheComplete()));
+  return Boolean(modelState && modelState.animationCacheStatus === "ready" && isBitmapCacheComplete());
 }
 
-function updateWarmupProgress({ preparing = false } = {}) {
+function updateWarmupProgress() {
   const container = dom.cacheWarmup;
   if (!container || !modelState?.hourList.length) {
     if (container) container.hidden = true;
@@ -727,19 +727,23 @@ function updateWarmupProgress({ preparing = false } = {}) {
   const total = modelState.hourList.length;
   const ready = bitmapCacheReadyCount();
   const complete = ready === total;
-  if (complete) modelState.animationCachePrimed = true;
-  const visibleReady = modelState.animationCachePrimed ? total : ready;
-  const pct = total ? Math.round((visibleReady / total) * 100) : 0;
+  if (modelState.animationCacheStatus === "building" && complete) {
+    modelState.animationCacheStatus = "ready";
+  }
+  const isWaiting = modelState.animationCacheStatus === "waiting";
+  const isReady = modelState.animationCacheStatus === "ready";
+  const pct = total ? Math.round((ready / total) * 100) : 0;
 
-  container.hidden = false;
-  container.classList.toggle("ready", modelState.animationCachePrimed);
+  container.hidden = isReady;
+  container.classList.toggle("waiting", isWaiting);
+  container.classList.toggle("ready", isReady);
   document.getElementById("cache-warmup-bar").style.width = `${pct}%`;
-  document.getElementById("cache-warmup-count").textContent = `${visibleReady} / ${total}`;
-  document.getElementById("cache-warmup-label").textContent = modelState.animationCachePrimed
+  document.getElementById("cache-warmup-count").textContent = `${ready} / ${total}`;
+  document.getElementById("cache-warmup-label").textContent = isWaiting
+    ? "Preparing animation cache"
+    : isReady
     ? "Animation ready"
-    : preparing
-      ? "Preparing animation"
-      : "Animation cache";
+    : "Animation cache";
   syncPlayButtonAvailability();
   updatePerfDiagnostics();
 }
@@ -1770,7 +1774,7 @@ function createModelState(packageKey) {
     variable: null,
     currentHour: null,
     lastRunInfo: null,
-    animationCachePrimed: false,
+    animationCacheStatus: "waiting",
   };
 }
 
@@ -1949,12 +1953,6 @@ function completeModelDownloadIfReady(session) {
   if (session.availableCount !== session.resources.length) return;
   dom.aromeDownloadStatus.textContent =
     `Available ${session.resources.length} / ${session.resources.length} files (${session.runSummary})`;
-  queuePrerenderForAllBlocks();
-}
-
-function queueUpdatedBlockPrerender(block, status) {
-  if (status !== BLOCK_STATUS.READY) return;
-  queuePrerenderBlock(block.key);
 }
 
 async function presentAvailableModelBlock(block, buffer, status, session) {
@@ -1963,8 +1961,18 @@ async function presentAvailableModelBlock(block, buffer, status, session) {
   await storeAvailableModelBlock(block, buffer, status, session);
   if (modelState !== session.downloadKey) return;
   await refreshMapForAvailableModelBlock(block, session);
-  queueUpdatedBlockPrerender(block, status);
   completeModelDownloadIfReady(session);
+}
+
+async function buildAnimationCacheAfterNetworkSettles(session) {
+  if (modelState !== session.downloadKey) return;
+  modelState.animationCacheStatus = "building";
+  updateWarmupProgress();
+  queuePrerenderForAllBlocks();
+  await waitForPrerenderIdle();
+  if (modelState !== session.downloadKey) return;
+  modelState.animationCacheStatus = isBitmapCacheComplete() ? "ready" : "waiting";
+  updateWarmupProgress();
 }
 
 async function enqueueAvailableModelBlockPresentation(block, buffer, status, session) {
@@ -2024,6 +2032,7 @@ async function startDownload(packageKey) {
     `Downloading ${resources.length} ${packageKey} files (${runSummary})…`;
   renderDownloadItems(resources);
   const session = createModelDownloadSession({ packageKey, pkg, resources, runSummary, downloadKey });
+  updateWarmupProgress();
 
   const cacheResults = await runWithConcurrency(
     resources,
@@ -2053,10 +2062,6 @@ async function startDownload(packageKey) {
   );
   if (modelState !== downloadKey) return;
 
-  queuePrerenderForAllBlocks();
-  await waitForPrerenderIdle();
-  if (modelState !== downloadKey) return;
-
   await runWithConcurrency(
     blocksNeedingRefresh,
     MAX_PARALLEL_DOWNLOADS,
@@ -2066,6 +2071,9 @@ async function startDownload(packageKey) {
       });
     },
   );
+  if (modelState !== downloadKey) return;
+
+  await buildAnimationCacheAfterNetworkSettles(session);
 }
 
 // ── Router (hash-based) ───────────────────────────────────────────────────────
@@ -2216,10 +2224,7 @@ const animationPlayer = createAnimationPlayer({
   isBitmapCacheComplete,
   isAnimationCacheReadyForPlayback,
   queueCurrentTooltipValueHydration,
-  queuePrerenderForAllBlocks,
-  waitForPrerenderIdle,
   showHour,
-  updateWarmupProgress,
 });
 
 window.addEventListener("hashchange", route);

@@ -13,6 +13,11 @@ const downloadWorker = readFileSync(new URL("./download-worker.js", import.meta.
 const unitTransforms = readFileSync(new URL("./unit-transforms.js", import.meta.url), "utf8");
 const variableMetadata = readFileSync(new URL("./variable-metadata.js", import.meta.url), "utf8");
 
+function sourceFunctionBody(name) {
+  const match = source.match(new RegExp(`function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`));
+  return match?.[0] ?? "";
+}
+
 test("app header exposes the project title and GitHub link", () => {
   assert.match(
     html,
@@ -180,6 +185,8 @@ test("model block availability presentation is isolated", () => {
 });
 
 test("model block availability presentation delegates focused responsibilities", () => {
+  const completeDownloadFunction = sourceFunctionBody("completeModelDownloadIfReady");
+
   assert.match(
     source,
     /function storeAvailableModelBlock\(block, buffer, status, session\)/,
@@ -198,12 +205,22 @@ test("model block availability presentation delegates focused responsibilities",
   assert.match(
     source,
     /function completeModelDownloadIfReady\(session\)/,
-    "expected download completion UI and pre-render scheduling to be isolated",
+    "expected download completion UI to be isolated",
   );
   assert.match(
     source,
     /async function presentAvailableModelBlock\(block, buffer, status, session\) \{[\s\S]*initializeModelLegendFromBlock\(buffer, session\);[\s\S]*await storeAvailableModelBlock\(block, buffer, status, session\);[\s\S]*await refreshMapForAvailableModelBlock\(block, session\);[\s\S]*completeModelDownloadIfReady\(session\);/,
     "expected available block presentation to read as orchestration",
+  );
+  assert.doesNotMatch(
+    completeDownloadFunction,
+    /queuePrerenderForAllBlocks\(\);/,
+    "expected download completion not to start animation cache generation early",
+  );
+  assert.doesNotMatch(
+    source,
+    /function queueUpdatedBlockPrerender\(block, status\)/,
+    "expected per-file network updates not to pre-render animation frames while downloads are still running",
   );
 });
 
@@ -317,15 +334,20 @@ test("cached block updates reset download progress and refresh the changed bitma
     /setBlockStatus\(block, BLOCK_STATUS\.DOWNLOADING\);[\s\S]*resetBlockDownloadProgress\(block\);[\s\S]*const buffer = await downloadFileProg/,
     "expected stale cached blocks to switch from 100% violet to a fresh blue progress bar",
   );
-  assert.match(
+  assert.doesNotMatch(
     source,
     /function queueUpdatedBlockPrerender\(block, status\)/,
-    "expected fresh network updates to schedule only the changed block for bitmap refresh",
+    "expected fresh network updates not to schedule animation frames while downloads are still running",
+  );
+  assert.doesNotMatch(
+    source,
+    /async function presentAvailableModelBlock\(block, buffer, status, session\) \{[\s\S]*queueUpdatedBlockPrerender\(block, status\);/,
+    "expected block presentation not to refresh animation cache one file at a time",
   );
   assert.match(
     source,
-    /async function presentAvailableModelBlock\(block, buffer, status, session\) \{[\s\S]*await refreshMapForAvailableModelBlock\(block, session\);[\s\S]*queueUpdatedBlockPrerender\(block, status\);/,
-    "expected new downloaded blocks to update visible map first, then refresh animation cache for that block",
+    /async function buildAnimationCacheAfterNetworkSettles\(session\)[\s\S]*queuePrerenderForAllBlocks\(\);[\s\S]*await waitForPrerenderIdle\(\);/,
+    "expected animation cache generation to start after missing and stale network work has settled",
   );
 });
 
@@ -653,7 +675,7 @@ test("CAPE keeps zero values visible in the static color scale", () => {
   );
 });
 
-test("player warms the bitmap cache before starting animation", () => {
+test("player stays disabled until the deferred animation cache is generated", () => {
   assert.match(
     html,
     /id="arome-slider-wrap"[\s\S]*id="cache-warmup"[\s\S]*id="map-wrap"/,
@@ -666,48 +688,38 @@ test("player warms the bitmap cache before starting animation", () => {
   );
   assert.match(
     animationPlayer,
-    /async function warmUpBitmapCacheForAnimation\(/,
-    "expected Play to warm the bitmap cache before animation",
+    /playButton\.disabled = !isAnimationCacheReady;/,
+    "expected Play to stay disabled until the animation cache is ready",
   );
   assert.match(
     animationPlayer,
-    /queuePrerenderForAllBlocks\(\);[\s\S]*await waitForPrerenderIdle\(\);/,
-    "expected warm-up to wait for the pre-render queue",
-  );
-  assert.match(
-    animationPlayer,
-    /await warmUpBitmapCacheForAnimation\(\);[\s\S]*startPlayer\(\);/,
-    "expected Play to start only after cache warm-up completes",
-  );
-  assert.match(
-    animationPlayer,
-    /function syncPlayButtonAvailability\(\)[\s\S]*const isAnimationCacheReady = !modelState \|\| isAnimationCacheReadyForPlayback\(\);[\s\S]*const label = playerInterval !== null[\s\S]*\? "Pause"[\s\S]*: "Play";/,
-    "expected Play label to use the latched animation cache readiness state",
+    /const label = isAnimationCacheReady[\s\S]*: "Preparing animation cache";[\s\S]*playButton\.title = label;/,
+    "expected disabled Play to explain that the animation cache is being prepared",
   );
   assert.doesNotMatch(
     animationPlayer,
-    /playButton\.disabled = !isAnimationCacheReady;/,
-    "expected Play to stay clickable while cache warm-up catches up",
+    /warmUpBitmapCacheForAnimation/,
+    "expected Play clicks not to trigger cache generation anymore",
   );
   assert.match(
     animationPlayer,
-    /if \(!isAnimationCacheReady && playerInterval !== null\) stopPlayer\(\);/,
-    "expected playback to stop only before the animation cache has been primed",
+    /function syncPlayButtonAvailability\(\)[\s\S]*const isAnimationCacheReady = !modelState \|\| isAnimationCacheReadyForPlayback\(\);[\s\S]*const label = isAnimationCacheReady[\s\S]*\? playerInterval !== null[\s\S]*\? "Pause"[\s\S]*: "Play"/,
+    "expected Play label to use the latched animation cache readiness state",
   );
   assert.match(
     source,
-    /animationCachePrimed: false,/,
-    "expected model state to track whether the animation cache has completed once",
+    /animationCacheStatus: "waiting",/,
+    "expected model state to track the deferred animation cache phase",
   );
   assert.match(
     source,
-    /function isAnimationCacheReadyForPlayback\(\)[\s\S]*modelState\.animationCachePrimed \|\| isBitmapCacheComplete\(\)/,
-    "expected playback readiness to stay true after the first completed warm-up",
+    /function isAnimationCacheReadyForPlayback\(\)[\s\S]*modelState\.animationCacheStatus === "ready" && isBitmapCacheComplete\(\)/,
+    "expected playback readiness only after the deferred cache generation is complete",
   );
   assert.match(
     source,
-    /function updateWarmupProgress\([\s\S]*if \(complete\) modelState\.animationCachePrimed = true;[\s\S]*const visibleReady = modelState\.animationCachePrimed \? total : ready;/,
-    "expected the warm-up indicator not to regress after the cache has been primed",
+    /function updateWarmupProgress\([\s\S]*modelState\.animationCacheStatus === "waiting"[\s\S]*Preparing animation cache/,
+    "expected the warm-up area to show a message before generation begins",
   );
   assert.match(
     source,
@@ -724,7 +736,7 @@ test("player warms the bitmap cache before starting animation", () => {
     /const animationPlayer = createAnimationPlayer\(/,
     "expected index.js to wire an animation player controller",
   );
-  assert.doesNotMatch(css, /#player-play:disabled/, "expected Play not to have disabled styling");
+  assert.match(css, /#player-play:disabled/, "expected disabled Play to have lighter styling");
 });
 
 test("palette and variable changes stop playback before invalidating bitmap cache", () => {
@@ -895,8 +907,8 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
   );
   assert.match(
     source,
-    /const cacheResults = await runWithConcurrency\([\s\S]*loadCachedModelBlock\(packageKey, block, downloadKey,[\s\S]*const missingBlocks = cacheResults[\s\S]*const blocksNeedingRefresh = cacheResults[\s\S]*await runWithConcurrency\(\s*missingBlocks,[\s\S]*await waitForPrerenderIdle\(\);[\s\S]*await runWithConcurrency\(\s*blocksNeedingRefresh,/,
-    "expected cached blocks and missing network blocks to be presented and pre-rendered before stale refreshes start",
+    /const cacheResults = await runWithConcurrency\([\s\S]*loadCachedModelBlock\(packageKey, block, downloadKey,[\s\S]*const missingBlocks = cacheResults[\s\S]*const blocksNeedingRefresh = cacheResults[\s\S]*await runWithConcurrency\(\s*missingBlocks,[\s\S]*await runWithConcurrency\(\s*blocksNeedingRefresh,[\s\S]*await buildAnimationCacheAfterNetworkSettles\(session\);/,
+    "expected cached blocks to stay navigable while missing and stale network work finishes before animation generation",
   );
   assert.match(
     source,
@@ -996,7 +1008,7 @@ test("missing cached files are downloaded before stale cached files refresh", ()
   );
   assert.match(
     source,
-    /await runWithConcurrency\(\s*missingBlocks,\s*MAX_PARALLEL_DOWNLOADS,[\s\S]*refreshModelBlockFromNetwork[\s\S]*\);[\s\S]*queuePrerenderForAllBlocks\(\);[\s\S]*await waitForPrerenderIdle\(\);[\s\S]*await runWithConcurrency\(\s*blocksNeedingRefresh,\s*MAX_PARALLEL_DOWNLOADS,/,
-    "expected missing files to download before animation warm-up and stale refreshes",
+    /await runWithConcurrency\(\s*missingBlocks,\s*MAX_PARALLEL_DOWNLOADS,[\s\S]*refreshModelBlockFromNetwork[\s\S]*\);[\s\S]*await runWithConcurrency\(\s*blocksNeedingRefresh,\s*MAX_PARALLEL_DOWNLOADS,[\s\S]*refreshModelBlockFromNetwork[\s\S]*\);[\s\S]*await buildAnimationCacheAfterNetworkSettles\(session\);/,
+    "expected missing files and stale refreshes to finish before animation cache generation starts",
   );
 });
