@@ -14,7 +14,7 @@ const unitTransforms = readFileSync(new URL("./unit-transforms.js", import.meta.
 const variableMetadata = readFileSync(new URL("./variable-metadata.js", import.meta.url), "utf8");
 
 function sourceFunctionBody(name) {
-  const match = source.match(new RegExp(`function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`));
+  const match = source.match(new RegExp(`(?:async )?function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`));
   return match?.[0] ?? "";
 }
 
@@ -133,7 +133,7 @@ test("model download startup is split into focused helpers", () => {
   );
   assert.match(
     source,
-    /async function startDownload\(packageKey\) \{[\s\S]*modelState = createModelState\(packageKey\);[\s\S]*configureModelVariableControls\(pkg\);[\s\S]*modelState\.hourList = buildHourList\(resources\);[\s\S]*renderDownloadItems\(resources\);/,
+    /async function startDownload\(packageKey\) \{[\s\S]*modelState = createModelState\(packageKey\);[\s\S]*configureModelVariableControls\(pkg\);[\s\S]*applyModelResources\(resources\);[\s\S]*renderDownloadItems\(resources\);/,
     "expected startDownload to orchestrate the extracted startup helpers",
   );
 });
@@ -247,7 +247,7 @@ test("network block presentation is integrated one block at a time", () => {
   );
   assert.match(
     source,
-    /refreshModelBlockFromNetwork\(packageKey, block, downloadKey, async \(block, buffer, status\) => \{[\s\S]*await enqueueAvailableModelBlockPresentation\(block, buffer, status, session\);/,
+    /refreshModelBlockFromNetwork\(session\.packageKey, block, session\.downloadKey, async \(block, buffer, status\) => \{[\s\S]*await enqueueAvailableModelBlockPresentation\(block, buffer, status, session\);/,
     "expected network refreshes to avoid presenting completed files immediately in parallel",
   );
 });
@@ -442,6 +442,21 @@ test("model visual refresh after palette or variable changes is shared", () => {
     source,
     /addEventListener\("change", async \(e\) => \{[\s\S]*await refreshCurrentModelVisuals\(\{ clearDecoded: true \}\);/,
     "expected variable changes to use the shared model refresh helper and clear decoded values",
+  );
+  assert.match(
+    source,
+    /async function refreshModelBlocksToLatest\(session,/,
+    "expected network freshness checks to be shared by initial download and visual refreshes",
+  );
+  assert.match(
+    source,
+    /async function refreshCurrentModelVisuals\(\{ clearDecoded = false \} = \{\}\)[\s\S]*await refreshCurrentModelResourcesToLatest\(\);[\s\S]*await buildAnimationCacheAfterNetworkSettles\(session\);/,
+    "expected palette and variable changes to rebuild animation cache only after latest data is available",
+  );
+  assert.doesNotMatch(
+    sourceFunctionBody("refreshCurrentModelVisuals"),
+    /queuePrerenderForAllBlocks\(\);/,
+    "expected visual refreshes not to bypass the latest-data gate before animation cache generation",
   );
 });
 
@@ -859,8 +874,8 @@ test("model file downloads are limited to six parallel fetches", () => {
   );
   assert.match(
     source,
-    /await runWithConcurrency\(\s*resources,\s*MAX_PARALLEL_DOWNLOADS,\s*async \(block\) =>/,
-    "expected startDownload to use the concurrency-limited queue",
+    /await runWithConcurrency\(\s*session\.resources,\s*MAX_PARALLEL_DOWNLOADS,\s*async \(block\) =>/,
+    "expected model refreshes to use the concurrency-limited queue",
   );
   assert.doesNotMatch(
     source,
@@ -907,7 +922,7 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
   );
   assert.match(
     source,
-    /const cacheResults = await runWithConcurrency\([\s\S]*loadCachedModelBlock\(packageKey, block, downloadKey,[\s\S]*const missingBlocks = cacheResults[\s\S]*const blocksNeedingRefresh = cacheResults[\s\S]*await runWithConcurrency\(\s*missingBlocks,[\s\S]*await runWithConcurrency\(\s*blocksNeedingRefresh,[\s\S]*await buildAnimationCacheAfterNetworkSettles\(session\);/,
+    /async function refreshModelBlocksToLatest\(session[\s\S]*const cacheResults = await runWithConcurrency\([\s\S]*loadCachedModelBlock\(session\.packageKey, block, session\.downloadKey,[\s\S]*const missingBlocks = cacheResults[\s\S]*const blocksNeedingRefresh = cacheResults[\s\S]*await runWithConcurrency\(\s*missingBlocks,[\s\S]*await runWithConcurrency\(\s*blocksNeedingRefresh,/,
     "expected cached blocks to stay navigable while missing and stale network work finishes before animation generation",
   );
   assert.match(
@@ -993,8 +1008,8 @@ test("missing cached files are downloaded before stale cached files refresh", ()
   );
   assert.match(
     source,
-    /const cacheResults = await runWithConcurrency\([\s\S]*loadCachedModelBlock\(packageKey, block, downloadKey,[\s\S]*\);/,
-    "expected startDownload to gather typed cache load results before network work",
+    /async function refreshModelBlocksToLatest\(session[\s\S]*const cacheResults = await runWithConcurrency\([\s\S]*loadCachedModelBlock\(session\.packageKey, block, session\.downloadKey,[\s\S]*\);/,
+    "expected shared latest-data refresh to gather typed cache load results before network work",
   );
   assert.match(
     source,
@@ -1008,7 +1023,7 @@ test("missing cached files are downloaded before stale cached files refresh", ()
   );
   assert.match(
     source,
-    /await runWithConcurrency\(\s*missingBlocks,\s*MAX_PARALLEL_DOWNLOADS,[\s\S]*refreshModelBlockFromNetwork[\s\S]*\);[\s\S]*await runWithConcurrency\(\s*blocksNeedingRefresh,\s*MAX_PARALLEL_DOWNLOADS,[\s\S]*refreshModelBlockFromNetwork[\s\S]*\);[\s\S]*await buildAnimationCacheAfterNetworkSettles\(session\);/,
-    "expected missing files and stale refreshes to finish before animation cache generation starts",
+    /async function refreshModelBlocksToLatest\(session[\s\S]*await runWithConcurrency\(\s*missingBlocks,\s*MAX_PARALLEL_DOWNLOADS,[\s\S]*refreshModelBlockFromNetwork[\s\S]*\);[\s\S]*await runWithConcurrency\(\s*blocksNeedingRefresh,\s*MAX_PARALLEL_DOWNLOADS,[\s\S]*refreshModelBlockFromNetwork[\s\S]*\);/,
+    "expected missing files and stale refreshes to finish inside the shared latest-data refresh",
   );
 });
