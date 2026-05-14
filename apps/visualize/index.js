@@ -194,6 +194,7 @@ let modelState = null; // { packageKey, resources, buffers, messageIndex, hourLi
 let isDecoding = false;
 let pendingHourIdx = null;
 let renderWorker = null;
+let modelBlockWorker = null;
 let renderGen = 0;
 let nextCallId = 0;
 let bitmapCache = new Map(); // cacheKey → {bitmap, dataMin, dataMax, mean, count}
@@ -514,6 +515,41 @@ function initRenderWorker() {
   );
 }
 
+function initModelBlockWorker() {
+  if (modelBlockWorker) return;
+  modelBlockWorker = new Worker(
+    new URL("./model-block-worker.js", import.meta.url),
+    { type: "module" },
+  );
+}
+
+function postModelBlockWorker(message, transfer = []) {
+  initModelBlockWorker();
+  const callId = ++nextCallId;
+  return new Promise((resolve) => {
+    function onMsg({ data }) {
+      if (data.callId !== callId) return;
+      modelBlockWorker.removeEventListener("message", onMsg);
+      modelBlockWorker.removeEventListener("error", onErr);
+      if (data.error) {
+        console.error("model-block-worker error:", data.error);
+        resolve(null);
+        return;
+      }
+      resolve(data);
+    }
+    function onErr(error) {
+      modelBlockWorker.removeEventListener("message", onMsg);
+      modelBlockWorker.removeEventListener("error", onErr);
+      console.error("model-block-worker crash:", error);
+      resolve(null);
+    }
+    modelBlockWorker.addEventListener("message", onMsg);
+    modelBlockWorker.addEventListener("error", onErr);
+    modelBlockWorker.postMessage({ ...message, callId }, transfer);
+  });
+}
+
 async function timedDecodeGRIB2(buffer) {
   const startedAt = PERF_DEBUG ? performance.now() : 0;
   const decoded = await decodeGRIB2(buffer);
@@ -679,6 +715,25 @@ function makeBitmapCacheEntry(renderEntry, renderParams) {
     grid: renderParams.grid,
     product: renderParams.product,
     header: renderParams.header,
+  };
+}
+
+function makeBitmapCacheEntryFromWorker(renderEntry) {
+  return {
+    bitmap: renderEntry.bitmap,
+    dataMin: renderEntry.dataMin,
+    dataMax: renderEntry.dataMax,
+    mean: renderEntry.dataMean,
+    count: renderEntry.dataCount,
+    unitTransform: renderEntry.unitTransform,
+    renderMin: renderEntry.renderMin,
+    range: renderEntry.range,
+    staticScale: renderEntry.staticScale,
+    displayUnits: renderEntry.displayUnits,
+    isFallback: renderEntry.isFallback,
+    grid: renderEntry.grid,
+    product: renderEntry.product,
+    header: renderEntry.header,
   };
 }
 
@@ -1274,7 +1329,7 @@ async function getCachedDecode(hour) {
 function messageViewFromRef(ref) {
   if (!ref) return null;
   const buffer = modelState.buffers.get(ref.blockKey);
-  if (!buffer) return null;
+  if (!(buffer instanceof Uint8Array)) return null;
   return buffer.subarray(ref.offset, ref.offset + ref.length);
 }
 
@@ -1286,6 +1341,7 @@ function evictDecodedHour(hour) {
 
 function indexBlock(blockKey) {
   const buffer = modelState.buffers.get(blockKey);
+  if (!(buffer instanceof Uint8Array)) return;
   const block = modelState.resources.find((r) => r.key === blockKey);
   const index = new Map();
   for (const msg of iterateGRIB2Messages(buffer)) {
@@ -1339,6 +1395,78 @@ async function computeRenderParams(data, idx) {
   });
 }
 
+function modelWorkerRequestForHour(idx, hour, { includeValues = false } = {}) {
+  const block = blockForHour(hour);
+  if (!block || !modelState.buffers.has(block.key)) return null;
+
+  const varDef = findPackageVariable(modelState.packageKey, modelState.variable);
+  const shortName = varDef?.shortName ?? modelState.variable;
+  const staticScale = staticScaleFor(shortName);
+  const renderMin = staticScale ? staticScale.min : 0;
+  const renderMax = staticScale ? staticScale.max : 1;
+  const range = renderMax - renderMin || 1;
+  const isLog = staticScale?.log ?? false;
+  const prevHour = idx > 0 ? modelState.hourList[idx - 1] : null;
+  const previousBlock = prevHour != null ? blockForHour(prevHour) : null;
+
+  return {
+    type: "renderHour",
+    gen: renderGen,
+    blockKey: block.key,
+    block,
+    hour,
+    previousBlockKey: previousBlock?.key ?? null,
+    previousBlock,
+    previousHour: prevHour,
+    variable: {
+      shortName,
+      levelValue: varDef?.levelValue ?? null,
+    },
+    unitTransform: unitTransformFor(shortName),
+    staticScale,
+    renderMin,
+    range,
+    isLog,
+    logFloor: LOG_SCALE_FLOOR,
+    logDenom: isLog ? Math.log(staticScale.max / LOG_SCALE_FLOOR) : 1,
+    zeroThreshold: staticScale?.zeroThreshold ?? 0,
+    displayUnits: displayUnitsFor(shortName, varDef?.units),
+    lut: buildLUT(currentPalette),
+    missingValue: MISSING_VALUE,
+    includeValues,
+  };
+}
+
+async function renderModelHourViaWorker(idx, { includeValues = false } = {}) {
+  const hour = modelState.hourList[idx];
+  const request = modelWorkerRequestForHour(idx, hour, { includeValues });
+  if (!request) return null;
+
+  const startedAt = PERF_DEBUG ? performance.now() : 0;
+  const result = await postModelBlockWorker(request, [request.lut.buffer]);
+  if (!result) return null;
+  if (PERF_DEBUG) {
+    perfStats.lastRenderMs = performance.now() - startedAt;
+    updatePerfDiagnostics();
+  }
+  if (renderGen !== request.gen) {
+    result.bitmap?.close();
+    return null;
+  }
+  return result;
+}
+
+async function decodeModelHourValuesViaWorker(idx, hour) {
+  const request = modelWorkerRequestForHour(idx, hour, { includeValues: false });
+  if (!request) return null;
+  const result = await postModelBlockWorker({
+    ...request,
+    type: "decodeValues",
+  });
+  if (!result?.values || renderGen !== request.gen) return null;
+  return result;
+}
+
 async function presentBitmapEntry(hour, entry, { values } = {}) {
   const { grid, product, header } = entry;
   hideMapUnavailable();
@@ -1381,7 +1509,7 @@ async function presentBitmapEntry(hour, entry, { values } = {}) {
 }
 
 async function hydrateTooltipValues(idx, hour, token, capturedState, capturedGen) {
-  const data = await getCachedDecode(hour);
+  const data = await decodeModelHourValuesViaWorker(idx, hour);
   if (
     !data ||
     modelState !== capturedState ||
@@ -1390,7 +1518,6 @@ async function hydrateTooltipValues(idx, hour, token, capturedState, capturedGen
     capturedState.currentHour !== hour
   ) return;
 
-  const p = await computeRenderParams(data, idx);
   if (
     modelState !== capturedState ||
     renderGen !== capturedGen ||
@@ -1398,7 +1525,8 @@ async function hydrateTooltipValues(idx, hour, token, capturedState, capturedGen
     capturedState.currentHour !== hour
   ) return;
 
-  gridState = makeGridState(p);
+  const cachedEntry = bitmapCache.get(bitmapCacheKey(hour));
+  if (cachedEntry) gridState = makeGridState(cachedEntry, data.values);
 }
 
 function queueTooltipValueHydration(idx, hour) {
@@ -1446,21 +1574,17 @@ async function showHour(idx) {
       return;
     }
 
-    const data = await getCachedDecode(hour);
-    if (!data) {
+    modelState.currentHour = hour;
+    const renderEntry = await renderModelHourViaWorker(idx, { includeValues: true });
+    if (!renderEntry) {
       showUnavailableHour(hour);
       return;
     }
 
-    modelState.currentHour = hour;
-    const p = await computeRenderParams(data, idx);
-    const outH = mercatorCanvasHeight(p.grid);
-    const renderEntry = await renderViaWorker(p.values, p, p.grid.ni, outH);
-    if (!renderEntry) return; // renderGen changed while worker was busy — abort
-    const entry = makeBitmapCacheEntry(renderEntry, p);
+    const entry = makeBitmapCacheEntryFromWorker(renderEntry);
     bitmapCache.set(cacheKey, entry);
     updateWarmupProgress();
-    await presentBitmapEntry(hour, entry, { values: p.values });
+    await presentBitmapEntry(hour, entry, { values: renderEntry.values });
 
   } catch (err) {
     console.error("showHour:", err);
@@ -1486,34 +1610,20 @@ async function prerenderBlock(blockKey) {
   for (let hour = block.startHour; hour <= block.endHour; hour++) {
     if (modelState !== capturedState || renderGen !== capturedGen) return;
 
-    const data = await getCachedDecode(hour);
-    if (!data || modelState !== capturedState || renderGen !== capturedGen) return;
-
     const idx = capturedState.hourList.indexOf(hour);
     if (idx === -1) continue;
-
-    const p = await computeRenderParams(data, idx);
-    if (modelState !== capturedState || renderGen !== capturedGen) return;
 
     const cacheKey = bitmapCacheKey(hour);
     if (bitmapCache.has(cacheKey)) continue; // already rendered (e.g. by showHour)
 
-    const outW = data.grid.ni;
-    const outH = mercatorCanvasHeight(data.grid);
-    const canTransferValues =
-      hour !== capturedState.currentHour &&
-      (p.values !== data.values || p.product.pdtNumber !== 8);
-    if (canTransferValues && p.values === data.values) evictDecodedHour(hour);
-    const entry = await renderViaWorker(p.values, p, outW, outH, {
-      transferValues: canTransferValues,
-    });
+    const entry = await renderModelHourViaWorker(idx);
     if (!entry) return; // worker stale or crashed — abort this block
 
     if (modelState === capturedState && renderGen === capturedGen) {
       if (bitmapCache.has(cacheKey)) {
         entry.bitmap.close(); // showHour raced and cached it while we were rendering
       } else {
-        bitmapCache.set(cacheKey, makeBitmapCacheEntry(entry, p));
+        bitmapCache.set(cacheKey, makeBitmapCacheEntryFromWorker(entry));
         updateWarmupProgress();
       }
     } else {
@@ -1740,13 +1850,27 @@ function createModelDownloadSession({ packageKey, pkg, resources, runSummary, do
   };
 }
 
-function storeAvailableModelBlock(block, buffer, status, session) {
+async function storeModelBlockInWorker(block, buffer) {
+  const result = await postModelBlockWorker(
+    {
+      type: "storeBlock",
+      blockKey: block.key,
+      buffer,
+    },
+    [buffer.buffer],
+  );
+  return Boolean(result?.ok);
+}
+
+async function storeAvailableModelBlock(block, buffer, status, session) {
   const hadBuffer = modelState.buffers.has(block.key);
   if (hadBuffer) {
     modelState.messageIndex.delete(block.key);
     invalidateBlockRenderCache(block);
   }
-  modelState.buffers.set(block.key, buffer);
+  const storedInWorker = await storeModelBlockInWorker(block, buffer);
+  if (!storedInWorker) return;
+  modelState.buffers.set(block.key, true);
   setBlockStatus(block, status);
   if (!hadBuffer) session.availableCount++;
 
@@ -1813,8 +1937,9 @@ function queueUpdatedBlockPrerender(block, status) {
 
 async function presentAvailableModelBlock(block, buffer, status, session) {
   if (modelState !== session.downloadKey) return;
-  storeAvailableModelBlock(block, buffer, status, session);
   initializeModelLegendFromBlock(buffer, session);
+  await storeAvailableModelBlock(block, buffer, status, session);
+  if (modelState !== session.downloadKey) return;
   await refreshMapForAvailableModelBlock(block, session);
   queueUpdatedBlockPrerender(block, status);
   completeModelDownloadIfReady(session);

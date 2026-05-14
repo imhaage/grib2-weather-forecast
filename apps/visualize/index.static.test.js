@@ -8,6 +8,7 @@ const css = readFileSync(new URL("./style.css", import.meta.url), "utf8");
 const animationPlayer = readFileSync(new URL("./animation-player.js", import.meta.url), "utf8");
 const mapTooltip = readFileSync(new URL("./map-tooltip.js", import.meta.url), "utf8");
 const renderWorker = readFileSync(new URL("./render-worker.js", import.meta.url), "utf8");
+const modelBlockWorker = readFileSync(new URL("./model-block-worker.js", import.meta.url), "utf8");
 const unitTransforms = readFileSync(new URL("./unit-transforms.js", import.meta.url), "utf8");
 const variableMetadata = readFileSync(new URL("./variable-metadata.js", import.meta.url), "utf8");
 
@@ -200,7 +201,7 @@ test("model block availability presentation delegates focused responsibilities",
   );
   assert.match(
     source,
-    /async function presentAvailableModelBlock\(block, buffer, status, session\) \{[\s\S]*storeAvailableModelBlock\(block, buffer, status, session\);[\s\S]*initializeModelLegendFromBlock\(buffer, session\);[\s\S]*await refreshMapForAvailableModelBlock\(block, session\);[\s\S]*completeModelDownloadIfReady\(session\);/,
+    /async function presentAvailableModelBlock\(block, buffer, status, session\) \{[\s\S]*initializeModelLegendFromBlock\(buffer, session\);[\s\S]*await storeAvailableModelBlock\(block, buffer, status, session\);[\s\S]*await refreshMapForAvailableModelBlock\(block, session\);[\s\S]*completeModelDownloadIfReady\(session\);/,
     "expected available block presentation to read as orchestration",
   );
 });
@@ -230,6 +231,49 @@ test("network block presentation is integrated one block at a time", () => {
     source,
     /refreshModelBlockFromNetwork\(packageKey, block, downloadKey, async \(block, buffer, status\) => \{[\s\S]*await enqueueAvailableModelBlockPresentation\(block, buffer, status, session\);/,
     "expected network refreshes to avoid presenting completed files immediately in parallel",
+  );
+});
+
+test("model forecast block decoding and rendering runs in a dedicated worker", () => {
+  assert.match(
+    modelBlockWorker,
+    /import \{[\s\S]*iterateGRIB2Messages,[\s\S]*decodeGRIB2,[\s\S]*\} from "\/packages\/grib2-decoder\/dist\/grib2-decoder\.js";/,
+    "expected the model worker to import the decoder directly",
+  );
+  assert.match(
+    modelBlockWorker,
+    /const blockBuffers = new Map\(\);/,
+    "expected model GRIB buffers to be owned by the model worker",
+  );
+  assert.match(
+    modelBlockWorker,
+    /case "storeBlock":[\s\S]*blockBuffers\.set\(blockKey, buffer\);/,
+    "expected downloaded blocks to be transferred into worker storage",
+  );
+  assert.match(
+    modelBlockWorker,
+    /function renderHour\(data\)[\s\S]*decodeDisplayValues\(data\)[\s\S]*createImageBitmap[\s\S]*case "renderHour":[\s\S]*await renderHour\(data\);/,
+    "expected model hour decode and bitmap generation to happen in the worker",
+  );
+  assert.match(
+    source,
+    /new Worker\(\s*new URL\("\.\/model-block-worker\.js", import\.meta\.url\),[\s\S]*\{ type: "module" \},/,
+    "expected index.js to create the model block worker as a module worker",
+  );
+  assert.match(
+    source,
+    /async function storeModelBlockInWorker\(block, buffer\)[\s\S]*postModelBlockWorker\([\s\S]*type: "storeBlock"[\s\S]*buffer,[\s\S]*\],/,
+    "expected model buffers to be transferred to the model worker after download/cache read",
+  );
+  assert.match(
+    source,
+    /function modelWorkerRequestForHour\(idx, hour, \{ includeValues = false \} = \{\}\)[\s\S]*type: "renderHour"[\s\S]*includeValues,[\s\S]*async function renderModelHourViaWorker\(idx, \{ includeValues = false \} = \{\}\)[\s\S]*postModelBlockWorker\(request,/,
+    "expected model hour rendering to use the model worker pipeline",
+  );
+  assert.match(
+    source,
+    /async function prerenderBlock\(blockKey\)[\s\S]*await renderModelHourViaWorker\(idx\);[\s\S]*bitmapCache\.set\(cacheKey, makeBitmapCacheEntryFromWorker\(entry\)\);/,
+    "expected background animation cache rendering to avoid main-thread GRIB decode",
   );
 });
 
@@ -480,7 +524,7 @@ test("message index stores block offsets instead of copied message buffers", () 
   );
 });
 
-test("worker rendering can transfer owned values without cloning", () => {
+test("uploaded-file worker rendering can transfer owned values without cloning", () => {
   assert.match(
     source,
     /function renderViaWorker\(values, renderParams, outW, outH, \{ transferValues = false \} = \{\}\)/,
@@ -493,8 +537,8 @@ test("worker rendering can transfer owned values without cloning", () => {
   );
   assert.match(
     source,
-    /transferValues: canTransferValues/,
-    "expected background pre-rendering to opt into transfer when safe",
+    /postModelBlockWorker\([\s\S]*type: "storeBlock"[\s\S]*\[buffer\.buffer\]/,
+    "expected model rendering to transfer whole GRIB blocks to the model worker instead",
   );
 });
 
@@ -529,8 +573,8 @@ test("cached bitmaps are shown before decoding values for the same hour", () => 
   );
   assert.match(
     source,
-    /const cachedEntry = bitmapCache\.get\(cacheKey\);[\s\S]*if \(cachedEntry\) \{[\s\S]*return;[\s\S]*const data = await getCachedDecode\(hour\);/,
-    "expected showHour to use cached bitmaps before decoding values",
+    /const cachedEntry = bitmapCache\.get\(cacheKey\);[\s\S]*if \(cachedEntry\) \{[\s\S]*return;[\s\S]*await renderModelHourViaWorker\(idx, \{ includeValues: true \}\);/,
+    "expected showHour to use cached bitmaps before asking the model worker to render values",
   );
   assert.match(
     source,
