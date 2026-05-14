@@ -1,12 +1,12 @@
 # GRIB2 Weather forecast decoder
 
-## Goal
+## Goals
 
 View weather forecast data stored in GRIB2 format directly in the browser, without a server. The only backend component is a simple Cloudflare Worker proxy with a 1-hour cache used to download the files.
 
 The initial goal was simply to build a JS/WASM decoder so users could easily read GRIB2 data without relying on specialized desktop tools like Panoply.
 
-Then the visualization component was added gradually. This was an opportunity to have fun with caching large files in the browser using IndexedDB, implementing a cache update strategy to ensure the best possible user experience despite the large file sizes, parallelizing resource-intensive tasks with Web Workers, and tackling many other challenges.
+Then the visualization component was added gradually. This was an opportunity to have fun with caching large files in the browser using IndexedDB, implementing a cache update strategy to ensure the best possible user experience despite the large file sizes, parallelizing resource-intensive tasks with Web Workers, get all of this to work on mid-range smartphones, and tackling many other challenges.
 
 > ⚠️ This project started as an experiment aimed at creating a complex app without writing a single line of code. Claude Code, and later Codex, did everything, from source code to commit and push.
 >
