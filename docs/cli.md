@@ -3,11 +3,14 @@
 ## npm scripts
 
 ```bash
-npm test                                                        # 115 tests (delegates to packages/grib2-decoder)
+npm test                                                        # 117 tests (delegates to packages/grib2-decoder)
 npm run build                                                   # build decoder → packages/grib2-decoder/dist/
+npm run dev:visualize                                           # Vite dev server for the web app
+npm run build:visualize                                         # build web app → apps/visualize/dist/
+npm run preview:visualize                                       # preview the built web app
+npm run serve                                                   # build and preview the web app
 npm run info  -- <file.grib2> [output.txt]                      # metadata report
 npm run export -- <file.grib2> --variable <shortName> [out.csv] # CSV export
-npm run serve                                                   # npx serve . → http://localhost:3000/apps/visualize/ (via serve.json)
 ```
 
 ---
@@ -54,8 +57,7 @@ Uses `iterateGRIB2Messages()` to list, `decodeGRIB2()` to decode,
 
 ---
 
-## serve.json
+## Web app local servers
 
-Configuration file for `npx serve` (Vercel) at the repository root. Redirects `/` to
-`/apps/visualize/` so that `npm run serve` opens the application directly instead of
-showing a file listing.
+Use `npm run dev:visualize` while developing. Use `npm run serve` when you want to test the
+production build locally; it builds `apps/visualize/dist` and starts Vite preview.

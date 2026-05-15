@@ -1,5 +1,0 @@
-{
-  "redirects": [
-    { "source": "/", "destination": "/apps/visualize/", "type": 301 }
-  ]
-}

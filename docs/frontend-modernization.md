@@ -34,7 +34,7 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 - [x] Move the app entry into a Vite-compatible structure.
 - [x] Replace CDN imports with npm dependencies.
 - [ ] Keep app behavior identical.
-- [ ] Update npm scripts.
+- [x] Update npm scripts.
 - [x] Update Netlify/build output config.
 - [ ] Verify local dev, build, static tests, and decoder tests.
 

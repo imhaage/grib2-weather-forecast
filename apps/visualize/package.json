@@ -13,7 +13,7 @@
     "dev": "vite --host 0.0.0.0",
     "format": "biome format --write src",
     "preview": "vite preview --host 0.0.0.0",
-    "serve": "npx serve ../../",
+    "serve": "npm run build && npm run preview",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {

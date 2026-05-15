@@ -26,9 +26,12 @@ All generated content in this project must be in **English**: variable names, fu
 ## Useful commands
 
 ```bash
-npm test                                          # 115 tests (runs in packages/grib2-decoder)
+npm test                                          # 117 tests (runs in packages/grib2-decoder)
 npm run build                                     # build decoder → packages/grib2-decoder/dist/
+npm run dev:visualize                             # Vite dev server for the web app
+npm run build:visualize                           # build web app → apps/visualize/dist/
+npm run preview:visualize                         # preview built web app
 npm run info -- <file.grib2>                      # metadata report
 npm run export -- <file.grib2> --variable <name>  # CSV export
-npm run serve                                     # local server → http://localhost:3000/apps/visualize/
+npm run serve                                     # build and preview web app
 ```

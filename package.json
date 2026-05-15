@@ -13,7 +13,7 @@
     "format:visualize": "npm run format -w visualize",
     "preview:visualize": "npm run preview -w visualize",
     "test":   "npm test -w packages/grib2-decoder",
-    "serve":  "npx serve .",
+    "serve": "npm run build:visualize && npm run preview:visualize",
     "typecheck:visualize": "npm run typecheck -w visualize",
     "info":   "node packages/grib2-decoder/grib2-info.js",
     "export": "node packages/grib2-decoder/grib2-export.js"
