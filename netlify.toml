@@ -1,7 +1,8 @@
 [build]
-  publish = "."
+  command = "npm run build && npm run build:visualize"
+  publish = "apps/visualize/dist"
 
 [[redirects]]
-  from = "/"
-  to   = "/apps/visualize/"
+  from = "/apps/visualize/*"
+  to = "/:splat"
   status = 301

@@ -6,7 +6,8 @@ Single-file SPA with no framework. Two usage modes:
 - **Local file**: drag-and-drop or file input → GRIB2 messages parsed locally.
 - **Model online**: download GRIB2 packages from data.gouv.fr (Météo-France) with time animation.
 
-Served statically from the repository root (`npm run serve` → `http://localhost:3000/apps/visualize/`).
+Served through Vite during development (`npm run dev:visualize`) and built to
+`apps/visualize/dist` for deployment (`npm run build:visualize`).
 
 ```
 #             → home view  (#view-home)
@@ -79,9 +80,9 @@ Each package defines: `model` (group label), `provider`, `datasetId`, `titlePatt
 resources from the API), `bounds` (MapLibre fitBounds target), and `variables` array with
 `{ shortName, name, units, level }`.
 
-The home page model buttons are generated dynamically by `buildModelList()` — an IIFE that groups
-`PACKAGES` entries by `model` and appends `<button>` elements into `#model-list`. No button IDs
-are used; click handlers set `location.hash = #arome/${key}`.
+The home page model sections are generated dynamically by `renderModelList()`, which groups
+`PACKAGES` entries by `model` and appends model metadata plus package buttons into `#model-list`.
+No button IDs are used; click handlers set `location.hash = #arome/${key}`.
 
 ### File naming conventions
 
@@ -145,8 +146,8 @@ frame visible.
 
 `indexBlock(blockKey)` is called lazily on first access to a block's data:
 - Iterates all messages in the block via `iterateGRIB2Messages(buffer)`
-- Builds a `Map<"${forecastTime}_${shortName}", Uint8Array>` for O(1) message lookup
-- Stores the index in `modelState.messageIndex.get(blockKey)`
+- Builds a `Map<"${forecastTime}_${shortName}", messageRef>` for O(1) message lookup
+- Stores lightweight `{ blockKey, offset, length }` references in `modelState.messageIndex`
 
 For AROME (single-hour files), the index has one entry per variable at that hour.
 For ARPEGE (12-hour blocks), the index has 13 hours × N variables entries.
@@ -155,10 +156,10 @@ For ARPEGE (12-hour blocks), the index has 13 hours × N variables entries.
 
 `showHour(idx)` (slider index):
 - `const hour = modelState.hourList[idx]` — maps slider position to forecast hour
-- Calls `getCachedDecode(hour)` which finds the block containing `hour`, calls `indexBlock` if
-  needed, looks up `"${hour}_${variable}"` in the index, then calls `decodeGRIB2(msgBuffer)`
-- LRU decode cache (`DECODED_CACHE_SIZE = 5`) keyed by forecast hour
-- Updates `gridState` and re-runs `renderHeatmap()`
+- Shows a cached `ImageBitmap` immediately when available
+- Otherwise asks the model block worker to decode and render the selected hour
+- LRU decoded-value cache (`DECODED_CACHE_SIZE = 2`) is kept only for tooltip and accumulation needs
+- Updates `gridState` and draws the bitmap into the shared heat canvas
 - `isDecoding` / `pendingHourIdx` prevent concurrent decoding
 
 Unit conversions applied in `showHour`:
@@ -182,9 +183,9 @@ Result stored in `gridState`.
 Offscreen canvas (`heatCanvas`) at full resolution (e.g. 2801×1791 for AROME), copied to the visible canvas.
 
 ```js
-function buildLUT(paletteName)  // 256 RGB entries, avoids N chroma calls per pixel
-function renderHeatmap()         // reads gridState + currentPalette, repaints the canvas
-function computeOutHeight(grid)  // output height in pixels to preserve Mercator ratio
+function buildLUT(paletteName)       // 256 RGB entries, avoids N chroma calls per pixel
+function renderViaWorker(...)        // renders uploaded-file values in a worker
+function mercatorCanvasHeight(grid)  // output height in pixels to preserve Mercator ratio
 ```
 
 Missing points (≤ MISSING_VALUE) → semi-transparent grey (180, 180, 180, α=100).
@@ -209,7 +210,7 @@ Output height is computed to preserve the geographic ratio `spanY / spanX` in Me
 The GRIB2 canvas is overlaid on a base map via MapLibre GL:
 
 ```js
-import maplibregl from 'https://esm.sh/maplibre-gl@4';
+import maplibregl from "maplibre-gl";
 ```
 
 The canvas is registered as a `type: "canvas"` source with the grid corner coordinates:
@@ -223,7 +224,7 @@ function gridCorners(grid)
 A `mousemove` listener reads raw values from `gridState` and shows a `lat/lon/value` tooltip.
 
 ### Color palettes (chroma-js)
-Loaded via ESM CDN: `https://esm.sh/chroma-js@2.4.2`
+Loaded from the `chroma-js` npm dependency and bundled by Vite.
 
 11 palettes in 3 groups (`<select>` in the toolbar):
 - **Perceptually uniform**: Plasma, Viridis, Magma, Inferno
@@ -234,7 +235,8 @@ Loaded via ESM CDN: `https://esm.sh/chroma-js@2.4.2`
 `Plasma`, `Magma`, `Inferno` are absent from the ESM build → defined as hex arrays
 in `CUSTOM_SCALES` and passed directly to `chroma.scale([...])`.
 
-Palette change → `renderHeatmap()` only (no WASM re-decode).
+Palette change → render worker/model worker refresh only; GRIB files are not re-downloaded unless
+the latest-data check finds newer remote files.
 
 ### CSS design tokens
 
@@ -258,24 +260,28 @@ applied to `#cs-bar`. Min/max displayed with the parameter unit.
 
 ---
 
-## JS imports
+## Build and imports
 
-```html
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4/dist/maplibre-gl.css" />
-
-<script type="importmap">
-  { "imports": { "grib2-decoder": "/packages/grib2-decoder/dist/grib2-decoder.js" } }
-</script>
-```
+The app entry is `apps/visualize/src/main.js`. It imports MapLibre CSS, the app stylesheet, then
+the legacy app entry while the codebase is being progressively modularized.
 
 ```js
-import maplibregl from 'https://esm.sh/maplibre-gl@4';
-import chroma     from 'https://esm.sh/chroma-js@2.4.2';
-import {
-  iterateGRIB2Messages, decodeGRIB2, MISSING_VALUE,
-  computeStats,
-  CENTRES, GENERATING_PROCESS, fmtRefTime, fmtLevel, fmtValidTime,
-} from 'grib2-decoder';
+import "maplibre-gl/dist/maplibre-gl.css";
+import "../style.css";
+import "../index.js";
 ```
 
-The import map must precede the `<script type="module">`. The server is started from the repository root, making the absolute path `/packages/...` resolvable.
+Runtime dependencies are imported as npm packages and bundled by Vite:
+
+```js
+import maplibregl from "maplibre-gl";
+import chroma from "chroma-js";
+import {
+  iterateGRIB2Messages, decodeGRIB2, MISSING_VALUE,
+  CENTRES, GENERATING_PROCESS, fmtRefTime, fmtLevel, fmtValidTime,
+} from "grib2-decoder";
+```
+
+The Netlify build runs `npm run build && npm run build:visualize` and publishes
+`apps/visualize/dist`. The old `/apps/visualize/*` path redirects to the Vite-built root path for
+backward compatibility.

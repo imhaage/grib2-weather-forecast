@@ -35,7 +35,7 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 - [x] Replace CDN imports with npm dependencies.
 - [ ] Keep app behavior identical.
 - [ ] Update npm scripts.
-- [ ] Update Netlify/build output config.
+- [x] Update Netlify/build output config.
 - [ ] Verify local dev, build, static tests, and decoder tests.
 
 ## Phase 2 — Source Layout Without Behavior Change
