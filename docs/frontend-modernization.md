@@ -6,9 +6,9 @@ The goal is to reduce risk while moving the frontend to Vite, TypeScript, and Bi
 
 ## Principles
 
-- [ ] Keep behavior identical unless an intentional UX change is explicitly decided.
-- [ ] Commit after every small task.
-- [ ] Keep `grib2-decoder` consumed through its package export.
+- [x] Keep behavior identical unless an intentional UX change is explicitly decided.
+- [x] Commit after every small task.
+- [x] Keep `grib2-decoder` consumed through its package export.
 - [ ] Keep heavy runtime objects out of shared UI state.
 - [ ] Prefer pure modules by default.
 - [ ] Use stateful services only for lifecycle or resource owners.
@@ -33,17 +33,17 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 - [x] Add Biome config scoped to `apps/visualize/src`.
 - [x] Move the app entry into a Vite-compatible structure.
 - [x] Replace CDN imports with npm dependencies.
-- [ ] Keep app behavior identical.
+- [x] Keep app behavior identical.
 - [x] Update npm scripts.
 - [x] Update Netlify/build output config.
-- [ ] Verify local dev, build, static tests, and decoder tests.
+- [x] Verify local dev, build, static tests, and decoder tests.
 
 ## Phase 2 — Source Layout Without Behavior Change
 
-- [ ] Create `apps/visualize/src`.
+- [x] Create `apps/visualize/src`.
 - [ ] Move current app files with minimal code changes.
-- [ ] Keep workers working under Vite.
-- [ ] Choose and migrate one worker as the pilot pattern.
+- [x] Keep workers working under Vite.
+- [x] Choose and migrate one worker as the pilot pattern.
 - [ ] Keep legacy static tests during migration.
 
 ## Phase 3 — Typed Boundaries
@@ -82,12 +82,12 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 
 ## First Milestone
 
-- [ ] Add this modernization document.
+- [x] Add this modernization document.
 - [x] Add Vite and TypeScript dependencies/scripts without moving code.
 - [x] Add Biome configuration limited to `apps/visualize/src`.
 - [x] Create the Vite source structure.
 - [x] Move the app entry while preserving behavior.
 - [x] Move `maplibre-gl` and `chroma-js` from CDN imports to npm dependencies.
 - [x] Adapt workers to the Vite pattern, starting with one pilot worker.
-- [ ] Adapt build and deploy configuration.
-- [ ] Verify and stabilize before starting architectural extraction.
+- [x] Adapt build and deploy configuration.
+- [x] Verify and stabilize before starting architectural extraction.
