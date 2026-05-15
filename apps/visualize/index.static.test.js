@@ -21,7 +21,10 @@ const unitTransforms = readFileSync(
   new URL("./src/domain/unit-transforms.js", import.meta.url),
   "utf8",
 );
-const variableMetadata = readFileSync(new URL("./variable-metadata.js", import.meta.url), "utf8");
+const variableMetadata = readFileSync(
+  new URL("./src/domain/variable-metadata.js", import.meta.url),
+  "utf8",
+);
 
 function sourceFunctionBody(name) {
   const match = source.match(new RegExp(`(?:async )?function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`));
@@ -549,7 +552,7 @@ test("variable metadata access uses shared helpers", () => {
   );
   assert.match(
     source,
-    /import \{[\s\S]*variableKeyFor,[\s\S]*\} from "\.\/variable-metadata\.js";/,
+    /import \{[\s\S]*variableKeyFor,[\s\S]*\} from "\.\/src\/domain\/variable-metadata\.js";/,
     "expected variable key resolution to be imported from the pure metadata module",
   );
   assert.match(

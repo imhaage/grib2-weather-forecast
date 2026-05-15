@@ -5,7 +5,7 @@ import {
   parameterDescriptionFor,
   staticScaleFor,
   variableKeyFor,
-} from "./variable-metadata.js";
+} from "./src/domain/variable-metadata.js";
 
 test("variableKeyFor prefers explicit varKey over shortName", () => {
   assert.equal(variableKeyFor({ shortName: "wspd", varKey: "wspd_10" }), "wspd_10");

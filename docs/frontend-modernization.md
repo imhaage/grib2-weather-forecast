@@ -44,7 +44,7 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 - [x] Move current app files with minimal code changes.
 - [x] Keep workers working under Vite.
 - [x] Choose and migrate one worker as the pilot pattern.
-- [ ] Keep legacy static tests during migration.
+- [x] Keep legacy static tests during migration.
 
 ## Phase 3 — Typed Boundaries
 

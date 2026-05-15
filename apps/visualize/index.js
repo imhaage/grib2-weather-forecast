@@ -12,7 +12,7 @@ import {
   parameterDescriptionFor,
   staticScaleFor,
   variableKeyFor,
-} from "./variable-metadata.js";
+} from "./src/domain/variable-metadata.js";
 import { createAnimationPlayer } from "./animation-player.js";
 import { setupMapTooltip } from "./map-tooltip.js";
 import { createDownloadWorker } from "./src/workers/download-worker-client.js";
