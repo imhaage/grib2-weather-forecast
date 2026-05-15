@@ -31,7 +31,7 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 - [x] Add Vite to `apps/visualize`.
 - [x] Add TypeScript config for `apps/visualize`.
 - [x] Add Biome config scoped to `apps/visualize/src`.
-- [ ] Move the app entry into a Vite-compatible structure.
+- [x] Move the app entry into a Vite-compatible structure.
 - [ ] Replace CDN imports with npm dependencies.
 - [ ] Keep app behavior identical.
 - [ ] Update npm scripts.
@@ -85,8 +85,8 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 - [ ] Add this modernization document.
 - [x] Add Vite and TypeScript dependencies/scripts without moving code.
 - [x] Add Biome configuration limited to `apps/visualize/src`.
-- [ ] Create the Vite source structure.
-- [ ] Move the app entry while preserving behavior.
+- [x] Create the Vite source structure.
+- [x] Move the app entry while preserving behavior.
 - [ ] Move `maplibre-gl` and `chroma-js` from CDN imports to npm dependencies.
 - [ ] Adapt workers to the Vite pattern, starting with one pilot worker.
 - [ ] Adapt build and deploy configuration.
