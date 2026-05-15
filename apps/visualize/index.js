@@ -1,7 +1,7 @@
-import maplibregl from "https://esm.sh/maplibre-gl@4";
+import maplibregl from "maplibre-gl";
 
 const PROXY = "https://grib2-cors-proxy.imh.workers.dev";
-import chroma from "https://esm.sh/chroma-js@2.4.2";
+import chroma from "chroma-js";
 import {
   displayUnitsFor,
   unitFnFor,

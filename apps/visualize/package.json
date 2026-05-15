@@ -3,7 +3,9 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "grib2-decoder": "*"
+    "chroma-js": "^2.4.2",
+    "grib2-decoder": "*",
+    "maplibre-gl": "^4.7.1"
   },
   "scripts": {
     "build": "vite build",
