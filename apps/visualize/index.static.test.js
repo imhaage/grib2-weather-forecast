@@ -17,7 +17,10 @@ const downloadWorkerClient = readFileSync(
   new URL("./src/workers/download-worker-client.js", import.meta.url),
   "utf8",
 );
-const unitTransforms = readFileSync(new URL("./unit-transforms.js", import.meta.url), "utf8");
+const unitTransforms = readFileSync(
+  new URL("./src/domain/unit-transforms.js", import.meta.url),
+  "utf8",
+);
 const variableMetadata = readFileSync(new URL("./variable-metadata.js", import.meta.url), "utf8");
 
 function sourceFunctionBody(name) {
@@ -490,7 +493,7 @@ test("model visual refresh after palette or variable changes is shared", () => {
 test("unit conversion rules are shared between the main thread and render worker", () => {
   assert.match(
     source,
-    /import \{[\s\S]*displayUnitsFor,[\s\S]*unitFnFor,[\s\S]*unitTransformFor,[\s\S]*\} from "\.\/unit-transforms\.js";/,
+    /import \{[\s\S]*displayUnitsFor,[\s\S]*unitFnFor,[\s\S]*unitTransformFor,[\s\S]*\} from "\.\/src\/domain\/unit-transforms\.js";/,
     "expected main thread unit conversion helpers to come from the shared module",
   );
   assert.match(
@@ -500,7 +503,7 @@ test("unit conversion rules are shared between the main thread and render worker
   );
   assert.match(
     renderWorker,
-    /import \{ applyUnitTransform \} from "\.\/unit-transforms\.js";/,
+    /import \{ applyUnitTransform \} from "\.\/src\/domain\/unit-transforms\.js";/,
     "expected render worker unit conversion to come from the shared module",
   );
   assert.match(

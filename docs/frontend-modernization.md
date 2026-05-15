@@ -41,7 +41,7 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 ## Phase 2 — Source Layout Without Behavior Change
 
 - [x] Create `apps/visualize/src`.
-- [ ] Move current app files with minimal code changes.
+- [x] Move current app files with minimal code changes.
 - [x] Keep workers working under Vite.
 - [x] Choose and migrate one worker as the pilot pattern.
 - [ ] Keep legacy static tests during migration.

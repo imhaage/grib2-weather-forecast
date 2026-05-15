@@ -6,7 +6,7 @@ import {
   displayUnitsFor,
   unitFnFor,
   unitTransformFor,
-} from "./unit-transforms.js";
+} from "./src/domain/unit-transforms.js";
 import {
   defaultPaletteFor,
   parameterDescriptionFor,

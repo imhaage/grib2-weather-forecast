@@ -2,7 +2,7 @@ import {
   iterateGRIB2Messages,
   decodeGRIB2,
 } from "/packages/grib2-decoder/dist/grib2-decoder.js";
-import { applyUnitTransform } from "./unit-transforms.js";
+import { applyUnitTransform } from "./src/domain/unit-transforms.js";
 
 const blockBuffers = new Map();
 

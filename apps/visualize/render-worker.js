@@ -2,7 +2,7 @@
 // Pixel loop for heatmap rendering — runs in a Web Worker.
 // Receives raw decoded values + unit transform + LUT + grid params.
 // Returns an ImageBitmap plus field statistics (min/max/mean/count).
-import { applyUnitTransform } from "./unit-transforms.js";
+import { applyUnitTransform } from "./src/domain/unit-transforms.js";
 
 self.onmessage = async ({ data }) => {
   const {
