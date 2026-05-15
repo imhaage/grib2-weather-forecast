@@ -1880,6 +1880,7 @@ function createModelDownloadSession({ packageKey, pkg, resources, runSummary, do
     availableCount: 0,
     legendInitialized: false,
     presentationQueue: [],
+    presentationIdleResolvers: [],
     isPresentingQueuedBlock: false,
   };
 }
@@ -2021,6 +2022,20 @@ async function buildAnimationCacheAfterNetworkSettles(session) {
   updateWarmupProgress();
 }
 
+function resolvePresentationIdle(session) {
+  const resolvers = session.presentationIdleResolvers.splice(0);
+  for (const resolve of resolvers) resolve();
+}
+
+function waitForPresentationIdle(session) {
+  if (!session.isPresentingQueuedBlock && session.presentationQueue.length === 0) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    session.presentationIdleResolvers.push(resolve);
+  });
+}
+
 async function refreshModelBlocksToLatest(session, { previousResources = [] } = {}) {
   const previousBlocks = resourcesByBlockKey(previousResources);
   const cacheResults = await runWithConcurrency(
@@ -2059,6 +2074,8 @@ async function refreshModelBlocksToLatest(session, { previousResources = [] } = 
     },
   );
   if (modelState !== session.downloadKey) return false;
+  await waitForPresentationIdle(session);
+  if (modelState !== session.downloadKey) return false;
 
   await runWithConcurrency(
     blocksNeedingRefresh,
@@ -2069,6 +2086,7 @@ async function refreshModelBlocksToLatest(session, { previousResources = [] } = 
       });
     },
   );
+  await waitForPresentationIdle(session);
   return modelState === session.downloadKey;
 }
 
@@ -2091,6 +2109,7 @@ async function enqueueAvailableModelBlockPresentation(block, buffer, status, ses
     }
   } finally {
     session.isPresentingQueuedBlock = false;
+    if (session.presentationQueue.length === 0) resolvePresentationIdle(session);
   }
 }
 

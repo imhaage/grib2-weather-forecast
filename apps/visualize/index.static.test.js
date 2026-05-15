@@ -247,6 +247,11 @@ test("network block presentation is integrated one block at a time", () => {
   );
   assert.match(
     source,
+    /function waitForPresentationIdle\(session\)/,
+    "expected callers to wait for queued downloaded blocks before starting animation cache work",
+  );
+  assert.match(
+    source,
     /refreshModelBlockFromNetwork\(session\.packageKey, block, session\.downloadKey, async \(block, buffer, status\) => \{[\s\S]*await enqueueAvailableModelBlockPresentation\(block, buffer, status, session\);/,
     "expected network refreshes to avoid presenting completed files immediately in parallel",
   );
@@ -1033,7 +1038,7 @@ test("missing cached files are downloaded before stale cached files refresh", ()
   );
   assert.match(
     source,
-    /async function refreshModelBlocksToLatest\(session[\s\S]*await runWithConcurrency\(\s*missingBlocks,\s*MAX_PARALLEL_DOWNLOADS,[\s\S]*refreshModelBlockFromNetwork[\s\S]*\);[\s\S]*await runWithConcurrency\(\s*blocksNeedingRefresh,\s*MAX_PARALLEL_DOWNLOADS,[\s\S]*refreshModelBlockFromNetwork[\s\S]*\);/,
-    "expected missing files and stale refreshes to finish inside the shared latest-data refresh",
+    /async function refreshModelBlocksToLatest\(session[\s\S]*await runWithConcurrency\(\s*missingBlocks,\s*MAX_PARALLEL_DOWNLOADS,[\s\S]*refreshModelBlockFromNetwork[\s\S]*\);[\s\S]*await waitForPresentationIdle\(session\);[\s\S]*await runWithConcurrency\(\s*blocksNeedingRefresh,\s*MAX_PARALLEL_DOWNLOADS,[\s\S]*refreshModelBlockFromNetwork[\s\S]*\);[\s\S]*await waitForPresentationIdle\(session\);/,
+    "expected missing and stale downloaded files to finish presentation before animation cache generation can start",
   );
 });
