@@ -48,7 +48,7 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 
 ## Phase 3 — Typed Boundaries
 
-- [ ] Define core domain types: package, resource, block status, cache status, animation status.
+- [x] Define core domain types: package, resource, block status, cache status, animation status.
 - [ ] Extract pure resource/run helpers.
 - [ ] Extract variable metadata and type boundaries.
 - [ ] Extract palette and scale helpers.
