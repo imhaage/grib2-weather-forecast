@@ -88,6 +88,6 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 - [x] Create the Vite source structure.
 - [x] Move the app entry while preserving behavior.
 - [x] Move `maplibre-gl` and `chroma-js` from CDN imports to npm dependencies.
-- [ ] Adapt workers to the Vite pattern, starting with one pilot worker.
+- [x] Adapt workers to the Vite pattern, starting with one pilot worker.
 - [ ] Adapt build and deploy configuration.
 - [ ] Verify and stabilize before starting architectural extraction.

@@ -15,6 +15,7 @@ import {
 } from "./variable-metadata.js";
 import { createAnimationPlayer } from "./animation-player.js";
 import { setupMapTooltip } from "./map-tooltip.js";
+import { createDownloadWorker } from "./src/workers/download-worker-client.js";
 import {
   iterateGRIB2Messages,
   decodeGRIB2,
@@ -529,10 +530,7 @@ function initModelBlockWorker() {
 
 function initDownloadWorker() {
   if (downloadWorker) return;
-  downloadWorker = new Worker(
-    new URL("./download-worker.js", import.meta.url),
-    { type: "module" },
-  );
+  downloadWorker = createDownloadWorker();
 }
 
 function downloadFileInWorker(url, filesize, onProgress) {

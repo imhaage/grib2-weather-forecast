@@ -9,7 +9,14 @@ const animationPlayer = readFileSync(new URL("./animation-player.js", import.met
 const mapTooltip = readFileSync(new URL("./map-tooltip.js", import.meta.url), "utf8");
 const renderWorker = readFileSync(new URL("./render-worker.js", import.meta.url), "utf8");
 const modelBlockWorker = readFileSync(new URL("./model-block-worker.js", import.meta.url), "utf8");
-const downloadWorker = readFileSync(new URL("./download-worker.js", import.meta.url), "utf8");
+const downloadWorker = readFileSync(
+  new URL("./src/workers/download-worker.js", import.meta.url),
+  "utf8",
+);
+const downloadWorkerClient = readFileSync(
+  new URL("./src/workers/download-worker-client.js", import.meta.url),
+  "utf8",
+);
 const unitTransforms = readFileSync(new URL("./unit-transforms.js", import.meta.url), "utf8");
 const variableMetadata = readFileSync(new URL("./variable-metadata.js", import.meta.url), "utf8");
 
@@ -307,9 +314,14 @@ test("network file assembly runs in a dedicated download worker", () => {
     "expected downloaded chunks to be assembled off the main thread and transferred back",
   );
   assert.match(
+    downloadWorkerClient,
+    /new Worker\(\s*new URL\("\.\/download-worker\.js", import\.meta\.url\),[\s\S]*\{[\s\S]*type: "module"[\s\S]*\}/,
+    "expected the Vite worker client to create a dedicated module download worker",
+  );
+  assert.match(
     source,
-    /new Worker\(\s*new URL\("\.\/download-worker\.js", import\.meta\.url\),[\s\S]*\{ type: "module" \},/,
-    "expected index.js to create a dedicated download worker",
+    /import \{ createDownloadWorker \} from "\.\/src\/workers\/download-worker-client\.js";[\s\S]*downloadWorker = createDownloadWorker\(\);/,
+    "expected index.js to use the Vite download worker client",
   );
   assert.match(
     source,
