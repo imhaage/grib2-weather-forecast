@@ -7,8 +7,12 @@
   ],
   "scripts": {
     "build":  "npm run build -w packages/grib2-decoder",
+    "build:visualize": "npm run build -w visualize",
+    "dev:visualize": "npm run dev -w visualize",
+    "preview:visualize": "npm run preview -w visualize",
     "test":   "npm test -w packages/grib2-decoder",
     "serve":  "npx serve .",
+    "typecheck:visualize": "npm run typecheck -w visualize",
     "info":   "node packages/grib2-decoder/grib2-info.js",
     "export": "node packages/grib2-decoder/grib2-export.js"
   }

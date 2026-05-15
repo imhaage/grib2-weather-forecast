@@ -6,6 +6,14 @@
     "grib2-decoder": "*"
   },
   "scripts": {
-    "serve": "npx serve ../../"
+    "build": "vite build",
+    "dev": "vite --host 0.0.0.0",
+    "preview": "vite preview --host 0.0.0.0",
+    "serve": "npx serve ../../",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3",
+    "vite": "^8.0.13"
   }
 }

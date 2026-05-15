@@ -28,8 +28,8 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 
 ## Phase 1 — Tooling Foundation
 
-- [ ] Add Vite to `apps/visualize`.
-- [ ] Add TypeScript config for `apps/visualize`.
+- [x] Add Vite to `apps/visualize`.
+- [x] Add TypeScript config for `apps/visualize`.
 - [ ] Add Biome config scoped to `apps/visualize/src`.
 - [ ] Move the app entry into a Vite-compatible structure.
 - [ ] Replace CDN imports with npm dependencies.
@@ -83,7 +83,7 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 ## First Milestone
 
 - [ ] Add this modernization document.
-- [ ] Add Vite and TypeScript dependencies/scripts without moving code.
+- [x] Add Vite and TypeScript dependencies/scripts without moving code.
 - [ ] Add Biome configuration limited to `apps/visualize/src`.
 - [ ] Create the Vite source structure.
 - [ ] Move the app entry while preserving behavior.

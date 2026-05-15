@@ -1,5 +1,6 @@
 node_modules/
 package-lock.json
+apps/visualize/dist/
 .DS_Store
 
 # External libraries (sources only, WASM already compiled)
