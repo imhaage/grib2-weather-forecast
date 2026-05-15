@@ -2029,7 +2029,7 @@ async function refreshModelBlocksToLatest(session, { previousResources = [] } = 
     async (block) => {
       const previousBlock = previousBlocks.get(block.key);
       if (isModelBlockInMemoryCurrent(block, previousBlock)) {
-        markInMemoryModelBlockAvailable(block, BLOCK_STATUS.READY, session);
+        markInMemoryModelBlockAvailable(block, BLOCK_STATUS.LOADED_FROM_CACHE, session);
         return { status: CACHE_LOAD_RESULT.CURRENT, block };
       }
       if (isModelBlockInMemoryStale(block, previousBlock)) {
@@ -2326,18 +2326,16 @@ document.getElementById("back-btn").addEventListener("click", () => {
 async function refreshCurrentModelVisuals({ clearDecoded = false } = {}) {
   stopPlayer();
   await new Promise(r => requestAnimationFrame(r));
-  setRendering(true);
-  await new Promise(r => setTimeout(r, 0));
+  setRendering(false);
   if (clearDecoded) {
     modelState.decoded.clear();
     modelState.decodedOrder = [];
   }
   invalidateBitmapCache();
   const myGen = renderGen;
-  showHour(parseInt(dom.aromeSlider.value, 10));
+  await showHour(parseInt(dom.aromeSlider.value, 10));
   const session = await refreshCurrentModelResourcesToLatest();
   if (session && renderGen === myGen) await buildAnimationCacheAfterNetworkSettles(session);
-  if (renderGen === myGen) setRendering(false);
 }
 
 async function refreshCurrentModelResourcesToLatest() {

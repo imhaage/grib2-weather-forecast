@@ -455,8 +455,18 @@ test("model visual refresh after palette or variable changes is shared", () => {
   );
   assert.doesNotMatch(
     sourceFunctionBody("refreshCurrentModelVisuals"),
+    /setRendering\(true\);/,
+    "expected palette and variable changes to keep the visible map, metadata, and slider on screen",
+  );
+  assert.doesNotMatch(
+    sourceFunctionBody("refreshCurrentModelVisuals"),
     /queuePrerenderForAllBlocks\(\);/,
     "expected visual refreshes not to bypass the latest-data gate before animation cache generation",
+  );
+  assert.match(
+    source,
+    /isModelBlockInMemoryCurrent\(block, previousBlock\)[\s\S]*markInMemoryModelBlockAvailable\(block, BLOCK_STATUS\.LOADED_FROM_CACHE, session\);/,
+    "expected current in-memory model files reused after palette or variable changes to keep loaded-from-cache styling",
   );
 });
 
