@@ -22,6 +22,7 @@ import {
 import { createAnimationPlayer } from "./animation-player.js";
 import { setupMapTooltip } from "./map-tooltip.js";
 import { createDownloadWorker } from "./src/workers/download-worker-client.js";
+import { createModelBlockWorkerClient } from "./src/workers/model-block-worker-client.js";
 import {
   iterateGRIB2Messages,
   decodeGRIB2,
@@ -201,7 +202,7 @@ let modelState = null; // { packageKey, resources, buffers, messageIndex, hourLi
 let isDecoding = false;
 let pendingHourIdx = null;
 let renderWorker = null;
-let modelBlockWorker = null;
+let modelBlockWorkerClient = null;
 let downloadWorker = null;
 let renderGen = 0;
 let nextCallId = 0;
@@ -503,14 +504,6 @@ function initRenderWorker() {
   );
 }
 
-function initModelBlockWorker() {
-  if (modelBlockWorker) return;
-  modelBlockWorker = new Worker(
-    new URL("./model-block-worker.js", import.meta.url),
-    { type: "module" },
-  );
-}
-
 function initDownloadWorker() {
   if (downloadWorker) return;
   downloadWorker = createDownloadWorker();
@@ -546,30 +539,8 @@ function downloadFileInWorker(url, filesize, onProgress) {
 }
 
 function postModelBlockWorker(message, transfer = []) {
-  initModelBlockWorker();
-  const callId = ++nextCallId;
-  return new Promise((resolve) => {
-    function onMsg({ data }) {
-      if (data.callId !== callId) return;
-      modelBlockWorker.removeEventListener("message", onMsg);
-      modelBlockWorker.removeEventListener("error", onErr);
-      if (data.error) {
-        console.error("model-block-worker error:", data.error);
-        resolve(null);
-        return;
-      }
-      resolve(data);
-    }
-    function onErr(error) {
-      modelBlockWorker.removeEventListener("message", onMsg);
-      modelBlockWorker.removeEventListener("error", onErr);
-      console.error("model-block-worker crash:", error);
-      resolve(null);
-    }
-    modelBlockWorker.addEventListener("message", onMsg);
-    modelBlockWorker.addEventListener("error", onErr);
-    modelBlockWorker.postMessage({ ...message, callId }, transfer);
-  });
+  if (!modelBlockWorkerClient) modelBlockWorkerClient = createModelBlockWorkerClient();
+  return modelBlockWorkerClient.post(message, transfer);
 }
 
 async function timedDecodeGRIB2(buffer) {

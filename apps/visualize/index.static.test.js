@@ -9,6 +9,10 @@ const animationPlayer = readFileSync(new URL("./animation-player.js", import.met
 const mapTooltip = readFileSync(new URL("./map-tooltip.js", import.meta.url), "utf8");
 const renderWorker = readFileSync(new URL("./render-worker.js", import.meta.url), "utf8");
 const modelBlockWorker = readFileSync(new URL("./model-block-worker.js", import.meta.url), "utf8");
+const modelBlockWorkerClient = readFileSync(
+  new URL("./src/workers/model-block-worker-client.js", import.meta.url),
+  "utf8",
+);
 const downloadWorker = readFileSync(
   new URL("./src/workers/download-worker.js", import.meta.url),
   "utf8",
@@ -297,9 +301,14 @@ test("model forecast block decoding and rendering runs in a dedicated worker", (
     "expected model hour decode and bitmap generation to happen in the worker",
   );
   assert.match(
+    modelBlockWorkerClient,
+    /new Worker\(\s*new URL\("\.\.\/\.\.\/model-block-worker\.js", import\.meta\.url\),[\s\S]*\{[\s\S]*type: "module"[\s\S]*\}/,
+    "expected the Vite model block worker client to create a dedicated module worker",
+  );
+  assert.match(
     source,
-    /new Worker\(\s*new URL\("\.\/model-block-worker\.js", import\.meta\.url\),[\s\S]*\{ type: "module" \},/,
-    "expected index.js to create the model block worker as a module worker",
+    /import \{ createModelBlockWorkerClient \} from "\.\/src\/workers\/model-block-worker-client\.js";[\s\S]*modelBlockWorkerClient = createModelBlockWorkerClient\(\);/,
+    "expected index.js to use the Vite model block worker client",
   );
   assert.match(
     source,
