@@ -109,6 +109,48 @@ header {
 	}
 }
 
+/* ── Tab bar ── */
+.tab-bar {
+	display: flex;
+	gap: var(--space-xs);
+	border-bottom: 1px solid var(--color-border);
+	margin-bottom: var(--space-xl);
+}
+
+.tab-btn {
+	background: none;
+	border: none;
+	border-bottom: 2px solid transparent;
+	padding: var(--space-sm) var(--space-md);
+	color: var(--color-text-2);
+	font-family: inherit;
+	font-size: var(--font-md);
+	cursor: pointer;
+	margin-bottom: -1px;
+	transition:
+		color var(--transition-base),
+		border-color var(--transition-base);
+}
+
+.tab-btn:hover {
+	color: var(--color-text);
+}
+
+.tab-btn.active {
+	color: var(--color-accent);
+	border-bottom-color: var(--color-accent);
+}
+
+#tab-panel-model,
+#tab-panel-upload {
+	display: none;
+}
+
+#tab-panel-model.active,
+#tab-panel-upload.active {
+	display: block;
+}
+
 /* ── Drop zone ── */
 #drop-zone {
 	border: 2px dashed var(--color-border-2);
