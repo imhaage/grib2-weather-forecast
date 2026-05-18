@@ -57,7 +57,7 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 
 ## Phase 4 — Headless Services
 
-- [ ] Extract download/cache service.
+- [x] Extract download/cache service.
 - [ ] Extract model block service.
 - [ ] Extract animation cache service.
 - [x] Extract worker client helpers.

@@ -21,6 +21,10 @@ const downloadWorkerClient = readFileSync(
   new URL("./src/workers/download-worker-client.js", import.meta.url),
   "utf8",
 );
+const gribCacheService = readFileSync(
+  new URL("./src/services/grib-cache-service.js", import.meta.url),
+  "utf8",
+);
 const unitTransforms = readFileSync(
   new URL("./src/domain/unit-transforms.js", import.meta.url),
   "utf8",
@@ -354,8 +358,8 @@ test("network file assembly runs in a dedicated download worker", () => {
     "expected main-thread download code not to assemble chunk arrays",
   );
   assert.match(
-    source,
-    /const cacheBuffer = buffer\.byteOffset === 0 && buffer\.byteLength === buffer\.buffer\.byteLength[\s\S]*\? buffer\.buffer[\s\S]*: buffer\.buffer\.slice/,
+    gribCacheService,
+    /const cacheBuffer =[\s\S]*buffer\.byteOffset === 0 && buffer\.byteLength === buffer\.buffer\.byteLength[\s\S]*\? buffer\.buffer[\s\S]*: buffer\.buffer\.slice/,
     "expected IndexedDB writes to avoid an extra ArrayBuffer slice when the downloaded buffer is already exact",
   );
 });
@@ -951,14 +955,19 @@ test("model file downloads are limited to six parallel fetches", () => {
 
 test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
   assert.match(
-    source,
+    gribCacheService,
     /const GRIB_BLOCK_STORE = "gribBlocks";/,
     "expected a dedicated IndexedDB store for downloaded GRIB2 blocks",
   );
   assert.match(
-    source,
+    gribCacheService,
     /const GRIB_CACHE_DB_VERSION = 2;/,
     "expected IndexedDB schema upgrades to create the package/block lookup index for existing caches",
+  );
+  assert.match(
+    source,
+    /import \{[\s\S]*clearGribCache,[\s\S]*deleteObsoleteCachedGribBlocks,[\s\S]*readCachedGribBlock,[\s\S]*readLatestCachedGribBlock,[\s\S]*writeCachedGribBlock,[\s\S]*\} from "\.\/src\/services\/grib-cache-service\.js";/,
+    "expected index.js to consume GRIB cache operations from the cache service",
   );
   assert.match(
     source,
@@ -976,12 +985,12 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
     "expected data.gouv resources to carry a per-file run id",
   );
   assert.match(
-    source,
+    gribCacheService,
     /function gribBlockCacheKey\(packageKey, block\)/,
     "expected cache keys to be derived from package, block, and run metadata",
   );
   assert.match(
-    source,
+    gribCacheService,
     /createIndex\("byPackageBlock", \["packageKey", "blockKey"\]\)/,
     "expected an index for deleting obsolete versions of one logical file",
   );
@@ -1001,13 +1010,13 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
     "expected cache freshness to compare run dates explicitly",
   );
   assert.match(
-    source,
+    gribCacheService,
     /function isUsableCachedGribBlock\(record, block\)[\s\S]*runTimeValue\(record\.runId\) >= runTimeValue\(block\.runId\)[\s\S]*hasCompatibleCachedGribBlockSize\(record, block\)/,
     "expected package/hour cache hits to be accepted only when the cached run is not older than remote",
   );
   assert.match(
-    source,
-    /findCachedGribBlock\([\s\S]*\(record\) => isUsableCachedGribBlock\(record, block\),/,
+    gribCacheService,
+    /findCachedGribBlock\([\s\S]*\(record\) =>[\s\S]*isUsableCachedGribBlock\(record, block\),/,
     "expected cache lookup to use package/hour freshness rather than URL identity",
   );
   assert.match(
@@ -1026,7 +1035,7 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
     "expected old cached files to be deleted only after the new block is available in memory",
   );
   assert.match(
-    source,
+    gribCacheService,
     /async function deleteObsoleteCachedGribBlocks\(packageKey, block\)[\s\S]*cursor\.value\.id !== currentId[\s\S]*cursor\.delete\(\)/,
     "expected old runs for the same package/block to be removed after safe replacement",
   );
@@ -1039,13 +1048,18 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
 
 test("stale cached files can be displayed while newer remote files download", () => {
   assert.match(
-    source,
+    gribCacheService,
     /async function readLatestCachedGribBlock\(packageKey, block\)/,
     "expected a fallback lookup for older cached versions of the same logical file",
   );
   assert.match(
+    gribCacheService,
+    /function isOlderCachedGribBlock\(record, block\)[\s\S]*runTimeValue\(record\.runId\) < runTimeValue\(block\.runId\)[\s\S]*export async function readLatestCachedGribBlock\(packageKey, block\)/,
+    "expected the cache service to find older cached versions of the same logical file",
+  );
+  assert.match(
     source,
-    /function isOlderCachedGribBlock\(record, block\)[\s\S]*runTimeValue\(record\.runId\) < runTimeValue\(block\.runId\)[\s\S]*const staleCachedBlock = await readLatestCachedGribBlock\(packageKey, block\);[\s\S]*await onAvailable\(block, staleCachedBlock\.buffer, BLOCK_STATUS\.LOADED_FROM_CACHE\);/,
+    /const staleCachedBlock = await readLatestCachedGribBlock\(packageKey, block\);[\s\S]*await onAvailable\(block, staleCachedBlock\.buffer, BLOCK_STATUS\.LOADED_FROM_CACHE\);/,
     "expected stale cache to be presented before downloading the latest file",
   );
   assert.match(
