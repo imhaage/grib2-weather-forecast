@@ -1,239 +1,296 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GRIB2 Weather forecast</title>
-  </head>
-  <body>
-    <header>
-      <h1>GRIB2 Weather forecast</h1>
-      <a
-        class="github-link"
-        href="https://github.com/imhaage/arome-forecast-visualizer"
-        target="_blank"
-        rel="noreferrer"
-        aria-label="Open project repository on GitHub"
-        title="GitHub repository"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <path
-            fill="currentColor"
-            d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2.15c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.23-1.28-5.23-5.68 0-1.25.45-2.28 1.19-3.08-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.18 1.18A11.1 11.1 0 0 1 12 6.06c.98 0 1.96.13 2.88.39 2.2-1.49 3.17-1.18 3.17-1.18.63 1.58.23 2.75.11 3.04.74.8 1.19 1.83 1.19 3.08 0 4.42-2.69 5.39-5.25 5.67.41.36.78 1.06.78 2.14v3.15c0 .31.21.67.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"
-          />
-        </svg>
-      </a>
-    </header>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>GRIB2 Weather forecast</title>
+	</head>
+	<body>
+		<header>
+			<h1>GRIB2 Weather forecast</h1>
 
-    <!-- ══════════════════════════════════════════════════════
+			<a
+				class="github-link"
+				href="https://github.com/imhaage/arome-forecast-visualizer"
+				target="_blank"
+				rel="noreferrer"
+				aria-label="Open project repository on GitHub"
+				title="GitHub repository"
+			>
+				<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+					<path
+						fill="currentColor"
+						d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2.15c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.76 2.7 1.25 3.36.96.1-.75.4-1.25.73-1.54-2.55-.29-5.23-1.28-5.23-5.68 0-1.25.45-2.28 1.19-3.08-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.18 1.18A11.1 11.1 0 0 1 12 6.06c.98 0 1.96.13 2.88.39 2.2-1.49 3.17-1.18 3.17-1.18.63 1.58.23 2.75.11 3.04.74.8 1.19 1.83 1.19 3.08 0 4.42-2.69 5.39-5.25 5.67.41.36.78 1.06.78 2.14v3.15c0 .31.21.67.8.56A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"
+					/>
+				</svg>
+			</a>
+		</header>
+
+		<!-- ══════════════════════════════════════════════════════
      HOME VIEW
-══════════════════════════════════════════════════════ -->
-    <div id="view-home">
-      <main>
-        <div id="model-list">
-          <p class="section-desc">
-            Browse a complete forecast run — animate temperature, wind, rain and
-            more across all forecast hours on an interactive map.
-          </p>
-        </div>
+    ══════════════════════════════════════════════════════ -->
+		<div id="view-home">
+			<main>
+				<div id="model-list">
+					<p class="section-desc">
+						Browse a complete forecast run — animate temperature, wind, rain and
+						more across all forecast hours on an interactive map.
+					</p>
+				</div>
 
-        <hr />
+				<hr>
 
-        <p class="section-desc">
-          Drop any GRIB2 file to inspect its variables, grid metadata, and
-          decoded field values — one time step at a time.
-        </p>
+				<p class="section-desc">
+					Drop any GRIB2 file to inspect its variables, grid metadata, and
+					decoded field values — one time step at a time.
+				</p>
 
-        <div
-          id="drop-zone"
-          role="button"
-          tabindex="0"
-          aria-label="Upload a GRIB2 file"
-        >
-          <div class="icon">🌐</div>
-          <p><strong>Drop a GRIB2 file here</strong><br />or click to select</p>
-          <br />
-          <input type="file" id="file-input" accept=".grib2,.grib" />
-        </div>
-        <div id="status"></div>
+				<div
+					id="drop-zone"
+					role="button"
+					tabindex="0"
+					aria-label="Upload a GRIB2 file"
+				>
+					<div class="icon">🌐</div>
+					<p><strong>Drop a GRIB2 file here</strong><br>or click to select</p>
+					<br>
+					<input type="file" id="file-input" accept=".grib2,.grib">
+				</div>
+				<div id="status"></div>
 
-        <div id="file-summary">
-          <div class="meta-item">
-            <span class="meta-label">File</span>
-            <span class="meta-value" id="s-name">—</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Size</span>
-            <span class="meta-value" id="s-size">—</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Messages</span>
-            <span class="meta-value" id="s-count">—</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Centre</span>
-            <span class="meta-value" id="s-centre">—</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Reference time</span>
-            <span class="meta-value" id="s-reftime">—</span>
-          </div>
-        </div>
+				<div id="file-summary">
+					<div class="meta-item">
+						<span class="meta-label">File</span>
+						<span class="meta-value" id="s-name">—</span>
+					</div>
+					<div class="meta-item">
+						<span class="meta-label">Size</span>
+						<span class="meta-value" id="s-size">—</span>
+					</div>
+					<div class="meta-item">
+						<span class="meta-label">Messages</span>
+						<span class="meta-value" id="s-count">—</span>
+					</div>
+					<div class="meta-item">
+						<span class="meta-label">Centre</span>
+						<span class="meta-value" id="s-centre">—</span>
+					</div>
+					<div class="meta-item">
+						<span class="meta-label">Reference time</span>
+						<span class="meta-value" id="s-reftime">—</span>
+					</div>
+				</div>
 
-        <div id="results">
-          <h2>Variables</h2>
-          <div class="cards" id="cards"></div>
-        </div>
-      </main>
-    </div>
+				<div id="results">
+					<h2>Variables</h2>
+					<div class="cards" id="cards"></div>
+				</div>
+			</main>
+		</div>
 
-    <!-- ══════════════════════════════════════════════════════
+		<!-- ══════════════════════════════════════════════════════
      GRID VIEW
-══════════════════════════════════════════════════════ -->
-    <div id="view-grid">
-      <main>
-        <button class="btn-back" id="back-btn" style="display: none">
-          ← Variables
-        </button>
-        <button class="btn-back" id="arome-back-btn" style="display: none">
-          ← Home
-        </button>
-        <div id="gv-sub"></div>
-        <details id="data-status-panel" open style="display: none">
-          <summary>
-            <span id="data-status-summary">Data status</span>
-            <span id="data-status-chevron">▼</span>
-          </summary>
-          <p id="arome-dl-status"></p>
-          <div id="arome-dl-bars"></div>
-          <button type="button" id="clear-grib-cache">Clear cache</button>
-          <details id="arome-dl-details">
-            <summary>Files <span id="arome-dl-chevron">▼</span></summary>
-            <ul id="arome-dl-file-list"></ul>
-          </details>
-        </details>
-        <div id="grid-toolbar">
-          <div id="grid-stats">
-            <div class="stat-item">
-              <span class="stat-label">Min</span>
-              <span class="stat-value" id="gv-min">—</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Max</span>
-              <span class="stat-value" id="gv-max">—</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Mean</span>
-              <span class="stat-value" id="gv-mean">—</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">Valid pts</span>
-              <span class="stat-value" id="gv-valid">—</span>
-            </div>
-          </div>
-          <div id="palette-ctrl">
-            <label for="palette-select">Color scale</label>
-            <select id="palette-select" class="toolbar-select"></select>
-          </div>
-        </div>
+    ══════════════════════════════════════════════════════ -->
+		<div id="view-grid">
+			<main>
+				<button
+					id="back-btn"
+					class="btn-back"
+					type="button"
+					style="display: none"
+				>
+					← Variables
+				</button>
 
-        <div id="map-scene">
-          <!-- AROME player toolbar (shown instead of #grid-toolbar in AROME mode) -->
-          <div id="arome-player-toolbar" style="display: none">
-            <div id="arome-var-row">
-              <div id="arome-var-wrap">
-                <select id="arome-var-select" class="toolbar-select"></select>
-              </div>
-              <span id="var-spinner"></span>
-              <div id="palette-ctrl-arome" class="palette-ctrl-shared">
-                <label for="palette-select-arome">Color scale</label>
-                <select id="palette-select-arome" class="toolbar-select"></select>
-              </div>
-            </div>
-            <div id="gv-meta">
-              <div>
-                <div id="gv-name"></div>
-                <div id="gv-level"></div>
-                <div id="gv-desc"></div>
-              </div>
-            </div>
-            <div id="arome-slider-wrap">
-              <span id="arome-valid-time"></span>
-              <span id="arome-hour-label">+01H</span>
-              <input type="range" id="arome-slider" min="0" step="1" value="0" />
-              <button id="player-reset" title="Reset" aria-label="Reset">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M2 12c0 5.523 4.477 10 10 10s10-4.477 10-10S17.523 2 12 2v2a8 8 0 1 1-5.135 1.865L9 8V2H3l2.446 2.447A9.98 9.98 0 0 0 2 12"/>
-                </svg>
-              </button>
-              <button id="player-play" title="Play" aria-label="Play">
-                <svg id="icon-play" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="5,3 19,12 5,21"/>
-                </svg>
-                <svg id="icon-pause" viewBox="0 0 24 24" fill="currentColor" style="display:none">
-                  <rect x="5" y="3" width="4" height="18"/>
-                  <rect x="15" y="3" width="4" height="18"/>
-                </svg>
-              </button>
-            </div>
-          </div>
+				<button
+					id="arome-back-btn"
+					class="btn-back"
+					type="button"
+					style="display: none"
+				>
+					← Home
+				</button>
 
-          <div id="cache-warmup" hidden aria-live="polite">
-            <span id="cache-warmup-label">Animation cache</span>
-            <div id="cache-warmup-track">
-              <div id="cache-warmup-bar"></div>
-            </div>
-            <span id="cache-warmup-count">0 / 0</span>
-          </div>
+				<div id="gv-sub"></div>
 
-          <div id="perf-debug" hidden aria-live="polite">
-            <span>Perf</span>
-            <span id="perf-debug-render">render —</span>
-            <span id="perf-debug-decode">decode —</span>
-            <span id="perf-debug-queue">queue —</span>
-            <span id="perf-debug-cache">cache —</span>
-            <span id="perf-debug-decoded">decoded —</span>
-            <span id="perf-debug-gen">gen —</span>
-          </div>
+				<details id="data-status-panel" open style="display: none">
+					<summary>
+						<span id="data-status-summary">Data status</span>
+						<span id="data-status-chevron">▼</span>
+					</summary>
 
-          <div id="map-wrap">
-            <div id="map"></div>
-            <div id="map-unavailable" hidden>Data not available yet</div>
-            <div id="map-tooltip" hidden></div>
-            <div id="colorscale">
-              <span id="cs-min"></span>
-              <div id="cs-bar"></div>
-              <span id="cs-max"></span>
-              <span id="cs-unit"></span>
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
+					<p id="arome-dl-status"></p>
 
-    <template id="palette-options">
-      <optgroup label="Custom">
-        <option value="TempC">TempC (Temperature)</option>
-      </optgroup>
-      <optgroup label="Perceptually uniform">
-        <option value="Plasma">Plasma</option>
-        <option value="Viridis">Viridis</option>
-        <option value="Magma">Magma</option>
-        <option value="Inferno">Inferno</option>
-      </optgroup>
-      <optgroup label="Diverging">
-        <option value="Spectral">Spectral</option>
-        <option value="RdBu">RdBu</option>
-        <option value="RdYlBu">RdYlBu</option>
-      </optgroup>
-      <optgroup label="Sequential">
-        <option value="YlOrRd">YlOrRd</option>
-        <option value="OrRd">OrRd</option>
-        <option value="Blues">Blues</option>
-        <option value="YlGnBu">YlGnBu</option>
-      </optgroup>
-    </template>
+					<div id="arome-dl-bars"></div>
 
-    <script type="module" src="./src/main.js"></script>
-  </body>
+					<button type="button" id="clear-grib-cache">Clear cache</button>
+
+					<details id="arome-dl-details">
+						<summary>Files <span id="arome-dl-chevron">▼</span></summary>
+						<ul id="arome-dl-file-list"></ul>
+					</details>
+				</details>
+
+				<div id="grid-toolbar">
+					<div id="grid-stats">
+						<div class="stat-item">
+							<span class="stat-label">Min</span>
+							<span class="stat-value" id="gv-min">—</span>
+						</div>
+
+						<div class="stat-item">
+							<span class="stat-label">Max</span>
+							<span class="stat-value" id="gv-max">—</span>
+						</div>
+
+						<div class="stat-item">
+							<span class="stat-label">Mean</span>
+							<span class="stat-value" id="gv-mean">—</span>
+						</div>
+
+						<div class="stat-item">
+							<span class="stat-label">Valid pts</span>
+							<span class="stat-value" id="gv-valid">—</span>
+						</div>
+					</div>
+
+					<div id="palette-ctrl">
+						<label for="palette-select">Color scale</label>
+						<select id="palette-select" class="toolbar-select"></select>
+					</div>
+				</div>
+
+				<div id="map-scene">
+					<!-- AROME player toolbar (shown instead of #grid-toolbar in AROME mode) -->
+					<div id="arome-player-toolbar" style="display: none">
+						<div id="arome-var-row">
+							<div id="arome-var-wrap">
+								<select id="arome-var-select" class="toolbar-select"></select>
+							</div>
+
+							<span id="var-spinner"></span>
+
+							<div id="palette-ctrl-arome" class="palette-ctrl-shared">
+								<label for="palette-select-arome">Color scale</label>
+								<select
+									id="palette-select-arome"
+									class="toolbar-select"
+								></select>
+							</div>
+						</div>
+
+						<div id="gv-meta">
+							<div>
+								<div id="gv-name"></div>
+								<div id="gv-level"></div>
+								<div id="gv-desc"></div>
+							</div>
+						</div>
+
+						<div id="arome-slider-wrap">
+							<span id="arome-valid-time"></span>
+							<span id="arome-hour-label">+01H</span>
+
+							<input type="range" id="arome-slider" min="0" step="1" value="0">
+
+							<button
+								id="player-reset"
+								type="button"
+								title="Reset"
+								aria-label="Reset"
+							>
+								<svg viewBox="0 0 24 24" fill="currentColor">
+									<title>Reset</title>
+									<path
+										d="M2 12c0 5.523 4.477 10 10 10s10-4.477 10-10S17.523 2 12 2v2a8 8 0 1 1-5.135 1.865L9 8V2H3l2.446 2.447A9.98 9.98 0 0 0 2 12"
+									/>
+								</svg>
+							</button>
+
+							<button
+								id="player-play"
+								type="button"
+								title="Play"
+								aria-label="Play"
+							>
+								<svg id="icon-play" viewBox="0 0 24 24" fill="currentColor">
+									<title>Play</title>
+									<polygon points="5,3 19,12 5,21" />
+								</svg>
+
+								<svg
+									id="icon-pause"
+									viewBox="0 0 24 24"
+									fill="currentColor"
+									style="display: none"
+								>
+									<title>Pause</title>
+									<rect x="5" y="3" width="4" height="18" />
+									<rect x="15" y="3" width="4" height="18" />
+								</svg>
+							</button>
+						</div>
+					</div>
+
+					<div id="cache-warmup" hidden aria-live="polite">
+						<span id="cache-warmup-label">Animation cache</span>
+						<div id="cache-warmup-track">
+							<div id="cache-warmup-bar"></div>
+						</div>
+						<span id="cache-warmup-count">0 / 0</span>
+					</div>
+
+					<div id="perf-debug" hidden aria-live="polite">
+						<span>Perf</span>
+						<span id="perf-debug-render">render —</span>
+						<span id="perf-debug-decode">decode —</span>
+						<span id="perf-debug-queue">queue —</span>
+						<span id="perf-debug-cache">cache —</span>
+						<span id="perf-debug-decoded">decoded —</span>
+						<span id="perf-debug-gen">gen —</span>
+					</div>
+
+					<div id="map-wrap">
+						<div id="map"></div>
+						<div id="map-unavailable" hidden>Data not available yet</div>
+						<div id="map-tooltip" hidden></div>
+						<div id="colorscale">
+							<span id="cs-min"></span>
+							<div id="cs-bar"></div>
+							<span id="cs-max"></span>
+							<span id="cs-unit"></span>
+						</div>
+					</div>
+				</div>
+			</main>
+		</div>
+
+		<template id="palette-options">
+			<optgroup label="Custom">
+				<option value="TempC">TempC (Temperature)</option>
+			</optgroup>
+
+			<optgroup label="Perceptually uniform">
+				<option value="Plasma">Plasma</option>
+				<option value="Viridis">Viridis</option>
+				<option value="Magma">Magma</option>
+				<option value="Inferno">Inferno</option>
+			</optgroup>
+
+			<optgroup label="Diverging">
+				<option value="Spectral">Spectral</option>
+				<option value="RdBu">RdBu</option>
+				<option value="RdYlBu">RdYlBu</option>
+			</optgroup>
+
+			<optgroup label="Sequential">
+				<option value="YlOrRd">YlOrRd</option>
+				<option value="OrRd">OrRd</option>
+				<option value="Blues">Blues</option>
+				<option value="YlGnBu">YlGnBu</option>
+			</optgroup>
+		</template>
+
+		<script type="module" src="./src/main.js"></script>
+	</body>
 </html>
