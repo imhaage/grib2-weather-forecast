@@ -50,6 +50,10 @@ const variableMetadata = readFileSync(
   new URL("./src/domain/variable-metadata.js", import.meta.url),
   "utf8",
 );
+const modelPackages = readFileSync(
+  new URL("./src/domain/model-packages.js", import.meta.url),
+  "utf8",
+);
 
 function sourceFunctionBody(name) {
   const match = source.match(new RegExp(`(?:async )?function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`));
@@ -609,8 +613,8 @@ test("variable metadata access uses shared helpers", () => {
     "expected variable key resolution to be imported from the pure metadata module",
   );
   assert.match(
-    source,
-    /function findPackageVariable\(packageKey, key\)/,
+    modelPackages,
+    /export function findPackageVariable\(packageKey, key\)/,
     "expected package variable lookup to be centralized",
   );
   assert.match(
