@@ -35,59 +35,66 @@
     ══════════════════════════════════════════════════════ -->
 		<div id="view-home">
 			<main>
-				<div id="model-list">
+				<nav class="tab-bar">
+					<button class="tab-btn" data-tab="model" type="button">Visualize a full forecast run</button>
+					<button class="tab-btn" data-tab="upload" type="button">Inspect a GRIB2 file</button>
+				</nav>
+
+				<div id="tab-panel-model">
+					<div id="model-list">
+						<p class="section-desc">
+							Browse a complete forecast run — animate temperature, wind, rain and
+							more across all forecast hours on an interactive map.
+						</p>
+					</div>
+				</div>
+
+				<div id="tab-panel-upload">
 					<p class="section-desc">
-						Browse a complete forecast run — animate temperature, wind, rain and
-						more across all forecast hours on an interactive map.
+						Drop any GRIB2 file to inspect its variables, grid metadata, and
+						decoded field values — one time step at a time.
 					</p>
-				</div>
 
-				<hr>
+					<div
+						id="drop-zone"
+						role="button"
+						tabindex="0"
+						aria-label="Upload a GRIB2 file"
+					>
+						<div class="icon">🌐</div>
+						<p><strong>Drop a GRIB2 file here</strong><br>or click to select</p>
+						<br>
+						<input type="file" id="file-input" accept=".grib2,.grib">
+					</div>
+					<div id="status"></div>
 
-				<p class="section-desc">
-					Drop any GRIB2 file to inspect its variables, grid metadata, and
-					decoded field values — one time step at a time.
-				</p>
+					<div id="file-summary">
+						<div class="meta-item">
+							<span class="meta-label">File</span>
+							<span class="meta-value" id="s-name">—</span>
+						</div>
+						<div class="meta-item">
+							<span class="meta-label">Size</span>
+							<span class="meta-value" id="s-size">—</span>
+						</div>
+						<div class="meta-item">
+							<span class="meta-label">Messages</span>
+							<span class="meta-value" id="s-count">—</span>
+						</div>
+						<div class="meta-item">
+							<span class="meta-label">Centre</span>
+							<span class="meta-value" id="s-centre">—</span>
+						</div>
+						<div class="meta-item">
+							<span class="meta-label">Reference time</span>
+							<span class="meta-value" id="s-reftime">—</span>
+						</div>
+					</div>
 
-				<div
-					id="drop-zone"
-					role="button"
-					tabindex="0"
-					aria-label="Upload a GRIB2 file"
-				>
-					<div class="icon">🌐</div>
-					<p><strong>Drop a GRIB2 file here</strong><br>or click to select</p>
-					<br>
-					<input type="file" id="file-input" accept=".grib2,.grib">
-				</div>
-				<div id="status"></div>
-
-				<div id="file-summary">
-					<div class="meta-item">
-						<span class="meta-label">File</span>
-						<span class="meta-value" id="s-name">—</span>
+					<div id="results">
+						<h2>Variables</h2>
+						<div class="cards" id="cards"></div>
 					</div>
-					<div class="meta-item">
-						<span class="meta-label">Size</span>
-						<span class="meta-value" id="s-size">—</span>
-					</div>
-					<div class="meta-item">
-						<span class="meta-label">Messages</span>
-						<span class="meta-value" id="s-count">—</span>
-					</div>
-					<div class="meta-item">
-						<span class="meta-label">Centre</span>
-						<span class="meta-value" id="s-centre">—</span>
-					</div>
-					<div class="meta-item">
-						<span class="meta-label">Reference time</span>
-						<span class="meta-value" id="s-reftime">—</span>
-					</div>
-				</div>
-
-				<div id="results">
-					<h2>Variables</h2>
-					<div class="cards" id="cards"></div>
 				</div>
 			</main>
 		</div>
