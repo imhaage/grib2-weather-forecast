@@ -41,7 +41,7 @@
 
 body {
 	min-height: 100vh;
-	font-family: system-ui, -apple-system, sans-serif;
+	font-family: "Barlow", system-ui, -apple-system, sans-serif;
 	color: var(--color-text);
 	background: var(--color-bg);
 }
@@ -54,11 +54,11 @@ header {
 	padding: var(--space-md) var(--space-xl);
 	color: var(--color-text);
 	background: var(--color-surface);
-}
 
-header h1 {
-	font-size: 1rem;
-	font-weight: 600;
+	& h1 {
+		font-size: 1rem;
+		font-weight: 600;
+	}
 }
 
 .github-link {
