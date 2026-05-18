@@ -11,7 +11,7 @@
 	</head>
 	<body>
 		<header>
-			<h1>GRIB2 Weather forecast</h1>
+			<div class="logo">GRIB2 Weather forecast</div>
 
 			<a
 				class="github-link"
@@ -106,16 +106,29 @@
 					← Variables
 				</button>
 
-				<button
-					id="arome-back-btn"
-					class="btn-back"
-					type="button"
-					style="display: none"
-				>
-					← Home
-				</button>
-
-				<div id="gv-sub"></div>
+				<div class="subtitle-wrapper">
+					<div id="gv-sub"></div>
+					<button
+						id="arome-back-btn"
+						class="btn-back"
+						type="button"
+						style="display: none"
+						aria-label="Back to the home page"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="16"
+							height="16"
+							viewBox="0 0 24 24"
+						>
+							<title>Back to the home page</title>
+							<!-- Icon from Material Symbols by Google - https://github.com/google/material-design-icons/blob/master/LICENSE --> <path
+								fill="currentColor"
+								d="m7.85 13l2.85 2.85q.3.3.288.7t-.288.7q-.3.3-.712.313t-.713-.288L4.7 12.7q-.3-.3-.3-.7t.3-.7l4.575-4.575q.3-.3.713-.287t.712.312q.275.3.288.7t-.288.7L7.85 11H19q.425 0 .713.288T20 12t-.288.713T19 13z"
+							/>
+						</svg>
+					</button>
+				</div>
 
 				<details id="data-status-panel" open style="display: none">
 					<summary>

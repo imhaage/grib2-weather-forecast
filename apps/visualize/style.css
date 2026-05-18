@@ -43,7 +43,12 @@ body {
 	min-height: 100vh;
 	font-family: "Barlow", system-ui, -apple-system, sans-serif;
 	color: var(--color-text);
-	background: var(--color-bg);
+	background:
+		linear-gradient(var(--color-surface), var(--color-bg)) no-repeat top / 100%
+		300px,
+		linear-gradient(to top, var(--color-surface), var(--color-bg)) no-repeat
+		bottom / 100% 300px,
+		var(--color-bg);
 }
 
 header {
@@ -51,9 +56,9 @@ header {
 	align-items: center;
 	justify-content: space-between;
 	gap: var(--space-sm);
-	padding: var(--space-md) var(--space-xl);
+	padding: var(--space-md);
 	color: var(--color-text);
-	background: var(--color-surface);
+	border-bottom: 1px solid var(--color-border);
 
 	& h1 {
 		font-size: 1rem;
@@ -90,18 +95,18 @@ header {
 
 /* ══════════════════════════════════════════════════════
  HOME VIEW
-    ══════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════ */
 
 #view-home main {
 	max-width: 960px;
 	margin: 0 auto;
-	padding: var(--space-xl) var(--space-lg);
-}
+	padding: var(--space-md);
 
-#view-home main hr {
-	border: none;
-	border-top: 1px solid var(--color-border);
-	margin: var(--space-xl) 0;
+	& hr {
+		border: none;
+		border-top: 1px solid var(--color-border);
+		margin: var(--space-xl) 0;
+	}
 }
 
 /* ── Drop zone ── */
@@ -311,18 +316,20 @@ header {
 }
 
 .btn-back {
-	background: var(--color-surface);
-	border: 1px solid var(--color-border-2);
-	border-radius: var(--radius-md);
-	padding: var(--space-sm) var(--space-md);
-	cursor: pointer;
-	font-size: var(--font-ui);
-	color: var(--color-text-2);
+	justify-content: center;
+	align-items: center;
 	flex-shrink: 0;
 	margin-bottom: var(--space-md);
+	padding: var(--space-md);
+	font-size: var(--font-ui);
+	color: var(--color-text-2);
+	background: var(--color-surface);
 	transition:
 		background var(--transition-fast),
 		border-color var(--transition-fast);
+	border: 1px solid var(--color-border-2);
+	border-radius: 100%;
+	cursor: pointer;
 }
 .btn-back:hover {
 	background: var(--color-surface-hover);
@@ -560,7 +567,6 @@ header {
  MODEL LIST (home)
     ══════════════════════════════════════════════════════ */
 #model-list {
-	margin-top: var(--space-lg);
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-md);
@@ -570,7 +576,7 @@ header {
 .model-section {
 	border: 1px solid var(--color-border-2);
 	border-radius: var(--radius-md);
-	padding: var(--space-lg);
+	padding: var(--space-md);
 }
 
 .model-section-title {
