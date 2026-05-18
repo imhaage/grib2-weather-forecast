@@ -59,7 +59,7 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 
 - [x] Extract download/cache service.
 - [x] Extract model block service.
-- [ ] Extract animation cache service.
+- [x] Extract animation cache service.
 - [x] Extract worker client helpers.
 - [ ] Extract map renderer lifecycle service.
 - [ ] Keep UI vanilla as an adapter only.

@@ -29,6 +29,10 @@ const modelBlockService = readFileSync(
   new URL("./src/services/model-block-service.js", import.meta.url),
   "utf8",
 );
+const animationCacheService = readFileSync(
+  new URL("./src/services/animation-cache-service.js", import.meta.url),
+  "utf8",
+);
 const unitTransforms = readFileSync(
   new URL("./src/domain/unit-transforms.js", import.meta.url),
   "utf8",
@@ -335,7 +339,7 @@ test("model forecast block decoding and rendering runs in a dedicated worker", (
   );
   assert.match(
     source,
-    /async function prerenderBlock\(blockKey\)[\s\S]*await renderModelHourViaWorker\(idx\);[\s\S]*bitmapCache\.set\(cacheKey, makeBitmapCacheEntryFromWorker\(entry\)\);/,
+    /async function prerenderBlock\(blockKey\)[\s\S]*await renderModelHourViaWorker\(idx\);[\s\S]*animationCache\.setHour\(hour, makeBitmapCacheEntryFromWorker\(entry\)\);/,
     "expected background animation cache rendering to avoid main-thread GRIB decode",
   );
 });
@@ -451,7 +455,7 @@ test("model map scene appears after the first available downloaded or cached fil
 
 test("model pre-rendering is scheduled through a single queue", () => {
   assert.match(
-    source,
+    animationCacheService,
     /let prerenderQueue = \[\];/,
     "expected explicit queue state",
   );
@@ -711,13 +715,13 @@ test("model display values use Float32Array instead of retaining Float64Array pr
 
 test("cached bitmaps are shown before decoding values for the same hour", () => {
   assert.match(
-    source,
+    animationCacheService,
     /function bitmapCacheKey\(hour\)/,
     "expected a stable cache key helper independent from decoded render params",
   );
   assert.match(
     source,
-    /const cachedEntry = bitmapCache\.get\(cacheKey\);[\s\S]*if \(cachedEntry\) \{[\s\S]*return;[\s\S]*await renderModelHourViaWorker\(idx, \{ includeValues: true \}\);/,
+    /const cachedEntry = animationCache\.getHour\(hour\);[\s\S]*if \(cachedEntry\) \{[\s\S]*return;[\s\S]*await renderModelHourViaWorker\(idx, \{ includeValues: true \}\);/,
     "expected showHour to use cached bitmaps before asking the model worker to render values",
   );
   assert.match(
@@ -924,7 +928,7 @@ test("perf diagnostics are available only through the debug query flag", () => {
   );
   assert.match(
     source,
-    /bitmapCache\.size[\s\S]*modelState\?\.decoded\?\.size[\s\S]*prerenderQueue\.length/,
+    /animationCache\.size[\s\S]*modelState\?\.decoded\?\.size[\s\S]*animationCache\.queueLength/,
     "expected diagnostics to include bitmap, decoded, and queue sizes",
   );
   assert.match(

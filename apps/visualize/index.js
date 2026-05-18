@@ -22,6 +22,7 @@ import {
 import { createAnimationPlayer } from "./animation-player.js";
 import { setupMapTooltip } from "./map-tooltip.js";
 import { createDownloadWorker } from "./src/workers/download-worker-client.js";
+import { createAnimationCacheService } from "./src/services/animation-cache-service.js";
 import { createModelBlockService } from "./src/services/model-block-service.js";
 import {
   clearGribCache,
@@ -213,13 +214,9 @@ let modelBlockService = null;
 let downloadWorker = null;
 let renderGen = 0;
 let nextCallId = 0;
-let bitmapCache = new Map(); // cacheKey → {bitmap, dataMin, dataMax, mean, count}
-let prerenderQueue = [];
-let queuedPrerenderKeys = new Set();
-let isPrerendering = false;
+const animationCache = createAnimationCacheService();
 let tooltipHydrateTimer = null;
 let tooltipHydrateToken = 0;
-let prerenderIdleResolvers = [];
 const MAX_PARALLEL_DOWNLOADS = 6;
 const PERF_DEBUG = new URLSearchParams(window.location.search).get("debug") === "perf";
 const perfStats = {
@@ -263,7 +260,7 @@ function updatePerfDiagnostics() {
   if (!panel) return;
 
   const totalBitmaps = modelState?.hourList.length ?? 0;
-  const readyBitmaps = totalBitmaps ? bitmapCacheReadyCount() : bitmapCache.size;
+  const readyBitmaps = totalBitmaps ? bitmapCacheReadyCount() : animationCache.size;
   const decodedSize = modelState?.decoded?.size ?? 0;
 
   panel.hidden = false;
@@ -272,9 +269,9 @@ function updatePerfDiagnostics() {
   document.getElementById("perf-debug-decode").textContent =
     `decode ${fmtPerfMs(perfStats.lastDecodeMs)}`;
   document.getElementById("perf-debug-queue").textContent =
-    `queue ${prerenderQueue.length}${isPrerendering ? " + active" : ""}`;
+    `queue ${animationCache.queueLength}${animationCache.isPrerendering ? " + active" : ""}`;
   document.getElementById("perf-debug-cache").textContent =
-    `cache ${readyBitmaps} / ${totalBitmaps || bitmapCache.size}`;
+    `cache ${readyBitmaps} / ${totalBitmaps || animationCache.size}`;
   document.getElementById("perf-debug-decoded").textContent =
     `decoded ${decodedSize}`;
   document.getElementById("perf-debug-gen").textContent =
@@ -418,11 +415,7 @@ function renderViaWorker(values, renderParams, outW, outH, { transferValues = fa
 
 function invalidateBitmapCache() {
   if (modelState) modelState.animationCacheStatus = "waiting";
-  for (const entry of bitmapCache.values()) entry.bitmap.close();
-  bitmapCache = new Map();
-  prerenderQueue = [];
-  queuedPrerenderKeys = new Set();
-  resolvePrerenderIdle();
+  animationCache.clear();
   tooltipHydrateToken++;
   if (tooltipHydrateTimer !== null) clearTimeout(tooltipHydrateTimer);
   tooltipHydrateTimer = null;
@@ -434,30 +427,23 @@ function invalidateBitmapCache() {
 function invalidateBlockRenderCache(block) {
   if (!block) return;
   for (let hour = block.startHour; hour <= block.endHour; hour++) {
-    const entry = bitmapCache.get(bitmapCacheKey(hour));
-    entry?.bitmap.close();
-    bitmapCache.delete(bitmapCacheKey(hour));
+    animationCache.removeHour(hour);
     evictDecodedHour(hour);
   }
   updateWarmupProgress();
 }
 
 function bitmapCacheKey(hour) {
-  return `${hour}`;
+  return animationCache.keyForHour(hour);
 }
 
 function bitmapCacheReadyCount() {
   if (!modelState) return 0;
-  let count = 0;
-  for (const hour of modelState.hourList) {
-    if (bitmapCache.has(bitmapCacheKey(hour))) count++;
-  }
-  return count;
+  return animationCache.readyCount(modelState.hourList);
 }
 
 function isBitmapCacheComplete() {
-  return Boolean(modelState?.hourList.length) &&
-    bitmapCacheReadyCount() === modelState.hourList.length;
+  return animationCache.isComplete(modelState?.hourList ?? []);
 }
 
 function isAnimationCacheReadyForPlayback() {
@@ -1245,7 +1231,7 @@ async function hydrateTooltipValues(idx, hour, token, capturedState, capturedGen
     capturedState.currentHour !== hour
   ) return;
 
-  const cachedEntry = bitmapCache.get(bitmapCacheKey(hour));
+  const cachedEntry = animationCache.getHour(hour);
   if (cachedEntry) gridState = makeGridState(cachedEntry, data.values);
 }
 
@@ -1271,7 +1257,7 @@ function queueCurrentTooltipValueHydration() {
   const slider = dom.aromeSlider;
   const idx = parseInt(slider.value, 10);
   const hour = modelState.hourList[idx];
-  if (bitmapCache.has(bitmapCacheKey(hour))) queueTooltipValueHydration(idx, hour);
+  if (animationCache.hasHour(hour)) queueTooltipValueHydration(idx, hour);
 }
 
 async function showHour(idx) {
@@ -1285,8 +1271,7 @@ async function showHour(idx) {
     const hour = modelState.hourList[idx];
     document.getElementById("arome-hour-label").textContent = fmtHourLabel(hour);
 
-    const cacheKey = bitmapCacheKey(hour);
-    const cachedEntry = bitmapCache.get(cacheKey);
+    const cachedEntry = animationCache.getHour(hour);
     if (cachedEntry) {
       modelState.currentHour = hour;
       await presentBitmapEntry(hour, cachedEntry);
@@ -1302,7 +1287,7 @@ async function showHour(idx) {
     }
 
     const entry = makeBitmapCacheEntryFromWorker(renderEntry);
-    bitmapCache.set(cacheKey, entry);
+    animationCache.setHour(hour, entry);
     updateWarmupProgress();
     await presentBitmapEntry(hour, entry, { values: renderEntry.values });
 
@@ -1319,7 +1304,7 @@ async function showHour(idx) {
   }
 }
 
-// Renders all hours in a block into bitmapCache in the background.
+// Renders all hours in a block into the animation cache in the background.
 // Silently aborts if the variable or package changes (renderGen / modelState guard).
 async function prerenderBlock(blockKey) {
   const capturedState = modelState;
@@ -1333,17 +1318,16 @@ async function prerenderBlock(blockKey) {
     const idx = capturedState.hourList.indexOf(hour);
     if (idx === -1) continue;
 
-    const cacheKey = bitmapCacheKey(hour);
-    if (bitmapCache.has(cacheKey)) continue; // already rendered (e.g. by showHour)
+    if (animationCache.hasHour(hour)) continue; // already rendered (e.g. by showHour)
 
     const entry = await renderModelHourViaWorker(idx);
     if (!entry) return; // worker stale or crashed — abort this block
 
     if (modelState === capturedState && renderGen === capturedGen) {
-      if (bitmapCache.has(cacheKey)) {
+      if (animationCache.hasHour(hour)) {
         entry.bitmap.close(); // showHour raced and cached it while we were rendering
       } else {
-        bitmapCache.set(cacheKey, makeBitmapCacheEntryFromWorker(entry));
+        animationCache.setHour(hour, makeBitmapCacheEntryFromWorker(entry));
         updateWarmupProgress();
       }
     } else {
@@ -1357,10 +1341,8 @@ function queuePrerenderBlock(blockKey) {
   if (!modelState || !modelState.buffers.has(blockKey)) return;
   const gen = renderGen;
   const state = modelState;
-  const queueKey = `${gen}:${blockKey}`;
-  if (queuedPrerenderKeys.has(queueKey)) return;
-  queuedPrerenderKeys.add(queueKey);
-  prerenderQueue.push({ blockKey, gen, state, queueKey });
+  const queued = animationCache.enqueueBlock(blockKey, gen, state);
+  if (!queued) return;
   updatePerfDiagnostics();
   drainPrerenderQueue();
 }
@@ -1373,39 +1355,29 @@ function queuePrerenderForAllBlocks() {
   }
 }
 
-function resolvePrerenderIdle() {
-  if (isPrerendering || prerenderQueue.length > 0) return;
-  const resolvers = prerenderIdleResolvers;
-  prerenderIdleResolvers = [];
-  for (const resolve of resolvers) resolve();
-}
-
 function waitForPrerenderIdle() {
-  if (!isPrerendering && prerenderQueue.length === 0) return Promise.resolve();
-  return new Promise((resolve) => prerenderIdleResolvers.push(resolve));
+  return animationCache.waitForIdle();
 }
 
 async function drainPrerenderQueue() {
-  if (isPrerendering) return;
-  isPrerendering = true;
+  if (!animationCache.beginDrain()) return;
   updatePerfDiagnostics();
   try {
-    while (prerenderQueue.length > 0) {
-      const job = prerenderQueue.shift();
+    let job = animationCache.nextJob();
+    while (job) {
       updatePerfDiagnostics();
       if (modelState === job.state && renderGen === job.gen) {
         await prerenderBlock(job.blockKey);
       }
-      queuedPrerenderKeys.delete(job.queueKey);
+      animationCache.completeJob(job);
       updatePerfDiagnostics();
+      job = animationCache.nextJob();
     }
   } finally {
-    isPrerendering = false;
+    animationCache.endDrain();
     updatePerfDiagnostics();
-    if (prerenderQueue.length > 0) {
+    if (animationCache.queueLength > 0) {
       drainPrerenderQueue();
-    } else {
-      resolvePrerenderIdle();
     }
   }
 }
