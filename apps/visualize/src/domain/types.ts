@@ -24,6 +24,24 @@ export interface ForecastPackage {
   variables: ForecastVariable[];
 }
 
+export interface VariableKeySource {
+  shortName: string;
+  varKey?: string;
+}
+
+export interface StaticScale {
+  min: number;
+  max: number;
+  log?: boolean;
+  zeroThreshold?: number;
+}
+
+export interface VariableMetadata {
+  description?: string;
+  defaultPalette?: string;
+  staticScale?: StaticScale;
+}
+
 export interface RemoteResource {
   startHour: number;
   endHour: number;

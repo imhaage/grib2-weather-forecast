@@ -1,3 +1,9 @@
+// @ts-check
+
+/** @typedef {import("./types").VariableKeySource} VariableKeySource */
+/** @typedef {import("./types").VariableMetadata} VariableMetadata */
+
+/** @type {Readonly<Record<string, VariableMetadata>>} */
 export const VARIABLE_METADATA = Object.freeze({
   t: {
     description:
@@ -113,22 +119,37 @@ export const VARIABLE_METADATA = Object.freeze({
   },
 });
 
+/**
+ * @param {VariableKeySource} varDef
+ */
 export function variableKeyFor(varDef) {
   return varDef.varKey ?? varDef.shortName;
 }
 
+/**
+ * @param {string} shortName
+ */
 export function variableMetadataFor(shortName) {
   return VARIABLE_METADATA[shortName] ?? {};
 }
 
+/**
+ * @param {string} shortName
+ */
 export function parameterDescriptionFor(shortName) {
   return variableMetadataFor(shortName).description ?? "";
 }
 
+/**
+ * @param {string} shortName
+ */
 export function defaultPaletteFor(shortName) {
   return variableMetadataFor(shortName).defaultPalette ?? null;
 }
 
+/**
+ * @param {string} shortName
+ */
 export function staticScaleFor(shortName) {
   return variableMetadataFor(shortName).staticScale ?? null;
 }
