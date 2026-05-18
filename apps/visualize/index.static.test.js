@@ -21,6 +21,10 @@ const unitTransforms = readFileSync(
   new URL("./src/domain/unit-transforms.js", import.meta.url),
   "utf8",
 );
+const resourceHelpers = readFileSync(
+  new URL("./src/domain/resources.js", import.meta.url),
+  "utf8",
+);
 const variableMetadata = readFileSync(
   new URL("./src/domain/variable-metadata.js", import.meta.url),
   "utf8",
@@ -930,8 +934,13 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
   );
   assert.match(
     source,
+    /import \{[\s\S]*extractRunId,[\s\S]*formatRunId,[\s\S]*formatRunSummary,[\s\S]*runTimeValue,[\s\S]*\} from "\.\/src\/domain\/resources\.js";/,
+    "expected run/resource helpers to come from the pure domain module",
+  );
+  assert.match(
+    resourceHelpers,
     /function extractRunId\(/,
-    "expected each remote resource to expose its run id",
+    "expected each remote resource to expose its run id through the domain helper",
   );
   assert.match(
     source,
@@ -959,7 +968,7 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
     "expected cached blocks to stay navigable while missing and stale network work finishes before animation generation",
   );
   assert.match(
-    source,
+    resourceHelpers,
     /function runTimeValue\(runId\)[\s\S]*Date\.parse\(runId\)/,
     "expected cache freshness to compare run dates explicitly",
   );

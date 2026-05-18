@@ -8,6 +8,12 @@ import {
   unitTransformFor,
 } from "./src/domain/unit-transforms.js";
 import {
+  extractRunId,
+  formatRunId,
+  formatRunSummary,
+  runTimeValue,
+} from "./src/domain/resources.js";
+import {
   defaultPaletteFor,
   parameterDescriptionFor,
   staticScaleFor,
@@ -291,24 +297,6 @@ function openGribCacheDb() {
   return gribCacheDbPromise;
 }
 
-function extractRunId(text) {
-  const match = text.match(/(\d{4}-\d{2}-\d{2}T\d{2}[:_]\d{2}[:_]\d{2}Z)/);
-  return match ? match[1].replaceAll("_", ":") : "unknown-run";
-}
-
-function formatRunId(runId) {
-  const match = runId.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/);
-  if (!match) return runId;
-  return `${match[1]} ${match[2]}:${match[3]} UTC`;
-}
-
-function formatRunSummary(resources) {
-  const runIds = [...new Set(resources.map((r) => r.runId))];
-  if (runIds.length === 0) return "no run";
-  if (runIds.length === 1) return `run ${formatRunId(runIds[0])}`;
-  return `mixed runs: ${runIds.map(formatRunId).join(", ")}`;
-}
-
 function gribBlockCacheKey(packageKey, block) {
   return [
     "grib2",
@@ -322,11 +310,6 @@ function gribBlockCacheKey(packageKey, block) {
 
 function cachedGribBlockBuffer(record) {
   return record?.buffer ? new Uint8Array(record.buffer) : null;
-}
-
-function runTimeValue(runId) {
-  const time = Date.parse(runId);
-  return Number.isFinite(time) ? time : -Infinity;
 }
 
 function hasCompatibleCachedGribBlockSize(record, block) {
