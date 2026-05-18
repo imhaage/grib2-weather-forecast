@@ -33,6 +33,10 @@ const animationCacheService = readFileSync(
   new URL("./src/services/animation-cache-service.js", import.meta.url),
   "utf8",
 );
+const mapRendererService = readFileSync(
+  new URL("./src/services/map-renderer-service.js", import.meta.url),
+  "utf8",
+);
 const unitTransforms = readFileSync(
   new URL("./src/domain/unit-transforms.js", import.meta.url),
   "utf8",
@@ -881,21 +885,21 @@ test("map clicks show a thin cross marker for mobile tooltip location", () => {
     "expected map clicks to place the marker only when the input needs it",
   );
   assert.match(
-    source,
-    /import \{ setupMapTooltip \} from "\.\/map-tooltip\.js";/,
+    mapRendererService,
+    /import \{ setupMapTooltip \} from "\.\.\/\.\.\/map-tooltip\.js";/,
     "expected tooltip behavior to live outside index.js",
   );
   assert.match(
     source,
-    /setupMapTooltip\(\{[\s\S]*getGridState: \(\) => gridState,[\s\S]*missingValue: MISSING_VALUE,/,
-    "expected index.js to wire the map tooltip controller",
+    /createMapRendererService\(\{[\s\S]*getGridState: \(\) => gridState,[\s\S]*missingValue: MISSING_VALUE,/,
+    "expected index.js to wire grid state into the map renderer service",
   );
 });
 
 test("uploaded file view uses the worker render pipeline for stats and bitmap", () => {
   assert.match(
     source,
-    /async function showGridView\(shortName\) \{[\s\S]*const p = makeRenderParams\(decoded\);[\s\S]*const \{ outH \} = ensureHeatCanvas\(gr\);[\s\S]*const statsEntry = await renderViaWorker\(p\.values, p, gr\.ni, outH\);/,
+    /async function showGridView\(shortName\) \{[\s\S]*const p = makeRenderParams\(decoded\);[\s\S]*const \{ canvas, outH \} = ensureHeatCanvas\(gr\);[\s\S]*const statsEntry = await renderViaWorker\(p\.values, p, gr\.ni, outH\);/,
     "expected uploaded-file rendering to use renderViaWorker",
   );
   assert.doesNotMatch(

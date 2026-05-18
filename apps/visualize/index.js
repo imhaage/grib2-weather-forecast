@@ -1,5 +1,3 @@
-import maplibregl from "maplibre-gl";
-
 const PROXY = "https://grib2-cors-proxy.imh.workers.dev";
 import {
   displayUnitsFor,
@@ -20,9 +18,9 @@ import {
   variableKeyFor,
 } from "./src/domain/variable-metadata.js";
 import { createAnimationPlayer } from "./animation-player.js";
-import { setupMapTooltip } from "./map-tooltip.js";
 import { createDownloadWorker } from "./src/workers/download-worker-client.js";
 import { createAnimationCacheService } from "./src/services/animation-cache-service.js";
+import { createMapRendererService } from "./src/services/map-renderer-service.js";
 import { createModelBlockService } from "./src/services/model-block-service.js";
 import {
   clearGribCache,
@@ -71,6 +69,8 @@ const CACHE_LOAD_RESULT = Object.freeze({
   STALE: "stale",
   MISSING: "missing",
 });
+const DECODED_CACHE_SIZE = 2;
+const RASTER_OPACITY = 0.8;
 const dom = {
   get aromeDownloadBars() { return byId("arome-dl-bars"); },
   get aromeDownloadFileList() { return byId("arome-dl-file-list"); },
@@ -204,8 +204,6 @@ function findPackageVariable(packageKey, key) {
 let fileState = null; // { messages: Array }
 let gridState = null; // { values, min, range, grid, product }
 let currentPalette = "Plasma";
-let map = null; // MapLibre instance (created once, reused)
-let heatCanvas = null; // offscreen canvas for heatmap rendering
 let modelState = null; // { packageKey, resources, buffers, messageIndex, hourList, decoded, decodedOrder, variable, currentHour, lastRunInfo }
 let isDecoding = false;
 let pendingHourIdx = null;
@@ -223,6 +221,15 @@ const perfStats = {
   lastRenderMs: null,
   lastDecodeMs: null,
 };
+const mapRenderer = createMapRendererService({
+  canvasHeightForGrid: mercatorCanvasHeight,
+  getGridState: () => gridState,
+  getMapScene: () => dom.mapScene,
+  missingValue: MISSING_VALUE,
+  rasterOpacity: RASTER_OPACITY,
+  tooltipEl: document.getElementById("map-tooltip"),
+  wrapEl: document.getElementById("map-wrap"),
+});
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtPerfMs(value) {
@@ -284,9 +291,7 @@ function setRendering(on) {
 }
 
 function setMapSceneVisible(visible) {
-  const scene = dom.mapScene;
-  scene.hidden = !visible;
-  if (visible && map) map.resize();
+  mapRenderer.setVisible(visible);
 }
 
 function initRenderWorker() {
@@ -545,9 +550,6 @@ function code(table, v) {
   return table[v] ? `${table[v]} (${v})` : String(v);
 }
 
-const DECODED_CACHE_SIZE = 2;
-const RASTER_OPACITY = 0.8;
-
 function applyDefaultPalette(shortName) {
   const pal = defaultPaletteFor(shortName);
   if (!pal) return;
@@ -652,15 +654,8 @@ function setStatus(msg, isError = false) {
   el.className = isError ? "error" : "";
 }
 
-function removeMapLayerIfExists() {
-  if (map?.getSource("grib2")) {
-    map.removeLayer("grib2-layer");
-    map.removeSource("grib2");
-  }
-}
-
 function clearMapLayer() {
-  removeMapLayerIfExists();
+  mapRenderer.clearLayer();
   gridState = null;
   hideColorScale();
   hideMapUnavailable();
@@ -787,44 +782,15 @@ function gridCorners({
 }
 
 function setMapLayer(canvas, corners) {
-  removeMapLayerIfExists();
-  map.addSource("grib2", {
-    type: "canvas",
-    canvas,
-    coordinates: corners,
-    animate: true,
-  });
-  map.addLayer({
-    id: "grib2-layer",
-    type: "raster",
-    source: "grib2",
-    paint: {
-      "raster-opacity": RASTER_OPACITY,
-      "raster-resampling": "nearest",
-    },
-  });
+  mapRenderer.setLayer(canvas, corners);
 }
 
 function ensureHeatCanvas(grid) {
-  const needH = mercatorCanvasHeight(grid);
-  const canvasChanged = !heatCanvas || heatCanvas.width !== grid.ni || heatCanvas.height !== needH;
-  if (canvasChanged) {
-    heatCanvas = document.createElement("canvas");
-    heatCanvas.width = grid.ni;
-    heatCanvas.height = needH;
-  }
-  return {
-    canvas: heatCanvas,
-    canvasChanged,
-    outW: grid.ni,
-    outH: needH,
-  };
+  return mapRenderer.ensureHeatCanvas(grid);
 }
 
 function drawBitmapToHeatCanvas(bitmap) {
-  const ctx = heatCanvas.getContext("2d");
-  ctx.clearRect(0, 0, heatCanvas.width, heatCanvas.height);
-  ctx.drawImage(bitmap, 0, 0);
+  mapRenderer.drawBitmap(bitmap);
 }
 
 function updateStatsAndColorScale(entry) {
@@ -836,27 +802,7 @@ function updateStatsAndColorScale(entry) {
 
 // Create the MapLibre map once. fitBoundsArgs is optional [bounds, options].
 async function initMap(fitBoundsArgs) {
-  if (map) return;
-  map = new maplibregl.Map({
-    container: "map",
-    style: "https://tiles.openfreemap.org/styles/positron",
-    attributionControl: true,
-  });
-  await new Promise((r) => map.once("load", r));
-  if (fitBoundsArgs) map.fitBounds(...fitBoundsArgs);
-  map.addControl(
-    new maplibregl.FullscreenControl({
-      container: dom.mapScene,
-    }),
-  );
-  setupMapTooltip({
-    map,
-    maplibregl,
-    getGridState: () => gridState,
-    missingValue: MISSING_VALUE,
-    tooltipEl: document.getElementById("map-tooltip"),
-    wrapEl: document.getElementById("map-wrap"),
-  });
+  await mapRenderer.init(fitBoundsArgs);
 }
 
 function resetModelState() {
@@ -932,7 +878,7 @@ async function showGridView(shortName) {
   const p = makeRenderParams(decoded);
   gridState = makeGridState(p);
 
-  const { outH } = ensureHeatCanvas(gr);
+  const { canvas, outH } = ensureHeatCanvas(gr);
   const corners = gridCorners(gr);
   const statsEntry = await renderViaWorker(p.values, p, gr.ni, outH);
   if (!statsEntry) return;
@@ -942,8 +888,8 @@ async function showGridView(shortName) {
   statsEntry.bitmap.close();
 
   await initMap();
-  setMapLayer(heatCanvas, corners);
-  map.fitBounds(
+  setMapLayer(canvas, corners);
+  mapRenderer.fitBounds(
     [
       [corners[3][0], corners[2][1]],
       [corners[1][0], corners[0][1]],
@@ -967,7 +913,7 @@ async function rerenderUploadedGridView() {
   statsEntry.bitmap.close();
 
   updateStatsAndColorScale(entry);
-  if (map) map.triggerRepaint();
+  mapRenderer.triggerRepaint();
 }
 
 // ── AROME live data ───────────────────────────────────────────────────────────
@@ -1179,7 +1125,7 @@ async function presentBitmapEntry(hour, entry, { values } = {}) {
 
   gridState = makeGridState(entry, values ?? null);
 
-  const { canvasChanged } = ensureHeatCanvas(grid);
+  const { canvas, canvasChanged } = ensureHeatCanvas(grid);
   const corners = gridCorners(grid);
   drawBitmapToHeatCanvas(entry.bitmap);
 
@@ -1188,15 +1134,15 @@ async function presentBitmapEntry(hour, entry, { values } = {}) {
   document.getElementById("cs-bar").style.background = `linear-gradient(to right, ${stops})`;
 
   await initMap();
-  const isFirstLayer = !map.getSource("grib2");
+  const isFirstLayer = !mapRenderer.hasLayer();
   if (isFirstLayer || canvasChanged) {
-    setMapLayer(heatCanvas, corners);
-    map.fitBounds(
+    setMapLayer(canvas, corners);
+    mapRenderer.fitBounds(
       [[corners[3][0], corners[2][1]], [corners[1][0], corners[0][1]]],
       { padding: 20, animate: false },
     );
   }
-  if (map) map.triggerRepaint();
+  mapRenderer.triggerRepaint();
 
   modelState.lastRunInfo = `${modelState.packageKey} · run ${fmtRefTime(header)}`;
   updateParamInfo(
@@ -1639,7 +1585,7 @@ async function refreshMapForAvailableModelBlock(block, session) {
     setMapSceneVisible(true);
     await initMap();
     if (modelState !== session.downloadKey) return;
-    map.fitBounds(session.pkg.bounds, { padding: 20, animate: false });
+    mapRenderer.fitBounds(session.pkg.bounds, { padding: 20, animate: false });
     await showHour(currentIdx);
   } else if (blockForHour(currentHour)?.key === block.key) {
     await showHour(currentIdx);

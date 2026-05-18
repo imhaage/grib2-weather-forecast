@@ -61,7 +61,7 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 - [x] Extract model block service.
 - [x] Extract animation cache service.
 - [x] Extract worker client helpers.
-- [ ] Extract map renderer lifecycle service.
+- [x] Extract map renderer lifecycle service.
 - [ ] Keep UI vanilla as an adapter only.
 
 ## Phase 5 — Minimal Store
