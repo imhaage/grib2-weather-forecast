@@ -51,7 +51,7 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 - [x] Define core domain types: package, resource, block status, cache status, animation status.
 - [x] Extract pure resource/run helpers.
 - [x] Extract variable metadata and type boundaries.
-- [ ] Extract palette and scale helpers.
+- [x] Extract palette and scale helpers.
 - [ ] Add Vitest for new pure modules.
 - [ ] Keep regex tests until equivalent unit tests exist.
 

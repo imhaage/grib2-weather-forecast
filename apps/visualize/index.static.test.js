@@ -25,6 +25,7 @@ const resourceHelpers = readFileSync(
   new URL("./src/domain/resources.js", import.meta.url),
   "utf8",
 );
+const palettes = readFileSync(new URL("./src/domain/palettes.js", import.meta.url), "utf8");
 const variableMetadata = readFileSync(
   new URL("./src/domain/variable-metadata.js", import.meta.url),
   "utf8",
@@ -517,6 +518,24 @@ test("unit conversion rules are shared between the main thread and render worker
     unitTransforms,
     /const UNIT_TRANSFORMS = Object\.freeze\(\{[\s\S]*displayUnits: "°C"[\s\S]*apply: \(value\) => value - 273\.15[\s\S]*displayUnits: "km\/h"[\s\S]*apply: \(value\) => value \* 3\.6/,
     "expected shared unit transform definitions to include display units and conversion logic",
+  );
+});
+
+test("palette and scale helpers live in a pure domain module", () => {
+  assert.match(
+    source,
+    /import \{ buildLUT, LOG_SCALE_FLOOR, makeScale \} from "\.\/src\/domain\/palettes\.js";/,
+    "expected index.js to consume palette helpers from the domain module",
+  );
+  assert.match(
+    palettes,
+    /import chroma from "chroma-js";[\s\S]*export function makeScale\(paletteName\)[\s\S]*export function buildLUT\(paletteName\)/,
+    "expected palette construction and LUT generation to share one pure module",
+  );
+  assert.doesNotMatch(
+    source,
+    /import chroma from "chroma-js";/,
+    "expected chroma to stay out of the UI orchestrator",
   );
 });
 
