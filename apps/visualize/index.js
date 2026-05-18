@@ -22,7 +22,7 @@ import {
 import { createAnimationPlayer } from "./animation-player.js";
 import { setupMapTooltip } from "./map-tooltip.js";
 import { createDownloadWorker } from "./src/workers/download-worker-client.js";
-import { createModelBlockWorkerClient } from "./src/workers/model-block-worker-client.js";
+import { createModelBlockService } from "./src/services/model-block-service.js";
 import {
   clearGribCache,
   deleteObsoleteCachedGribBlocks,
@@ -209,7 +209,7 @@ let modelState = null; // { packageKey, resources, buffers, messageIndex, hourLi
 let isDecoding = false;
 let pendingHourIdx = null;
 let renderWorker = null;
-let modelBlockWorkerClient = null;
+let modelBlockService = null;
 let downloadWorker = null;
 let renderGen = 0;
 let nextCallId = 0;
@@ -334,9 +334,9 @@ function downloadFileInWorker(url, filesize, onProgress) {
   });
 }
 
-function postModelBlockWorker(message, transfer = []) {
-  if (!modelBlockWorkerClient) modelBlockWorkerClient = createModelBlockWorkerClient();
-  return modelBlockWorkerClient.post(message, transfer);
+function getModelBlockService() {
+  if (!modelBlockService) modelBlockService = createModelBlockService();
+  return modelBlockService;
 }
 
 async function timedDecodeGRIB2(buffer) {
@@ -1166,7 +1166,7 @@ async function renderModelHourViaWorker(idx, { includeValues = false } = {}) {
   if (!request) return null;
 
   const startedAt = PERF_DEBUG ? performance.now() : 0;
-  const result = await postModelBlockWorker(request, [request.lut.buffer]);
+  const result = await getModelBlockService().renderHour(request);
   if (!result) return null;
   if (PERF_DEBUG) {
     perfStats.lastRenderMs = performance.now() - startedAt;
@@ -1182,10 +1182,7 @@ async function renderModelHourViaWorker(idx, { includeValues = false } = {}) {
 async function decodeModelHourValuesViaWorker(idx, hour) {
   const request = modelWorkerRequestForHour(idx, hour, { includeValues: false });
   if (!request) return null;
-  const result = await postModelBlockWorker({
-    ...request,
-    type: "decodeValues",
-  });
+  const result = await getModelBlockService().decodeValues(request);
   if (!result?.values || renderGen !== request.gen) return null;
   return result;
 }
@@ -1613,15 +1610,7 @@ function markInMemoryModelBlockAvailable(block, status, session) {
 }
 
 async function storeModelBlockInWorker(block, buffer) {
-  const result = await postModelBlockWorker(
-    {
-      type: "storeBlock",
-      blockKey: block.key,
-      buffer,
-    },
-    [buffer.buffer],
-  );
-  return Boolean(result?.ok);
+  return getModelBlockService().storeBlock(block, buffer);
 }
 
 async function storeAvailableModelBlock(block, buffer, status, session) {

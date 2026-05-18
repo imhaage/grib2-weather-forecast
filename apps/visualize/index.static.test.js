@@ -25,6 +25,10 @@ const gribCacheService = readFileSync(
   new URL("./src/services/grib-cache-service.js", import.meta.url),
   "utf8",
 );
+const modelBlockService = readFileSync(
+  new URL("./src/services/model-block-service.js", import.meta.url),
+  "utf8",
+);
 const unitTransforms = readFileSync(
   new URL("./src/domain/unit-transforms.js", import.meta.url),
   "utf8",
@@ -310,19 +314,24 @@ test("model forecast block decoding and rendering runs in a dedicated worker", (
     "expected the Vite model block worker client to create a dedicated module worker",
   );
   assert.match(
-    source,
-    /import \{ createModelBlockWorkerClient \} from "\.\/src\/workers\/model-block-worker-client\.js";[\s\S]*modelBlockWorkerClient = createModelBlockWorkerClient\(\);/,
-    "expected index.js to use the Vite model block worker client",
+    modelBlockService,
+    /import \{ createModelBlockWorkerClient \} from "\.\.\/workers\/model-block-worker-client\.js";[\s\S]*const client = createModelBlockWorkerClient\(\);/,
+    "expected the model block service to use the Vite model block worker client",
   );
   assert.match(
-    source,
-    /async function storeModelBlockInWorker\(block, buffer\)[\s\S]*postModelBlockWorker\([\s\S]*type: "storeBlock"[\s\S]*buffer,[\s\S]*\],/,
+    modelBlockService,
+    /async storeBlock\(block, buffer\)[\s\S]*type: "storeBlock"[\s\S]*buffer,[\s\S]*\[buffer\.buffer\]/,
     "expected model buffers to be transferred to the model worker after download/cache read",
   );
   assert.match(
     source,
-    /function modelWorkerRequestForHour\(idx, hour, \{ includeValues = false \} = \{\}\)[\s\S]*type: "renderHour"[\s\S]*includeValues,[\s\S]*async function renderModelHourViaWorker\(idx, \{ includeValues = false \} = \{\}\)[\s\S]*postModelBlockWorker\(request,/,
+    /function modelWorkerRequestForHour\(idx, hour, \{ includeValues = false \} = \{\}\)[\s\S]*type: "renderHour"[\s\S]*includeValues,[\s\S]*async function renderModelHourViaWorker\(idx, \{ includeValues = false \} = \{\}\)[\s\S]*getModelBlockService\(\)\.renderHour\(request\)/,
     "expected model hour rendering to use the model worker pipeline",
+  );
+  assert.match(
+    modelBlockService,
+    /renderHour\(request\)[\s\S]*client\.post\(request, \[request\.lut\.buffer\]\)/,
+    "expected render requests to transfer the LUT buffer through the model block service",
   );
   assert.match(
     source,
@@ -672,7 +681,7 @@ test("uploaded-file worker rendering can transfer owned values without cloning",
   );
   assert.match(
     source,
-    /postModelBlockWorker\([\s\S]*type: "storeBlock"[\s\S]*\[buffer\.buffer\]/,
+    /getModelBlockService\(\)\.storeBlock\(block, buffer\)/,
     "expected model rendering to transfer whole GRIB blocks to the model worker instead",
   );
 });
