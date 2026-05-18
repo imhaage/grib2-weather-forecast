@@ -54,6 +54,10 @@ const modelPackages = readFileSync(
   new URL("./src/domain/model-packages.js", import.meta.url),
   "utf8",
 );
+const modelListView = readFileSync(
+  new URL("./src/ui/model-list-view.js", import.meta.url),
+  "utf8",
+);
 
 function sourceFunctionBody(name) {
   const match = source.match(new RegExp(`(?:async )?function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`));
@@ -575,28 +579,28 @@ test("palette and scale helpers live in a pure domain module", () => {
 
 test("home model list rendering is split into focused builders", () => {
   assert.match(
-    source,
+    modelListView,
     /function groupPackagesByModel\(packages\)/,
     "expected model package grouping to be isolated",
   );
   assert.match(
-    source,
+    modelListView,
     /function createModelMetaElement\(info\)/,
     "expected model metadata DOM creation to be isolated",
   );
   assert.match(
-    source,
-    /function createModelPackageElement\(key, pkg\)/,
+    modelListView,
+    /function createModelPackageElement\(key, pkg, onPackageSelect\)/,
     "expected model package DOM creation to be isolated",
   );
   assert.match(
-    source,
-    /function renderModelList\(\)/,
+    modelListView,
+    /export function renderModelList\(\{/,
     "expected model list rendering to have a named entry point",
   );
   assert.match(
     source,
-    /renderModelList\(\);[\s\S]*window\.addEventListener\("hashchange", route\);/,
+    /renderModelList\(\{[\s\S]*packages: PACKAGES,[\s\S]*modelInfo: MODEL_INFO,[\s\S]*window\.addEventListener\("hashchange", route\);/,
     "expected startup to call the named model list renderer",
   );
 });
