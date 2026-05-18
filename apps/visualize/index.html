@@ -36,20 +36,48 @@
 		<div id="view-home">
 			<main>
 				<nav class="tab-bar" role="tablist">
-					<button class="tab-btn" role="tab" aria-selected="true" aria-controls="tab-panel-model" id="tab-btn-model" data-tab="model" type="button">Visualize a full forecast run</button>
-					<button class="tab-btn" role="tab" aria-selected="false" aria-controls="tab-panel-upload" id="tab-btn-upload" data-tab="upload" type="button">Inspect a GRIB2 file</button>
+					<button
+						class="tab-btn"
+						role="tab"
+						aria-selected="true"
+						aria-controls="tab-panel-model"
+						id="tab-btn-model"
+						data-tab="model"
+						type="button"
+					>
+						Visualize a forecast run
+					</button>
+					<button
+						class="tab-btn"
+						role="tab"
+						aria-selected="false"
+						aria-controls="tab-panel-upload"
+						id="tab-btn-upload"
+						data-tab="upload"
+						type="button"
+					>
+						Inspect a GRIB2 file
+					</button>
 				</nav>
 
-				<div id="tab-panel-model" role="tabpanel" aria-labelledby="tab-btn-model">
+				<div
+					id="tab-panel-model"
+					role="tabpanel"
+					aria-labelledby="tab-btn-model"
+				>
 					<div id="model-list">
 						<p class="section-desc">
-							Browse a complete forecast run — animate temperature, wind, rain and
-							more across all forecast hours on an interactive map.
+							Browse a complete forecast run — animate temperature, wind, rain
+							and more across all forecast hours on an interactive map.
 						</p>
 					</div>
 				</div>
 
-				<div id="tab-panel-upload" role="tabpanel" aria-labelledby="tab-btn-upload">
+				<div
+					id="tab-panel-upload"
+					role="tabpanel"
+					aria-labelledby="tab-btn-upload"
+				>
 					<p class="section-desc">
 						Drop any GRIB2 file to inspect its variables, grid metadata, and
 						decoded field values — one time step at a time.
