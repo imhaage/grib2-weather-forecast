@@ -1873,6 +1873,7 @@ function showTab(name) {
 function resetUploadState() {
 	byId("file-summary").style.display = "none";
 	byId("results").style.display = "none";
+	byId("cards").innerHTML = "";
 	const status = byId("status");
 	status.textContent = "";
 	status.className = "";
