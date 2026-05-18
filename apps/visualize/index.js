@@ -1859,6 +1859,25 @@ function showView(name) {
 		document.getElementById(id).style.display = id === name ? "block" : "none";
 }
 
+function showTab(name) {
+	for (const panel of ["model", "upload"]) {
+		document.getElementById(`tab-panel-${panel}`).classList.toggle("active", panel === name);
+	}
+	for (const btn of document.querySelectorAll(".tab-btn")) {
+		btn.classList.toggle("active", btn.dataset.tab === name);
+		btn.setAttribute("aria-selected", btn.dataset.tab === name ? "true" : "false");
+	}
+	if (name === "model") resetUploadState();
+}
+
+function resetUploadState() {
+	byId("file-summary").style.display = "none";
+	byId("results").style.display = "none";
+	const status = byId("status");
+	status.textContent = "";
+	status.className = "";
+}
+
 function setToolbarMode(mode) {
 	const isGrid = mode === "grid";
 	document.getElementById("back-btn").style.display = isGrid ? "block" : "none";
@@ -1894,6 +1913,7 @@ function route() {
 		}
 	} else {
 		showView("view-home");
+		showTab("model");
 	}
 }
 
@@ -1905,6 +1925,10 @@ renderModelList({
 		location.hash = `#arome/${key}`;
 	},
 });
+
+for (const btn of document.querySelectorAll(".tab-btn")) {
+	btn.addEventListener("click", () => showTab(btn.dataset.tab));
+}
 
 const animationPlayer = createAnimationPlayer({
 	playButton: document.getElementById("player-play"),
