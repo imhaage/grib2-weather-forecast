@@ -52,8 +52,8 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 - [x] Extract pure resource/run helpers.
 - [x] Extract variable metadata and type boundaries.
 - [x] Extract palette and scale helpers.
-- [ ] Add Vitest for new pure modules.
-- [ ] Keep regex tests until equivalent unit tests exist.
+- [x] Add Vitest for new pure modules.
+- [x] Keep regex tests until equivalent unit tests exist.
 
 ## Phase 4 — Headless Services
 
