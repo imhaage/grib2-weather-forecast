@@ -611,21 +611,48 @@ header {
 	align-items: center;
 	gap: var(--space-sm);
 	margin-top: var(--space-sm);
+	margin-bottom: var(--space-xl);
 	font-size: var(--font-sm);
 	color: var(--color-text-2);
 	font-variant-numeric: tabular-nums;
-	height: 1.5rem;
+	min-height: 2.4rem;
+}
+#cs-track {
+	position: relative;
+	flex: 1;
+	min-width: 0;
+	padding-bottom: 1.2rem;
 }
 #cs-bar {
-	flex: 1;
 	height: 10px;
 	border-radius: var(--radius);
 }
-#cs-unit {
-	color: var(--color-text-muted);
-	margin-left: var(--space-xs);
+#cs-ticks {
+	position: absolute;
+	top: 10px;
+	left: 0;
+	right: 0;
+	height: 1.2rem;
 }
-
+.cs-tick {
+	position: absolute;
+	top: 0;
+	transform: translateX(-50%);
+	color: var(--color-text-2);
+	font-size: 0.62rem;
+	line-height: 1;
+	white-space: nowrap;
+	opacity: 0.9;
+}
+.cs-tick::before {
+	content: "";
+	display: block;
+	width: 1px;
+	height: 5px;
+	margin: 0 auto 3px;
+	background: currentColor;
+	opacity: 0.85;
+}
 /* ── Palette selector ── */
 #palette-ctrl {
 	display: flex;

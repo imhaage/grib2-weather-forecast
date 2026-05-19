@@ -175,6 +175,7 @@ async function renderHour(data) {
     renderMin,
     range,
     staticScale,
+    isLog,
     displayUnits: decoded.displayUnits ?? displayUnits,
     isFallback,
     isobars: supportsIsobars(product.shortName)

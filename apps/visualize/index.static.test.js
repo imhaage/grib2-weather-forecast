@@ -229,6 +229,16 @@ test("model variable select supports grouped options", () => {
     /group\.label = groupName/,
     "expected optgroup labels to come from package variable metadata",
   );
+  assert.match(
+    source,
+    /const VARIABLE_GROUP_ORDER = \["Weather maps", "Model fields"\];/,
+    "expected weather-map variables to appear before raw model fields in grouped selects",
+  );
+  assert.match(
+    source,
+    /function defaultVariableForPackage\(pkg\)[\s\S]*v\.group === "Weather maps"/,
+    "expected model packages to default to their first weather-map variable",
+  );
 });
 
 test("model block loading through cache and network is isolated", () => {
@@ -634,18 +644,33 @@ test("unit conversion rules are shared between the main thread and render worker
 test("palette and scale helpers live in a pure domain module", () => {
   assert.match(
     source,
-    /import \{ buildLUT, LOG_SCALE_FLOOR, makeScale \} from "\.\/src\/domain\/palettes\.js";/,
+    /import \{[\s\S]*buildLUT,[\s\S]*legendTicksFor,[\s\S]*LOG_SCALE_FLOOR,[\s\S]*makeScale,[\s\S]*\} from "\.\/src\/domain\/palettes\.js";/,
     "expected index.js to consume palette helpers from the domain module",
   );
   assert.match(
     palettes,
-    /import chroma from "chroma-js";[\s\S]*export function makeScale\(paletteName\)[\s\S]*export function buildLUT\(paletteName\)/,
+    /import chroma from "chroma-js";[\s\S]*export function makeScale\(paletteName,[\s\S]*export function buildLUT\(paletteName,/,
     "expected palette construction and LUT generation to share one pure module",
   );
   assert.doesNotMatch(
     source,
     /import chroma from "chroma-js";/,
     "expected chroma to stay out of the UI orchestrator",
+  );
+  assert.match(
+    html,
+    /<option value="CAPE">CAPE<\/option>/,
+    "expected the custom CAPE palette to be available in palette selects",
+  );
+  assert.match(
+    html,
+    /<div id="cs-ticks"><\/div>/,
+    "expected color scale ticks to have a dedicated DOM container",
+  );
+  assert.match(
+    source,
+    /function renderColorScaleTicks\(\{ min, max, units, isLog \}\)[\s\S]*legendTicksFor\(\{[\s\S]*paletteName: currentPalette,[\s\S]*isLog,[\s\S]*\}\)/,
+    "expected color scale tick rendering to use domain-computed legend ticks",
   );
 });
 
@@ -674,6 +699,21 @@ test("home model list rendering is split into focused builders", () => {
     source,
     /renderModelList\(\{[\s\S]*packages: PACKAGES,[\s\S]*modelInfo: MODEL_INFO,[\s\S]*window\.addEventListener\("hashchange", route\);/,
     "expected startup to call the named model list renderer",
+  );
+  assert.match(
+    modelListView,
+    /title\.textContent = info\.title/,
+    "expected model section titles to use explicit display titles from model metadata",
+  );
+  assert.match(
+    modelPackages,
+    /title: "AROME 0\.01"/,
+    "expected AROME title metadata to include the grid resolution",
+  );
+  assert.match(
+    modelPackages,
+    /title: "ARPEGE 0\.1"/,
+    "expected ARPEGE title metadata to include the grid resolution",
   );
 });
 

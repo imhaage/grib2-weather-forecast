@@ -262,6 +262,7 @@ export const PACKAGES = {
 
 export const MODEL_INFO = {
   AROME: {
+    title: "AROME 0.01",
     description:
       "High-resolution model from Météo-France, covering metropolitan France and its Atlantic, English Channel, and Mediterranean seaboards.",
     resolution: "0.01° (~1 km)",
@@ -272,6 +273,7 @@ export const MODEL_INFO = {
     filesInfo: "1 hour per file (51 files)",
   },
   ARPEGE: {
+    title: "ARPEGE 0.1",
     description:
       "Limited-area model from Météo-France covering Europe, the northeast Atlantic, and the Middle East.",
     resolution: "0.1° (~11 km)",

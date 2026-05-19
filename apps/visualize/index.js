@@ -16,7 +16,12 @@ import {
 	MODEL_INFO,
 	PACKAGES,
 } from "./src/domain/model-packages.js";
-import { buildLUT, LOG_SCALE_FLOOR, makeScale } from "./src/domain/palettes.js";
+import {
+	buildLUT,
+	legendTicksFor,
+	LOG_SCALE_FLOOR,
+	makeScale,
+} from "./src/domain/palettes.js";
 import { generateIsobars, supportsIsobars } from "./src/domain/isobars.js";
 import {
 	extractRunId,
@@ -64,6 +69,7 @@ const BLOCK_STATUS_LABELS = Object.freeze({
 	[BLOCK_STATUS.READY]: "loaded from network",
 });
 const BLOCK_STATUS_CLASSES = [...Object.values(BLOCK_STATUS), "done", "cached"];
+const VARIABLE_GROUP_ORDER = ["Weather maps", "Model fields"];
 const CACHE_LOAD_RESULT = Object.freeze({
 	CURRENT: "current",
 	STALE: "stale",
@@ -471,6 +477,7 @@ function makeBitmapCacheEntry(renderEntry, renderParams) {
 		renderMin: renderParams.renderMin,
 		range: renderParams.range,
 		staticScale: renderParams.staticScale,
+		isLog: renderParams.isLog,
 		displayUnits: renderParams.displayUnits,
 		isFallback: renderParams.isFallback,
 		grid: renderParams.grid,
@@ -490,6 +497,7 @@ function makeBitmapCacheEntryFromWorker(renderEntry) {
 		renderMin: renderEntry.renderMin,
 		range: renderEntry.range,
 		staticScale: renderEntry.staticScale,
+		isLog: renderEntry.isLog,
 		displayUnits: renderEntry.displayUnits,
 		isFallback: renderEntry.isFallback,
 		isobars: renderEntry.isobars,
@@ -672,19 +680,26 @@ function fmtUnavailableValidTime(hour) {
 	return fmtHourLabel(hour);
 }
 
-// Populate and show the color scale legend bar.
-function showColorScale(min, max, units) {
-	document.getElementById("cs-min").textContent = formatValueForUnits(
+function renderColorScaleTicks({ min, max, units, isLog }) {
+	const ticksEl = document.getElementById("cs-ticks");
+	ticksEl.replaceChildren();
+	for (const tick of legendTicksFor({
+		paletteName: currentPalette,
 		min,
-		units,
-		2,
-	);
-	document.getElementById("cs-max").textContent = formatValueForUnits(
 		max,
-		units,
-		2,
-	);
-	document.getElementById("cs-unit").textContent = units;
+		isLog,
+	})) {
+		const el = document.createElement("span");
+		el.className = "cs-tick";
+		el.style.left = `${tick.position}%`;
+		el.textContent = formatValueForUnits(tick.value, units, 1);
+		ticksEl.appendChild(el);
+	}
+}
+
+// Populate and show the color scale legend bar.
+function showColorScale(min, max, units, { isLog = false } = {}) {
+	renderColorScaleTicks({ min, max, units, isLog });
 	document.getElementById("colorscale").style.display = "flex";
 }
 
@@ -819,7 +834,9 @@ function updateStatsAndColorScale(entry) {
 	const legendMax = entry.staticScale
 		? entry.renderMin + entry.range
 		: entry.dataMax;
-	showColorScale(legendMin, legendMax, entry.displayUnits);
+	showColorScale(legendMin, legendMax, entry.displayUnits, {
+		isLog: entry.isLog,
+	});
 }
 
 // Create the MapLibre map once. fitBoundsArgs is optional [bounds, options].
@@ -1512,10 +1529,20 @@ function appendGroupedVariableOptions(select, variables) {
 			const group = document.createElement("optgroup");
 			group.label = groupName;
 			groups.set(groupName, group);
-			select.appendChild(group);
 		}
 		groups.get(groupName).appendChild(createVariableOption(varDef));
 	}
+	for (const groupName of VARIABLE_GROUP_ORDER) {
+		const group = groups.get(groupName);
+		if (group) select.appendChild(group);
+	}
+	for (const [groupName, group] of groups) {
+		if (!VARIABLE_GROUP_ORDER.includes(groupName)) select.appendChild(group);
+	}
+}
+
+function defaultVariableForPackage(pkg) {
+	return pkg.variables.find((v) => v.group === "Weather maps") ?? pkg.variables[0];
 }
 
 function configureModelVariableControls(pkg) {
@@ -1523,7 +1550,7 @@ function configureModelVariableControls(pkg) {
 	varSelect.innerHTML = "";
 
 	const pkgVars = pkg.variables;
-	const firstVar = pkgVars[0];
+	const firstVar = defaultVariableForPackage(pkg);
 	modelState.variable = variableKeyFor(firstVar);
 	applyDefaultPalette(variableKeyFor(firstVar));
 	appendGroupedVariableOptions(varSelect, pkgVars);
@@ -1726,6 +1753,7 @@ function initializeModelLegendFromBlock(buffer, session) {
 				staticScale.min,
 				staticScale.max,
 				displayUnitsFor(curShortName, curVarDef.units),
+				{ isLog: staticScale.log ?? false },
 			);
 		}
 		break;

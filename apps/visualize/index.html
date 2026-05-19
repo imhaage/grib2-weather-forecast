@@ -321,10 +321,10 @@
 						<div id="map-unavailable" hidden>Data not available yet</div>
 						<div id="map-tooltip" hidden></div>
 						<div id="colorscale">
-							<span id="cs-min"></span>
-							<div id="cs-bar"></div>
-							<span id="cs-max"></span>
-							<span id="cs-unit"></span>
+							<div id="cs-track">
+								<div id="cs-bar"></div>
+								<div id="cs-ticks"></div>
+							</div>
 						</div>
 					</div>
 				</div>
@@ -333,6 +333,7 @@
 
 		<template id="palette-options">
 			<option value="Temperature">Temperature</option>
+			<option value="CAPE">CAPE</option>
 			<option value="Plasma">Plasma</option>
 			<option value="Viridis">Viridis</option>
 			<option value="Magma">Magma</option>
