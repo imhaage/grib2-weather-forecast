@@ -3,6 +3,11 @@
 /** @typedef {import("./types").VariableKeySource} VariableKeySource */
 /** @typedef {import("./types").VariableMetadata} VariableMetadata */
 
+const PRESSURE_METADATA = Object.freeze({
+  defaultPalette: "Plasma",
+  staticScale: { min: 950, max: 1050 },
+});
+
 /** @type {Readonly<Record<string, VariableMetadata>>} */
 export const VARIABLE_METADATA = Object.freeze({
   t: {
@@ -44,8 +49,7 @@ export const VARIABLE_METADATA = Object.freeze({
   p: {
     description:
       "Atmospheric pressure at ground level, in hPa. High pressure (>1013 hPa) is typically associated with fair weather; low pressure signals approaching fronts or storms. Useful for tracking large-scale weather systems.",
-    defaultPalette: "RdBu",
-    staticScale: { min: 950, max: 1050 },
+    ...PRESSURE_METADATA,
   },
   cape: {
     description:
@@ -90,8 +94,7 @@ export const VARIABLE_METADATA = Object.freeze({
     staticScale: { min: 0, max: 20, log: true, zeroThreshold: 0.005 },
   },
   msl: {
-    defaultPalette: "RdBu",
-    staticScale: { min: 950, max: 1050 },
+    ...PRESSURE_METADATA,
   },
   tcc: {
     defaultPalette: "Viridis",

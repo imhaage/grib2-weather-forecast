@@ -36,3 +36,7 @@ export function applyUnitTransform(unitTransform, value) {
 export function unitFnFor(unitTransform) {
   return UNIT_TRANSFORMS[unitTransform]?.apply ?? null;
 }
+
+export function formatValueForUnits(value, units, decimals = 2) {
+  return value.toFixed(units === "hPa" ? 0 : decimals);
+}

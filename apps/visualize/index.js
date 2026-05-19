@@ -25,6 +25,7 @@ import {
 } from "./src/domain/resources.js";
 import {
 	displayUnitsFor,
+	formatValueForUnits,
 	unitFnFor,
 	unitTransformFor,
 } from "./src/domain/unit-transforms.js";
@@ -668,8 +669,16 @@ function fmtUnavailableValidTime(hour) {
 
 // Populate and show the color scale legend bar.
 function showColorScale(min, max, units) {
-	document.getElementById("cs-min").textContent = fmtNum(min, 2);
-	document.getElementById("cs-max").textContent = fmtNum(max, 2);
+	document.getElementById("cs-min").textContent = formatValueForUnits(
+		min,
+		units,
+		2,
+	);
+	document.getElementById("cs-max").textContent = formatValueForUnits(
+		max,
+		units,
+		2,
+	);
 	document.getElementById("cs-unit").textContent = units;
 	document.getElementById("colorscale").style.display = "flex";
 }
@@ -690,10 +699,12 @@ function updateParamInfo(name, desc, sub) {
 }
 
 function updateStats(min, max, mean, count, units) {
-	document.getElementById("gv-min").textContent = fmtNum(min, 3) + " " + units;
-	document.getElementById("gv-max").textContent = fmtNum(max, 3) + " " + units;
+	document.getElementById("gv-min").textContent =
+		formatValueForUnits(min, units, 3) + " " + units;
+	document.getElementById("gv-max").textContent =
+		formatValueForUnits(max, units, 3) + " " + units;
 	document.getElementById("gv-mean").textContent =
-		fmtNum(mean, 3) + " " + units;
+		formatValueForUnits(mean, units, 3) + " " + units;
 	document.getElementById("gv-valid").textContent = count.toLocaleString();
 }
 
@@ -1395,12 +1406,12 @@ function updateDataStatusSummary() {
 	}
 	const items = [
 		{
-			status: BLOCK_STATUS.READY,
-			text: `${counts[BLOCK_STATUS.READY]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.READY]}`,
-		},
-		{
 			status: BLOCK_STATUS.LOADED_FROM_CACHE,
 			text: `${counts[BLOCK_STATUS.LOADED_FROM_CACHE]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.LOADED_FROM_CACHE]}`,
+		},
+		{
+			status: BLOCK_STATUS.READY,
+			text: `${counts[BLOCK_STATUS.READY]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.READY]}`,
 		},
 		{
 			status: BLOCK_STATUS.DOWNLOADING,
@@ -1417,10 +1428,7 @@ function updateDataStatusSummary() {
 		item.textContent = text;
 		return index === 0 ? [item] : [document.createTextNode(" · "), item];
 	});
-	summary.replaceChildren(
-		...fragments,
-		document.createTextNode(` · ${formatRunSummary(modelState.resources)}`),
-	);
+	summary.replaceChildren(...fragments);
 }
 
 function blockForHour(hour) {
@@ -1599,11 +1607,15 @@ function isModelBlockInMemoryStale(block, previousBlock) {
 	);
 }
 
+function updateAvailableFileCount(session) {
+	dom.aromeDownloadStatus.textContent = `${session.availableCount} / ${session.resources.length} files`;
+}
+
 function markInMemoryModelBlockAvailable(block, status, session) {
 	setBlockStatus(block, status);
 	setBlockDownloadProgress(block, "100%");
 	session.availableCount++;
-	dom.aromeDownloadStatus.textContent = `Available… ${session.availableCount} / ${session.resources.length} files (${session.runSummary})`;
+	updateAvailableFileCount(session);
 	completeModelDownloadIfReady(session);
 }
 
@@ -1624,7 +1636,7 @@ async function storeAvailableModelBlock(block, buffer, status, session) {
 	if (!hadBuffer) session.availableCount++;
 
 	setBlockDownloadProgress(block, "100%");
-	dom.aromeDownloadStatus.textContent = `Available… ${session.availableCount} / ${session.resources.length} files (${session.runSummary})`;
+	updateAvailableFileCount(session);
 }
 
 function initializeModelLegendFromBlock(buffer, session) {
@@ -1677,7 +1689,7 @@ async function refreshMapForAvailableModelBlock(block, session) {
 
 function completeModelDownloadIfReady(session) {
 	if (session.availableCount !== session.resources.length) return;
-	dom.aromeDownloadStatus.textContent = `Available ${session.resources.length} / ${session.resources.length} files (${session.runSummary})`;
+	updateAvailableFileCount(session);
 }
 
 async function presentAvailableModelBlock(block, buffer, status, session) {

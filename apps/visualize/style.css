@@ -778,7 +778,6 @@ header {
 	display: flex;
 	align-items: center;
 	gap: var(--space-xs);
-	margin-bottom: var(--space-md);
 	color: var(--color-text);
 	cursor: pointer;
 	font-size: var(--font-md);
@@ -811,10 +810,11 @@ header {
 .data-status-count.missing {
 	color: var(--color-error);
 }
+
 #arome-dl-status {
 	font-size: var(--font-md);
 	color: var(--color-text-2);
-	margin-bottom: var(--space-md);
+	margin-block: var(--space-md);
 }
 #arome-dl-details {
 	margin-top: var(--space-sm);

@@ -14,9 +14,13 @@ describe("variable metadata helpers", () => {
 
   test("display metadata has safe fallbacks", () => {
     expect(defaultPaletteFor("t")).toBe("TempC");
+    expect(defaultPaletteFor("p")).toBe("Plasma");
+    expect(defaultPaletteFor("msl")).toBe("Plasma");
     expect(defaultPaletteFor("unknown")).toBe(null);
     expect(parameterDescriptionFor("cape")).toMatch(/thunderstorm development/);
     expect(parameterDescriptionFor("unknown")).toBe("");
+    expect(staticScaleFor("p")).toEqual({ min: 950, max: 1050 });
+    expect(staticScaleFor("msl")).toEqual({ min: 950, max: 1050 });
     expect(staticScaleFor("rrate")).toEqual({
       min: 0,
       max: 150,

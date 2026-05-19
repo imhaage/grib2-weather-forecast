@@ -143,7 +143,12 @@ test("model block statuses are centralized and use clear cache wording", () => {
   );
   assert.match(
     source,
-    /item\.className = `data-status-count \$\{status\}`;[\s\S]*summary\.replaceChildren\(/,
+    /status: BLOCK_STATUS\.LOADED_FROM_CACHE,[\s\S]*status: BLOCK_STATUS\.READY,[\s\S]*status: BLOCK_STATUS\.DOWNLOADING,[\s\S]*status: BLOCK_STATUS\.MISSING,/,
+    "expected data status summary counts to follow cache, network, updating, missing order",
+  );
+  assert.match(
+    source,
+    /item\.className = `data-status-count \$\{status\}`;[\s\S]*summary\.replaceChildren\(\.\.\.fragments\);/,
     "expected data status summary counts to be individually styleable",
   );
   assert.match(
@@ -277,6 +282,16 @@ test("model block availability presentation delegates focused responsibilities",
     source,
     /function completeModelDownloadIfReady\(session\)/,
     "expected download completion UI to be isolated",
+  );
+  assert.match(
+    source,
+    /function updateAvailableFileCount\(session\) \{[\s\S]*`\$\{session\.availableCount\} \/ \$\{session\.resources\.length\} files`/,
+    "expected available file count wording to be shared by all model packages",
+  );
+  assert.doesNotMatch(
+    source,
+    /Available…|Available \$\{session\.resources\.length\}/,
+    "expected available file count wording not to include extra prefixes or run details",
   );
   assert.match(
     source,

@@ -1,3 +1,5 @@
+import { formatValueForUnits } from "./src/domain/unit-transforms.js";
+
 export function setupMapTooltip({
   map,
   maplibregl,
@@ -68,9 +70,10 @@ export function setupMapTooltip({
     }
 
     const val = gridState.unitFn ? gridState.unitFn(rawVal) : rawVal;
+    const units = gridState.displayUnits ?? product.units;
     mapCanvas.style.cursor = "crosshair";
     tooltipEl.hidden = false;
-    tooltipEl.textContent = `${product.name} : ${val.toFixed(2)} ${gridState.displayUnits ?? product.units}`;
+    tooltipEl.textContent = `${product.name} : ${formatValueForUnits(val, units, 2)} ${units}`;
     const rect = wrapEl.getBoundingClientRect();
     tooltipEl.style.left = e.originalEvent.clientX - rect.left + 14 + "px";
     tooltipEl.style.top = e.originalEvent.clientY - rect.top - 36 + "px";
