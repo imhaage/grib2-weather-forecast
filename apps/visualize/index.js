@@ -388,6 +388,23 @@ function invalidateBlockRenderCache(block) {
 	updateWarmupProgress();
 }
 
+function beginModelResourceRefresh() {
+	if (!modelState) return null;
+	modelState.resourceRefreshId = (modelState.resourceRefreshId ?? 0) + 1;
+	return {
+		state: modelState,
+		refreshId: modelState.resourceRefreshId,
+	};
+}
+
+function isModelResourceRefreshActive(downloadKey) {
+	return Boolean(
+		downloadKey &&
+			modelState === downloadKey.state &&
+			modelState.resourceRefreshId === downloadKey.refreshId,
+	);
+}
+
 function bitmapCacheKey(hour) {
 	return animationCache.keyForHour(hour);
 }
@@ -931,7 +948,7 @@ async function fetchDataGouvResources(datasetId, titlePattern) {
 async function fetchPackageResources(packageKey, downloadKey) {
 	const pkg = PACKAGES[packageKey];
 	let resources = await fetchDataGouvResources(pkg.datasetId, pkg.titlePattern);
-	if (modelState !== downloadKey) return null;
+	if (!isModelResourceRefreshActive(downloadKey)) return null;
 	if (pkg.skipHour0) resources = resources.filter((r) => r.startHour > 0);
 	return resources;
 }
@@ -1396,6 +1413,7 @@ function blockForHour(hour) {
 function createModelState(packageKey) {
 	return {
 		packageKey,
+		resourceRefreshId: 0,
 		resources: [],
 		buffers: new Map(),
 		messageIndex: new Map(),
@@ -1460,14 +1478,14 @@ async function loadCachedModelBlock(
 	onAvailable,
 ) {
 	const cachedBuffer = await readCachedGribBlock(packageKey, block);
-	if (modelState !== downloadKey) return;
+	if (!isModelResourceRefreshActive(downloadKey)) return;
 	if (cachedBuffer) {
 		await onAvailable(block, cachedBuffer, BLOCK_STATUS.LOADED_FROM_CACHE);
 		return { status: CACHE_LOAD_RESULT.CURRENT, block };
 	}
 
 	const staleCachedBlock = await readLatestCachedGribBlock(packageKey, block);
-	if (modelState !== downloadKey) return;
+	if (!isModelResourceRefreshActive(downloadKey)) return;
 	if (staleCachedBlock) {
 		await onAvailable(
 			block,
@@ -1486,14 +1504,14 @@ async function refreshModelBlockFromNetwork(
 	downloadKey,
 	onAvailable,
 ) {
-	if (modelState !== downloadKey) return;
+	if (!isModelResourceRefreshActive(downloadKey)) return;
 	setBlockStatus(block, BLOCK_STATUS.DOWNLOADING);
 	resetBlockDownloadProgress(block);
 	const buffer = await downloadFileProg(
 		block.url,
 		block.filesize,
 		(loaded, total) => {
-			if (modelState !== downloadKey) return;
+			if (!isModelResourceRefreshActive(downloadKey)) return;
 			setBlockDownloadProgress(block, Math.round((loaded / total) * 100) + "%");
 		},
 	);
@@ -1502,7 +1520,7 @@ async function refreshModelBlockFromNetwork(
 		block,
 		buffer,
 	);
-	if (modelState !== downloadKey) return;
+	if (!isModelResourceRefreshActive(downloadKey)) return;
 	await onAvailable(block, buffer, BLOCK_STATUS.READY);
 	if (cacheWriteSucceeded)
 		await deleteObsoleteCachedGribBlocks(packageKey, block);
@@ -1628,7 +1646,7 @@ async function refreshMapForAvailableModelBlock(block, session) {
 	if (session.availableCount === 1) {
 		setMapSceneVisible(true);
 		await initMap();
-		if (modelState !== session.downloadKey) return;
+		if (!isModelResourceRefreshActive(session.downloadKey)) return;
 		mapRenderer.fitBounds(session.pkg.bounds, { padding: 20, animate: false });
 		await showHour(currentIdx);
 	} else if (blockForHour(currentHour)?.key === block.key) {
@@ -1642,21 +1660,21 @@ function completeModelDownloadIfReady(session) {
 }
 
 async function presentAvailableModelBlock(block, buffer, status, session) {
-	if (modelState !== session.downloadKey) return;
+	if (!isModelResourceRefreshActive(session.downloadKey)) return;
 	initializeModelLegendFromBlock(buffer, session);
 	await storeAvailableModelBlock(block, buffer, status, session);
-	if (modelState !== session.downloadKey) return;
+	if (!isModelResourceRefreshActive(session.downloadKey)) return;
 	await refreshMapForAvailableModelBlock(block, session);
 	completeModelDownloadIfReady(session);
 }
 
 async function buildAnimationCacheAfterNetworkSettles(session) {
-	if (modelState !== session.downloadKey) return;
+	if (!isModelResourceRefreshActive(session.downloadKey)) return;
 	modelState.animationCacheStatus = "building";
 	updateWarmupProgress();
 	queuePrerenderForAllBlocks();
 	await waitForPrerenderIdle();
-	if (modelState !== session.downloadKey) return;
+	if (!isModelResourceRefreshActive(session.downloadKey)) return;
 	modelState.animationCacheStatus = isBitmapCacheComplete()
 		? "ready"
 		: "waiting";
@@ -1689,6 +1707,7 @@ async function refreshModelBlocksToLatest(
 		session.resources,
 		MAX_PARALLEL_DOWNLOADS,
 		async (block) => {
+			if (!isModelResourceRefreshActive(session.downloadKey)) return null;
 			const previousBlock = previousBlocks.get(block.key);
 			if (isModelBlockInMemoryCurrent(block, previousBlock)) {
 				markInMemoryModelBlockAvailable(
@@ -1728,7 +1747,7 @@ async function refreshModelBlocksToLatest(
 		.filter((result) => result?.status === CACHE_LOAD_RESULT.STALE)
 		.map((result) => result.block);
 
-	if (modelState !== session.downloadKey) return false;
+	if (!isModelResourceRefreshActive(session.downloadKey)) return false;
 	await runWithConcurrency(
 		missingBlocks,
 		MAX_PARALLEL_DOWNLOADS,
@@ -1748,9 +1767,9 @@ async function refreshModelBlocksToLatest(
 			);
 		},
 	);
-	if (modelState !== session.downloadKey) return false;
+	if (!isModelResourceRefreshActive(session.downloadKey)) return false;
 	await waitForPresentationIdle(session);
-	if (modelState !== session.downloadKey) return false;
+	if (!isModelResourceRefreshActive(session.downloadKey)) return false;
 
 	await runWithConcurrency(
 		blocksNeedingRefresh,
@@ -1772,7 +1791,7 @@ async function refreshModelBlocksToLatest(
 		},
 	);
 	await waitForPresentationIdle(session);
-	return modelState === session.downloadKey;
+	return isModelResourceRefreshActive(session.downloadKey);
 }
 
 async function enqueueAvailableModelBlockPresentation(
@@ -1794,7 +1813,7 @@ async function enqueueAvailableModelBlockPresentation(
 		while (session.presentationQueue.length > 0) {
 			const job = session.presentationQueue.shift();
 			await scheduleLowPriorityWork();
-			if (modelState !== session.downloadKey) return;
+			if (!isModelResourceRefreshActive(session.downloadKey)) return;
 			await presentAvailableModelBlock(
 				job.block,
 				job.buffer,
@@ -1813,7 +1832,7 @@ async function startDownload(packageKey) {
 	const pkg = PACKAGES[packageKey];
 	modelState = createModelState(packageKey);
 	setMapSceneVisible(false);
-	const downloadKey = modelState;
+	const downloadKey = beginModelResourceRefresh();
 
 	configureModelVariableControls(pkg);
 
@@ -1825,9 +1844,9 @@ async function startDownload(packageKey) {
 	let resources;
 	try {
 		resources = await fetchPackageResources(packageKey, downloadKey);
-		if (modelState !== downloadKey || !resources) return;
+		if (!isModelResourceRefreshActive(downloadKey) || !resources) return;
 	} catch (e) {
-		if (modelState !== downloadKey) return;
+		if (!isModelResourceRefreshActive(downloadKey)) return;
 		dom.aromeDownloadStatus.textContent = "API error: " + e.message;
 		return;
 	}
@@ -1981,6 +2000,7 @@ document.getElementById("back-btn").addEventListener("click", () => {
 });
 
 async function refreshCurrentModelVisuals({ clearDecoded = false } = {}) {
+	const downloadKey = beginModelResourceRefresh();
 	stopPlayer();
 	await new Promise((r) => requestAnimationFrame(r));
 	setRendering(false);
@@ -1991,27 +2011,27 @@ async function refreshCurrentModelVisuals({ clearDecoded = false } = {}) {
 	invalidateBitmapCache();
 	const myGen = renderGen;
 	await showHour(parseInt(dom.aromeSlider.value, 10));
-	const session = await refreshCurrentModelResourcesToLatest();
-	if (session && renderGen === myGen)
+	const session = await refreshCurrentModelResourcesToLatest(downloadKey);
+	if (session && renderGen === myGen && isModelResourceRefreshActive(downloadKey))
 		await buildAnimationCacheAfterNetworkSettles(session);
 }
 
-async function refreshCurrentModelResourcesToLatest() {
-	const downloadKey = modelState;
-	const packageKey = modelState.packageKey;
+async function refreshCurrentModelResourcesToLatest(downloadKey) {
+	if (!isModelResourceRefreshActive(downloadKey)) return null;
+	const packageKey = downloadKey.state.packageKey;
 	const pkg = PACKAGES[packageKey];
-	const previousResources = modelState.resources;
+	const previousResources = downloadKey.state.resources;
 
 	dom.aromeDownloadStatus.textContent = "Checking latest files…";
 	let resources;
 	try {
 		resources = await fetchPackageResources(packageKey, downloadKey);
 	} catch (e) {
-		if (modelState === downloadKey)
+		if (isModelResourceRefreshActive(downloadKey))
 			dom.aromeDownloadStatus.textContent = "API error: " + e.message;
 		return null;
 	}
-	if (modelState !== downloadKey || !resources) return null;
+	if (!isModelResourceRefreshActive(downloadKey) || !resources) return null;
 
 	applyModelResources(resources);
 	const runSummary = formatRunSummary(resources);

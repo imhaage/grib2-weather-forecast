@@ -511,12 +511,12 @@ test("model visual refresh after palette or variable changes is shared", () => {
   );
   assert.match(
     source,
-    /async function refreshModelBlocksToLatest\(session,/,
+    /async function refreshModelBlocksToLatest\(\s*session,/,
     "expected network freshness checks to be shared by initial download and visual refreshes",
   );
   assert.match(
     source,
-    /async function refreshCurrentModelVisuals\(\{ clearDecoded = false \} = \{\}\)[\s\S]*await refreshCurrentModelResourcesToLatest\(\);[\s\S]*await buildAnimationCacheAfterNetworkSettles\(session\);/,
+    /async function refreshCurrentModelVisuals\(\{ clearDecoded = false \} = \{\}\)[\s\S]*await refreshCurrentModelResourcesToLatest\(downloadKey\);[\s\S]*await buildAnimationCacheAfterNetworkSettles\(session\);/,
     "expected palette and variable changes to rebuild animation cache only after latest data is available",
   );
   assert.doesNotMatch(
@@ -531,8 +531,23 @@ test("model visual refresh after palette or variable changes is shared", () => {
   );
   assert.match(
     source,
-    /isModelBlockInMemoryCurrent\(block, previousBlock\)[\s\S]*markInMemoryModelBlockAvailable\(block, BLOCK_STATUS\.LOADED_FROM_CACHE, session\);/,
+    /isModelBlockInMemoryCurrent\(block, previousBlock\)[\s\S]*markInMemoryModelBlockAvailable\(\s*block,\s*BLOCK_STATUS\.LOADED_FROM_CACHE,\s*session,\s*\);/,
     "expected current in-memory model files reused after palette or variable changes to keep loaded-from-cache styling",
+  );
+  assert.match(
+    source,
+    /function beginModelResourceRefresh\(\)[\s\S]*resourceRefreshId[\s\S]*function isModelResourceRefreshActive\(downloadKey\)/,
+    "expected each resource refresh to get a token independent from the stable model state object",
+  );
+  assert.match(
+    sourceFunctionBody("refreshCurrentModelVisuals"),
+    /const downloadKey = beginModelResourceRefresh\(\);[\s\S]*await refreshCurrentModelResourcesToLatest\(downloadKey\);/,
+    "expected palette and variable changes to supersede any in-flight resource refresh before checking latest files",
+  );
+  assert.doesNotMatch(
+    source,
+    /modelState !== session\.downloadKey|modelState === session\.downloadKey/,
+    "expected session activity checks not to rely on modelState object identity alone",
   );
 });
 
