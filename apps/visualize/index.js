@@ -17,6 +17,7 @@ import {
 	PACKAGES,
 } from "./src/domain/model-packages.js";
 import { buildLUT, LOG_SCALE_FLOOR, makeScale } from "./src/domain/palettes.js";
+import { generateIsobars, supportsIsobars } from "./src/domain/isobars.js";
 import {
 	extractRunId,
 	formatRunId,
@@ -781,6 +782,21 @@ function drawBitmapToHeatCanvas(bitmap) {
 	mapRenderer.drawBitmap(bitmap);
 }
 
+function updateIsobarOverlay(entry, values) {
+	if (!supportsIsobars(entry.product.shortName) || !values) {
+		mapRenderer.clearIsobars();
+		return;
+	}
+	mapRenderer.updateIsobars(
+		generateIsobars({
+			shortName: entry.product.shortName,
+			grid: entry.grid,
+			values,
+			missingValue: MISSING_VALUE,
+		}),
+	);
+}
+
 function updateStatsAndColorScale(entry) {
 	updateStats(
 		entry.dataMin,
@@ -1181,6 +1197,7 @@ async function presentBitmapEntry(hour, entry, { values } = {}) {
 		);
 	}
 	mapRenderer.triggerRepaint();
+	updateIsobarOverlay(entry, values);
 
 	modelState.lastRunInfo = `${modelState.packageKey} · run ${fmtRefTime(header)}`;
 	updateParamInfo(
@@ -1225,7 +1242,10 @@ async function hydrateTooltipValues(
 		return;
 
 	const cachedEntry = animationCache.getHour(hour);
-	if (cachedEntry) gridState = makeGridState(cachedEntry, data.values);
+	if (cachedEntry) {
+		gridState = makeGridState(cachedEntry, data.values);
+		updateIsobarOverlay(cachedEntry, data.values);
+	}
 }
 
 function queueTooltipValueHydration(idx, hour) {

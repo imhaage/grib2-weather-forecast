@@ -4,6 +4,7 @@
   "type": "module",
   "dependencies": {
     "chroma-js": "^2.4.2",
+    "d3-contour": "^4.0.2",
     "grib2-decoder": "*",
     "maplibre-gl": "^4.7.1"
   },

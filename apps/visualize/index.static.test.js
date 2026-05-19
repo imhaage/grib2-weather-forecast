@@ -37,6 +37,10 @@ const mapRendererService = readFileSync(
   new URL("./src/services/map-renderer-service.js", import.meta.url),
   "utf8",
 );
+const isobarLayerService = readFileSync(
+  new URL("./src/services/isobar-layer-service.js", import.meta.url),
+  "utf8",
+);
 const unitTransforms = readFileSync(
   new URL("./src/domain/unit-transforms.js", import.meta.url),
   "utf8",
@@ -956,6 +960,29 @@ test("map clicks show a thin cross marker for mobile tooltip location", () => {
     source,
     /createMapRendererService\(\{[\s\S]*getGridState: \(\) => gridState,[\s\S]*missingValue: MISSING_VALUE,/,
     "expected index.js to wire grid state into the map renderer service",
+  );
+});
+
+test("pressure isobars are rendered as a separate MapLibre overlay", () => {
+  assert.match(
+    source,
+    /import \{ generateIsobars, supportsIsobars \} from "\.\/src\/domain\/isobars\.js";/,
+    "expected pressure isobar generation to live in a pure domain module",
+  );
+  assert.match(
+    mapRendererService,
+    /import \{ createIsobarLayerService \} from "\.\/isobar-layer-service\.js";/,
+    "expected MapLibre isobar layer wiring to live outside index.js",
+  );
+  assert.match(
+    isobarLayerService,
+    /const ISOBAR_LINE_LAYER_ID = "isobars-line";[\s\S]*const ISOBAR_LABEL_LAYER_ID = "isobars-label";[\s\S]*addLayer\(\{[\s\S]*id: ISOBAR_LINE_LAYER_ID,[\s\S]*type: "line"[\s\S]*addLayer\(\{[\s\S]*id: ISOBAR_LABEL_LAYER_ID,[\s\S]*type: "symbol"/,
+    "expected isobars to be rendered as line and symbol layers",
+  );
+  assert.match(
+    sourceFunctionBody("presentBitmapEntry"),
+    /updateIsobarOverlay\(entry, values\)/,
+    "expected visible pressure frames to refresh their isobar overlay after map updates",
   );
 });
 

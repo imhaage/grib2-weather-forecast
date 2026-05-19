@@ -1,6 +1,7 @@
 import maplibregl from "maplibre-gl";
 
 import { setupMapTooltip } from "../../map-tooltip.js";
+import { createIsobarLayerService } from "./isobar-layer-service.js";
 
 export function createMapRendererService({
   canvasHeightForGrid,
@@ -13,6 +14,7 @@ export function createMapRendererService({
 }) {
   let map = null;
   let heatCanvas = null;
+  const isobarLayer = createIsobarLayerService({ getMap: () => map });
 
   function removeLayerIfExists() {
     if (map?.getSource("grib2")) {
@@ -34,6 +36,7 @@ export function createMapRendererService({
 
     clearLayer() {
       removeLayerIfExists();
+      isobarLayer.remove();
     },
 
     ensureHeatCanvas(grid) {
@@ -113,6 +116,14 @@ export function createMapRendererService({
 
     triggerRepaint() {
       map?.triggerRepaint();
+    },
+
+    updateIsobars(geojson) {
+      isobarLayer.update(geojson);
+    },
+
+    clearIsobars() {
+      isobarLayer.remove();
     },
   };
 }
