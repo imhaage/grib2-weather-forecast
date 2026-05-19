@@ -718,6 +718,14 @@ function updateParamInfo(name, desc, sub) {
 	document.getElementById("gv-sub").textContent = sub;
 }
 
+function formatModelPackageSubtitle(packageKey) {
+	const pkg = PACKAGES[packageKey];
+	if (!pkg) return packageKey;
+	const modelTitle = MODEL_INFO[pkg.model]?.title ?? pkg.model;
+	const packageName = packageKey.replace(`${pkg.model}_`, "");
+	return `${modelTitle} ${packageName}`;
+}
+
 function updateStats(min, max, mean, count, units) {
 	document.getElementById("gv-min").textContent =
 		formatValueForUnits(min, units, 3) + " " + units;
@@ -1230,7 +1238,7 @@ async function presentBitmapEntry(hour, entry, { values } = {}) {
 	updateParamInfo(
 		product.name,
 		parameterDescriptionFor(product.shortName),
-		modelState.packageKey,
+		formatModelPackageSubtitle(modelState.packageKey),
 	);
 
 	updateStatsAndColorScale(entry);
@@ -1744,7 +1752,7 @@ function initializeModelLegendFromBlock(buffer, session) {
 		updateParamInfo(
 			p.name,
 			parameterDescriptionFor(curShortName),
-			modelState.packageKey,
+			formatModelPackageSubtitle(modelState.packageKey),
 		);
 		updateLevelInfo(curVarDef);
 		const staticScale = staticScaleFor(curShortName);
@@ -2205,7 +2213,7 @@ dom.aromeVarSelect.addEventListener("change", async (e) => {
 		updateParamInfo(
 			varDef.name,
 			parameterDescriptionFor(shortName),
-			modelState.lastRunInfo ?? modelState.packageKey,
+			formatModelPackageSubtitle(modelState.packageKey),
 		);
 		updateLevelInfo(varDef);
 	}

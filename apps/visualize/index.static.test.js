@@ -715,6 +715,11 @@ test("home model list rendering is split into focused builders", () => {
     /title: "ARPEGE 0\.1"/,
     "expected ARPEGE title metadata to include the grid resolution",
   );
+  assert.match(
+    source,
+    /function formatModelPackageSubtitle\(packageKey\) \{[\s\S]*MODEL_INFO\[pkg\.model\]\?\.title[\s\S]*packageKey\.replace\(`\$\{pkg\.model\}_`, ""\)[\s\S]*return `\$\{modelTitle\} \$\{packageName\}`;/,
+    "expected grid subtitles to combine the visible model title and package name",
+  );
 });
 
 test("variable metadata access uses shared helpers", () => {
