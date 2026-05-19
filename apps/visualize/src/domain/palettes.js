@@ -2,49 +2,46 @@ import chroma from "chroma-js";
 
 export const LOG_SCALE_FLOOR = 0.1;
 
-const CUSTOM_SCALES = {
-  Plasma: ["#0d0887", "#7e03a8", "#cb4679", "#f89441", "#f0f921"],
-  Magma: ["#000004", "#51127c", "#b73779", "#fc8961", "#fcfdbf"],
-  Inferno: ["#000004", "#420a68", "#932667", "#dd513a", "#fcffa4"],
-  // Custom temperature palette: white at 0°C (t=0.333 on the -25…50 scale).
-  // Stops are positioned non-uniformly to balance the cold (33%) / warm (67%) ranges.
-  // T°C → t: (T + 25) / 75
-  TempC: {
-    colors: [
-      "#08306b", // t=0.000 → -25°C  deep navy
-      "#2166ac", // t=0.133 → -15°C  medium blue
-      "#92c5de", // t=0.267 →  -5°C  light blue
-      "#ffffff", // t=0.333 →   0°C  white (freezing)
-      "#ffc800", // t=0.567 →  17°C  warm amber yellow
-      "#ff6600", // t=0.733 →  30°C  orange
-      "#cc1100", // t=0.867 →  40°C  red
-      "#67000d", // t=1.000 →  50°C  dark red
-    ],
-    domain: [0.0, 0.133, 0.267, 0.333, 0.567, 0.733, 0.867, 1.0],
-  },
+const PALETTE_COLORS = {
+  Plasma: ["#f0f921", "#f89441", "#cb4679", "#7e03a8", "#0d0887"],
+  Viridis: ["#fee825", "#6cce5a", "#26838f", "#3f4a8a", "#440154"],
+  Magma: ["#fcfdbf", "#fc8961", "#b73779", "#51127c", "#000004"],
+  Inferno: ["#fcffa4", "#dd513a", "#932667", "#420a68", "#000004"],
+  Spectral: ["#5e4fa2", "#66c2a5", "#ffffbf", "#f46d43", "#9e0142"],
+  RdBu: ["#053061", "#4393c3", "#f7f7f7", "#d6604d", "#67001f"],
+  RdYlBu: ["#313695", "#74add1", "#ffffbf", "#f46d43", "#a50026"],
+  Blues: ["#f7fbff", "#c6dbef", "#6baed6", "#2171b5", "#08306b"],
+  Temperature: [
+    "#08306b",
+    "#2166ac",
+    "#92c5de",
+    "#ffffff",
+    "#ffc800",
+    "#ff6600",
+    "#cc1100",
+    "#67000d",
+  ],
 };
 
-const INVERTED_PALETTES = new Set([
-  "Plasma",
-  "Viridis",
-  "Magma",
-  "Inferno",
-  "Spectral",
-  "RdBu",
-  "RdYlBu",
-]);
+// Temperature uses real °C stops. They are normalized only when building a LUT.
+const PALETTE_DOMAINS = {
+  Temperature: [-30, -20, -10, 0, 10, 20, 30, 50],
+};
 
-export function makeScale(paletteName) {
-  const entry = CUSTOM_SCALES[paletteName];
-  if (entry?.colors) {
-    return chroma.scale(entry.colors).domain(entry.domain);
-  }
-  const scale = chroma.scale(entry ?? chroma.brewer[paletteName]);
-  return INVERTED_PALETTES.has(paletteName) ? scale.domain([1, 0]) : scale;
+function normalizedDomain(domain, min, max) {
+  const range = max - min || 1;
+  return domain.map((value) => (value - min) / range);
 }
 
-export function buildLUT(paletteName) {
-  const sc = makeScale(paletteName);
+export function makeScale(paletteName, { min = 0, max = 1 } = {}) {
+  const domain = PALETTE_DOMAINS[paletteName];
+  return chroma
+    .scale(PALETTE_COLORS[paletteName])
+    .domain(domain ? normalizedDomain(domain, min, max) : [0, 1]);
+}
+
+export function buildLUT(paletteName, scaleRange) {
+  const sc = makeScale(paletteName, scaleRange);
   const lut = new Uint8Array(256 * 3);
   for (let i = 0; i < 256; i++) {
     const [r, g, b] = sc(i / 255).rgb();

@@ -338,7 +338,10 @@ function renderViaWorker(
 		renderWorker.addEventListener("error", onErr);
 
 		const workerValues = transferValues ? values : values.slice();
-		const lut = buildLUT(currentPalette);
+		const lut = buildLUT(currentPalette, {
+			min: renderParams.renderMin,
+			max: renderParams.renderMax,
+		});
 		renderWorker.postMessage(
 			{
 				callId: myCallId,
@@ -1112,7 +1115,7 @@ function modelWorkerRequestForHour(idx, hour, { includeValues = false } = {}) {
 		logDenom: isLog ? Math.log(staticScale.max / LOG_SCALE_FLOOR) : 1,
 		zeroThreshold: staticScale?.zeroThreshold ?? 0,
 		displayUnits: displayUnitsFor(shortName, varDef?.units),
-		lut: buildLUT(currentPalette),
+		lut: buildLUT(currentPalette, { min: renderMin, max: renderMax }),
 		missingValue: MISSING_VALUE,
 		includeValues,
 	};
@@ -1157,7 +1160,10 @@ async function presentBitmapEntry(hour, entry, { values } = {}) {
 	const corners = gridCorners(grid);
 	drawBitmapToHeatCanvas(entry.bitmap);
 
-	const sc = makeScale(currentPalette);
+	const sc = makeScale(currentPalette, {
+		min: entry.renderMin,
+		max: entry.renderMin + entry.range,
+	});
 	const stops = Array.from({ length: 8 }, (_, i) => sc(i / 7).css()).join(", ");
 	document.getElementById("cs-bar").style.background =
 		`linear-gradient(to right, ${stops})`;

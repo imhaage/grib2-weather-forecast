@@ -13,8 +13,8 @@ export const VARIABLE_METADATA = Object.freeze({
   t: {
     description:
       "Air temperature measured 2m above ground. The standard reference for what people feel outdoors. Key for assessing frost risk, heatwaves, and thermal comfort.",
-    defaultPalette: "TempC",
-    staticScale: { min: -25, max: 50 },
+    defaultPalette: "Temperature",
+    staticScale: { min: -30, max: 50 },
   },
   r: {
     description:
