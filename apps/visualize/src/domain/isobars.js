@@ -2,13 +2,18 @@ import { contours } from "d3-contour";
 
 import { applyUnitTransform, unitTransformFor } from "./unit-transforms.js";
 
-const PRESSURE_VARIABLES = new Set(["p", "msl"]);
+const ISOBAR_VARIABLES = new Set(["msl"]);
 const DEFAULT_ISOBAR_INTERVAL_HPA = 5;
 const DEFAULT_MAX_CONTOUR_GRID_WIDTH = 160;
 const DEFAULT_SMOOTHING_PASSES = 2;
+const SMOOTHING_KERNEL = [
+  [1, 2, 1],
+  [2, 4, 2],
+  [1, 2, 1],
+];
 
 export function supportsIsobars(shortName) {
-  return PRESSURE_VARIABLES.has(shortName);
+  return ISOBAR_VARIABLES.has(shortName);
 }
 
 function pressureValueFor(shortName, rawValue, missingValue) {
@@ -94,17 +99,22 @@ function downsamplePressureGrid(grid, values, targetGrid) {
 
 function smoothedCellValue(values, grid, col, row) {
   let sum = 0;
-  let count = 0;
-  for (let y = Math.max(0, row - 1); y <= Math.min(grid.nj - 1, row + 1); y++) {
+  let weightSum = 0;
+  for (let kernelRow = 0; kernelRow < SMOOTHING_KERNEL.length; kernelRow++) {
+    const y = row + kernelRow - 1;
+    if (y < 0 || y >= grid.nj) continue;
     const offset = y * grid.ni;
-    for (let x = Math.max(0, col - 1); x <= Math.min(grid.ni - 1, col + 1); x++) {
+    for (let kernelCol = 0; kernelCol < SMOOTHING_KERNEL[kernelRow].length; kernelCol++) {
+      const x = col + kernelCol - 1;
+      if (x < 0 || x >= grid.ni) continue;
       const value = values[offset + x];
       if (!isFinitePressure(value)) continue;
-      sum += value;
-      count++;
+      const weight = SMOOTHING_KERNEL[kernelRow][kernelCol];
+      sum += value * weight;
+      weightSum += weight;
     }
   }
-  return count ? sum / count : NaN;
+  return weightSum ? sum / weightSum : NaN;
 }
 
 function smoothPressureGrid(values, grid, passes) {

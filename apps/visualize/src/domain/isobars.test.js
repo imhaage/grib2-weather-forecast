@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { generalizePressureGrid, generateIsobars, isobarThresholds } from "./isobars.js";
+import {
+  generalizePressureGrid,
+  generateIsobars,
+  isobarThresholds,
+  supportsIsobars,
+} from "./isobars.js";
 
 const grid = {
   ni: 4,
@@ -17,9 +22,25 @@ describe("isobar helpers", () => {
     expect(isobarThresholds([999.4, 1001.2, 1007.8, 1014.1])).toEqual([1000, 1005, 1010]);
   });
 
-  test("ignores missing pressure values before computing thresholds", () => {
+  test("supports isobars only for mean sea-level pressure", () => {
+    expect(supportsIsobars("msl")).toBe(true);
+    expect(supportsIsobars("p")).toBe(false);
+
     const geojson = generateIsobars({
       shortName: "p",
+      grid,
+      values: new Float32Array([
+        100000, 100500, 101000, 101500, 100000, 100500, 101000, 101500, 100000, 100500, 101000,
+        101500, 100000, 100500, 101000, 101500,
+      ]),
+    });
+
+    expect(geojson.features).toEqual([]);
+  });
+
+  test("ignores missing pressure values before computing thresholds", () => {
+    const geojson = generateIsobars({
+      shortName: "msl",
       grid,
       values: new Float32Array([
         -9999, 100500, 101000, 101500, -9999, 100500, 101000, 101500, -9999, 100500, 101000, 101500,
@@ -59,6 +80,25 @@ describe("isobar helpers", () => {
     expect(generalized.values[0]).toBeGreaterThan(100000);
   });
 
+  test("smooths pressure grids with a weighted 9-point kernel", () => {
+    const pressureValues = new Float32Array([1000, 1000, 1000, 1000, 1016, 1000, 1000, 1000, 1000]);
+
+    const generalized = generalizePressureGrid({
+      grid: {
+        ...grid,
+        ni: 3,
+        nj: 3,
+        longitudeOfLastPoint: 2,
+        latitudeOfLastPoint: 48,
+      },
+      pressureValues,
+      maxGridWidth: 3,
+      smoothingPasses: 1,
+    });
+
+    expect(generalized.values[4]).toBe(1004);
+  });
+
   test("generates labeled pressure contours in lon/lat coordinates", () => {
     const values = new Float32Array([
       100000, 100500, 101000, 101500, 100000, 100500, 101000, 101500, 100000, 100500, 101000,
@@ -66,7 +106,7 @@ describe("isobar helpers", () => {
     ]);
 
     const geojson = generateIsobars({
-      shortName: "p",
+      shortName: "msl",
       grid,
       values,
       interval: 5,

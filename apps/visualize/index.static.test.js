@@ -984,6 +984,16 @@ test("pressure isobars are rendered as a separate MapLibre overlay", () => {
     /updateIsobarOverlay\(entry, values\)/,
     "expected visible pressure frames to refresh their isobar overlay after map updates",
   );
+  assert.match(
+    modelBlockWorker,
+    /generateIsobars\(\{[\s\S]*missingValue[\s\S]*\}\)/,
+    "expected animation cache entries for pressure frames to include precomputed isobars from the worker",
+  );
+  assert.match(
+    source,
+    /isobars: renderEntry\.isobars/,
+    "expected worker-rendered isobars to be retained in animation cache entries",
+  );
 });
 
 test("uploaded file view uses the worker render pipeline for stats and bitmap", () => {

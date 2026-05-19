@@ -492,6 +492,7 @@ function makeBitmapCacheEntryFromWorker(renderEntry) {
 		staticScale: renderEntry.staticScale,
 		displayUnits: renderEntry.displayUnits,
 		isFallback: renderEntry.isFallback,
+		isobars: renderEntry.isobars,
 		grid: renderEntry.grid,
 		product: renderEntry.product,
 		header: renderEntry.header,
@@ -783,17 +784,26 @@ function drawBitmapToHeatCanvas(bitmap) {
 }
 
 function updateIsobarOverlay(entry, values) {
-	if (!supportsIsobars(entry.product.shortName) || !values) {
+	if (!supportsIsobars(entry.product.shortName)) {
 		mapRenderer.clearIsobars();
 		return;
 	}
+	if (entry.isobars) {
+		mapRenderer.updateIsobars(entry.isobars);
+		return;
+	}
+	if (!values) {
+		mapRenderer.clearIsobars();
+		return;
+	}
+	entry.isobars = generateIsobars({
+		shortName: entry.product.shortName,
+		grid: entry.grid,
+		values,
+		missingValue: MISSING_VALUE,
+	});
 	mapRenderer.updateIsobars(
-		generateIsobars({
-			shortName: entry.product.shortName,
-			grid: entry.grid,
-			values,
-			missingValue: MISSING_VALUE,
-		}),
+		entry.isobars,
 	);
 }
 

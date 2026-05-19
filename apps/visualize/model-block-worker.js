@@ -2,6 +2,7 @@ import {
   iterateGRIB2Messages,
   decodeGRIB2,
 } from "/packages/grib2-decoder/dist/grib2-decoder.js";
+import { generateIsobars, supportsIsobars } from "./src/domain/isobars.js";
 import { applyUnitTransform } from "./src/domain/unit-transforms.js";
 
 const blockBuffers = new Map();
@@ -176,6 +177,14 @@ async function renderHour(data) {
     staticScale,
     displayUnits: decoded.displayUnits ?? displayUnits,
     isFallback,
+    isobars: supportsIsobars(product.shortName)
+      ? generateIsobars({
+        shortName: product.shortName,
+        grid,
+        values,
+        missingValue,
+      })
+      : null,
   };
   const transfer = [bitmap];
   if (includeValues) {
