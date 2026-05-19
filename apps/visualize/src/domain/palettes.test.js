@@ -21,4 +21,11 @@ describe("palette helpers", () => {
     expect(scale(0.375).hex()).toBe("#ffffff");
     expect(scale(0.5).hex()).toBe("#ffc800");
   });
+
+  test("CAPE uses explicit convective-energy thresholds", () => {
+    const scale = makeScale("CAPE", { min: 0, max: 4000 });
+    expect(scale(0).hex()).toBe("#1f2937");
+    expect(scale(0.25).hex()).toBe("#facc15");
+    expect(scale(1).hex()).toBe("#7e22ce");
+  });
 });

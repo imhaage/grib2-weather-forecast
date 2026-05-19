@@ -53,8 +53,8 @@ export const VARIABLE_METADATA = Object.freeze({
   },
   cape: {
     description:
-      "A measure of the atmosphere's fuel for thunderstorm development. Values above 500 J/kg suggest moderate storm potential; above 2500 J/kg, severe weather with large hail and strong winds becomes likely.",
-    defaultPalette: "Spectral",
+      "Convective available potential energy: the atmosphere's potential fuel for thunderstorms if air parcels are triggered. High values highlight unstable areas, but storms also require triggering, moisture, and favorable wind structure.",
+    defaultPalette: "CAPE",
     staticScale: { min: 0, max: 4000 },
   },
   lcc: {

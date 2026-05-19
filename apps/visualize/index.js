@@ -1493,6 +1493,31 @@ function createModelState(packageKey) {
 	};
 }
 
+function createVariableOption(varDef) {
+	const option = document.createElement("option");
+	option.value = variableKeyFor(varDef);
+	option.textContent = varDef.name;
+	return option;
+}
+
+function appendGroupedVariableOptions(select, variables) {
+	const groups = new Map();
+	for (const varDef of variables) {
+		const groupName = varDef.group;
+		if (!groupName) {
+			select.appendChild(createVariableOption(varDef));
+			continue;
+		}
+		if (!groups.has(groupName)) {
+			const group = document.createElement("optgroup");
+			group.label = groupName;
+			groups.set(groupName, group);
+			select.appendChild(group);
+		}
+		groups.get(groupName).appendChild(createVariableOption(varDef));
+	}
+}
+
 function configureModelVariableControls(pkg) {
 	const varSelect = dom.aromeVarSelect;
 	varSelect.innerHTML = "";
@@ -1501,9 +1526,7 @@ function configureModelVariableControls(pkg) {
 	const firstVar = pkgVars[0];
 	modelState.variable = variableKeyFor(firstVar);
 	applyDefaultPalette(variableKeyFor(firstVar));
-	varSelect.innerHTML = pkgVars
-		.map((v) => `<option value="${variableKeyFor(v)}">${v.name}</option>`)
-		.join("");
+	appendGroupedVariableOptions(varSelect, pkgVars);
 	varSelect.value = modelState.variable;
 	updateLevelInfo(firstVar);
 }

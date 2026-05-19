@@ -218,6 +218,19 @@ test("model download startup is split into focused helpers", () => {
   );
 });
 
+test("model variable select supports grouped options", () => {
+  assert.match(
+    source,
+    /document\.createElement\("optgroup"\)/,
+    "expected grouped model variables to render as optgroup elements",
+  );
+  assert.match(
+    source,
+    /group\.label = groupName/,
+    "expected optgroup labels to come from package variable metadata",
+  );
+});
+
 test("model block loading through cache and network is isolated", () => {
   assert.match(
     source,

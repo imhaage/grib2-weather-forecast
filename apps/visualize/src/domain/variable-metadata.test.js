@@ -17,7 +17,7 @@ describe("variable metadata helpers", () => {
     expect(defaultPaletteFor("p")).toBe("Plasma");
     expect(defaultPaletteFor("msl")).toBe("Plasma");
     expect(defaultPaletteFor("unknown")).toBe(null);
-    expect(parameterDescriptionFor("cape")).toMatch(/thunderstorm development/);
+    expect(parameterDescriptionFor("cape")).toMatch(/storms also require triggering/);
     expect(parameterDescriptionFor("unknown")).toBe("");
     expect(staticScaleFor("t")).toEqual({ min: -30, max: 50 });
     expect(staticScaleFor("p")).toEqual({ min: 950, max: 1050 });
@@ -28,6 +28,8 @@ describe("variable metadata helpers", () => {
       log: true,
       zeroThreshold: 0.005,
     });
+    expect(defaultPaletteFor("cape")).toBe("CAPE");
+    expect(staticScaleFor("cape")).toEqual({ min: 0, max: 4000 });
     expect(staticScaleFor("unknown")).toBe(null);
   });
 });

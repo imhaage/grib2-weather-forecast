@@ -21,11 +21,13 @@ const PALETTE_COLORS = {
     "#cc1100",
     "#67000d",
   ],
+  CAPE: ["#1f2937", "#2563eb", "#22c55e", "#facc15", "#f97316", "#dc2626", "#7e22ce"],
 };
 
-// Temperature uses real °C stops. They are normalized only when building a LUT.
+// Custom palettes use real-value stops. They are normalized only when building a LUT.
 const PALETTE_DOMAINS = {
   Temperature: [-30, -20, -10, 0, 10, 20, 30, 50],
+  CAPE: [0, 100, 500, 1000, 2000, 3000, 4000],
 };
 
 function normalizedDomain(domain, min, max) {
