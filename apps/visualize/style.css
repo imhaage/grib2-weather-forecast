@@ -14,6 +14,7 @@
 	--blue-300: #43b9f4;
 	--red-400: #f87171;
 	--green-400: #4ade80;
+	--violet-500: #955ef2;
 
 	/* Semantic colors */
 	--color-text: var(--gray-100);
@@ -31,6 +32,7 @@
 	--color-success: var(--green-400);
 	--color-progress: var(--blue-500);
 	--color-logo: var(--green-400);
+	--color-cache: var(--violet-500);
 
 	/* Spaces */
 	--space-xxs: 2px;
@@ -797,6 +799,18 @@ header {
 #data-status-panel[open] #data-status-chevron {
 	transform: rotate(180deg);
 }
+.data-status-count.ready {
+	color: var(--color-success);
+}
+.data-status-count.loaded-from-cache {
+	color: var(--color-cache);
+}
+.data-status-count.downloading {
+	color: var(--color-progress);
+}
+.data-status-count.missing {
+	color: var(--color-error);
+}
 #arome-dl-status {
 	font-size: var(--font-md);
 	color: var(--color-text-2);
@@ -867,8 +881,8 @@ header {
 	color: var(--color-bg-darkest);
 }
 .arome-dl-item.loaded-from-cache {
-	background: #7c3aed;
-	color: #ffffff;
+	background: var(--color-cache);
+	color: var(--color-text-hover);
 }
 .arome-dl-item.downloading {
 	color: var(--color-text);

@@ -59,7 +59,7 @@ const BLOCK_STATUS_LABELS = Object.freeze({
 	[BLOCK_STATUS.MISSING]: "missing",
 	[BLOCK_STATUS.LOADED_FROM_CACHE]: "loaded from cache",
 	[BLOCK_STATUS.DOWNLOADING]: "updating",
-	[BLOCK_STATUS.READY]: "ready",
+	[BLOCK_STATUS.READY]: "loaded from network",
 });
 const BLOCK_STATUS_CLASSES = [...Object.values(BLOCK_STATUS), "done", "cached"];
 const CACHE_LOAD_RESULT = Object.freeze({
@@ -1393,13 +1393,34 @@ function updateDataStatusSummary() {
 		counts[status] ??= 0;
 		counts[status]++;
 	}
-	summary.textContent = [
-		`${counts[BLOCK_STATUS.READY]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.READY]}`,
-		`${counts[BLOCK_STATUS.LOADED_FROM_CACHE]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.LOADED_FROM_CACHE]}`,
-		`${counts[BLOCK_STATUS.DOWNLOADING]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.DOWNLOADING]}`,
-		`${counts[BLOCK_STATUS.MISSING]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.MISSING]}`,
-		formatRunSummary(modelState.resources),
-	].join(" · ");
+	const items = [
+		{
+			status: BLOCK_STATUS.READY,
+			text: `${counts[BLOCK_STATUS.READY]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.READY]}`,
+		},
+		{
+			status: BLOCK_STATUS.LOADED_FROM_CACHE,
+			text: `${counts[BLOCK_STATUS.LOADED_FROM_CACHE]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.LOADED_FROM_CACHE]}`,
+		},
+		{
+			status: BLOCK_STATUS.DOWNLOADING,
+			text: `${counts[BLOCK_STATUS.DOWNLOADING]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.DOWNLOADING]}`,
+		},
+		{
+			status: BLOCK_STATUS.MISSING,
+			text: `${counts[BLOCK_STATUS.MISSING]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.MISSING]}`,
+		},
+	];
+	const fragments = items.flatMap(({ status, text }, index) => {
+		const item = document.createElement("span");
+		item.className = `data-status-count ${status}`;
+		item.textContent = text;
+		return index === 0 ? [item] : [document.createTextNode(" · "), item];
+	});
+	summary.replaceChildren(
+		...fragments,
+		document.createTextNode(` · ${formatRunSummary(modelState.resources)}`),
+	);
 }
 
 function blockForHour(hour) {

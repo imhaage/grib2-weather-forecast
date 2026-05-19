@@ -136,6 +136,31 @@ test("model block statuses are centralized and use clear cache wording", () => {
     /BLOCK_STATUS_LABELS\[BLOCK_STATUS\.LOADED_FROM_CACHE\]/,
     "expected UI text to be driven by status labels",
   );
+  assert.match(
+    source,
+    /\[BLOCK_STATUS\.READY\]: "loaded from network"/,
+    "expected ready model files to be labeled as network-loaded data",
+  );
+  assert.match(
+    source,
+    /item\.className = `data-status-count \$\{status\}`;[\s\S]*summary\.replaceChildren\(/,
+    "expected data status summary counts to be individually styleable",
+  );
+  assert.match(
+    css,
+    /\.data-status-count\.ready \{\s*color: var\(--color-success\);[\s\S]*\.data-status-count\.loaded-from-cache \{\s*color: var\(--color-cache\);[\s\S]*\.data-status-count\.downloading \{\s*color: var\(--color-progress\);[\s\S]*\.data-status-count\.missing \{\s*color: var\(--color-error\);/,
+    "expected data status summary counts to use semantic status colors",
+  );
+  assert.match(
+    css,
+    /\.arome-dl-item\.loaded-from-cache \{\s*background: var\(--color-cache\);/,
+    "expected cache block color to come from the shared cache color variable",
+  );
+  assert.doesNotMatch(
+    css,
+    /\.arome-dl-item\.loaded-from-cache \{[\s\S]*#7c3aed/,
+    "expected cache block styling not to duplicate the cache color hex value",
+  );
 });
 
 test("map rendering pipeline has shared frame helpers", () => {
