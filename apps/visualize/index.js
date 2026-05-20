@@ -69,7 +69,7 @@ const BLOCK_STATUS_LABELS = Object.freeze({
 	[BLOCK_STATUS.READY]: "loaded from network",
 });
 const BLOCK_STATUS_CLASSES = [...Object.values(BLOCK_STATUS), "done", "cached"];
-const VARIABLE_GROUP_ORDER = ["Weather maps", "Model fields"];
+const VARIABLE_GROUP_ORDER = ["Weather maps", "Component fields"];
 const CACHE_LOAD_RESULT = Object.freeze({
 	CURRENT: "current",
 	STALE: "stale",

@@ -4,25 +4,25 @@ import { PACKAGES } from "./model-packages.js";
 describe("model packages", () => {
   test("groups AROME SP1 variables by map readability", () => {
     expect(PACKAGES.AROME_SP1.variables.map(({ name, group }) => ({ name, group }))).toEqual([
-      { name: "Temperature", group: "Weather maps" },
-      { name: "Relative humidity", group: "Weather maps" },
-      { name: "U-component of wind", group: "Model fields" },
-      { name: "V-component of wind", group: "Model fields" },
-      { name: "U-component of wind (gust)", group: "Model fields" },
-      { name: "V-component of wind (gust)", group: "Model fields" },
+      { name: "Temperature (2m)", group: "Weather maps" },
+      { name: "Relative humidity (2m)", group: "Weather maps" },
+      { name: "U (wind, 10m)", group: "Component fields" },
+      { name: "V (wind, 10m)", group: "Component fields" },
+      { name: "U (wind gust, 10m)", group: "Component fields" },
+      { name: "V (wind gust, 10m)", group: "Component fields" },
     ]);
   });
 
   test("groups AROME SP2 variables by direct weather-map value", () => {
     expect(PACKAGES.AROME_SP2.variables.map(({ name, group }) => ({ name, group }))).toEqual([
-      { name: "Pressure", group: "Model fields" },
-      { name: "Convective available potential energy", group: "Weather maps" },
-      { name: "Low cloud cover", group: "Weather maps" },
-      { name: "Medium cloud cover", group: "Weather maps" },
-      { name: "High cloud cover", group: "Weather maps" },
-      { name: "Graupel (snow pellets) precipitation", group: "Weather maps" },
-      { name: "Rain precipitation", group: "Weather maps" },
-      { name: "Snow precipitation", group: "Weather maps" },
+      { name: "Pressure (model surface)", group: "Component fields" },
+      { name: "CAPE (near-surface)", group: "Weather maps" },
+      { name: "Low cloud cover (<2.5km)", group: "Weather maps" },
+      { name: "Medium cloud cover (2.5-5km)", group: "Weather maps" },
+      { name: "High cloud cover (>5km)", group: "Weather maps" },
+      { name: "Graupel precipitation (surface rate)", group: "Weather maps" },
+      { name: "Rain precipitation (surface rate)", group: "Weather maps" },
+      { name: "Snow precipitation (surface rate)", group: "Weather maps" },
     ]);
   });
 });

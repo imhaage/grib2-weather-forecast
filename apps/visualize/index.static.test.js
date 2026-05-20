@@ -231,7 +231,7 @@ test("model variable select supports grouped options", () => {
   );
   assert.match(
     source,
-    /const VARIABLE_GROUP_ORDER = \["Weather maps", "Model fields"\];/,
+    /const VARIABLE_GROUP_ORDER = \["Weather maps", "Component fields"\];/,
     "expected weather-map variables to appear before raw model fields in grouped selects",
   );
   assert.match(
