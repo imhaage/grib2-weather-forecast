@@ -45,9 +45,10 @@ function createModelPackageElement(key, pkg, onPackageSelect) {
 
   const vars = document.createElement("ul");
   vars.className = "model-package-vars";
-  for (const v of pkg.variables) {
+  const variableNames = pkg.homeVariables ?? pkg.variables.map((variable) => variable.name);
+  for (const name of variableNames) {
     const li = document.createElement("li");
-    li.textContent = v.name;
+    li.textContent = name;
     vars.appendChild(li);
   }
   pkgEl.appendChild(vars);

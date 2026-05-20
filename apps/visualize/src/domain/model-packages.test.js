@@ -27,6 +27,14 @@ describe("model packages", () => {
   });
 
   test("exposes verified AROME HP1 height-level variables", () => {
+    expect(PACKAGES.AROME_HP1.homeVariables).toEqual([
+      "Wind speed (10m, 20m, 50m, 100m)",
+      "Wind direction (10m, 20m, 50m, 100m)",
+      "Relative humidity (10m, 20m, 50m, 100m)",
+      "U (wind, 10m, 20m, 50m, 100m)",
+      "V (wind, 10m, 20m, 50m, 100m)",
+    ]);
+
     expect(PACKAGES.AROME_HP1.variables.map(({ name, group }) => ({ name, group }))).toEqual([
       { name: "Wind speed (10m)", group: "Weather maps" },
       { name: "Wind speed (20m)", group: "Weather maps" },
