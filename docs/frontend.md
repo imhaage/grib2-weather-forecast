@@ -70,7 +70,7 @@ const PACKAGES = {
     model: "ARPEGE", label: "ARPEGE SP1 0.1°",
     provider: "data-gouv", datasetId: "65bd13b2eb9e79ab309f6e63",
     titlePattern: "__SP1__",
-    bounds: [[-180, -90], [180, 90]],
+    bounds: [[-32, 20], [42, 72]],
     variables: [...],  // t, r, u, v, msl, tcc, wspd, wdir
   },
 };
@@ -78,7 +78,8 @@ const PACKAGES = {
 
 Each package defines: `model` (group label), `provider`, `datasetId`, `titlePattern` (used to filter
 resources from the API), `bounds` (MapLibre fitBounds target), and `variables` array with
-`{ shortName, name, units, level }`.
+`{ shortName, name, units, level }`, plus optional `varKey`, `levelValue`, and `group` for
+multi-level variables and grouped selects.
 
 The home page model sections are generated dynamically by `renderModelList()`, which groups
 `PACKAGES` entries by `model` and appends model metadata plus package buttons into `#model-list`.
@@ -169,7 +170,8 @@ Unit conversions applied in `showHour`:
 - Accumulation variables (PDT 4.8): hourly increment computed as `H[n] − H[n-1]`
 
 Map bounds (`pkg.bounds`) passed to `initMap` / `map.fitBounds` on each package start,
-so the view recentres to the model's domain (France for AROME, global for ARPEGE).
+so the view recentres to the model's domain (France for AROME, Europe/northeast Atlantic
+for ARPEGE).
 
 ---
 

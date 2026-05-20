@@ -50,4 +50,17 @@ describe("model packages", () => {
       { name: "V (wind, 100m)", group: "Component fields" },
     ]);
   });
+
+  test("groups verified ARPEGE SP1 variables by direct weather-map value", () => {
+    expect(PACKAGES.ARPEGE_SP1.variables.map(({ name, group }) => ({ name, group }))).toEqual([
+      { name: "Temperature (2m)", group: "Weather maps" },
+      { name: "Relative humidity (2m)", group: "Weather maps" },
+      { name: "U (wind, 10m)", group: "Component fields" },
+      { name: "V (wind, 10m)", group: "Component fields" },
+      { name: "Mean sea-level pressure", group: "Weather maps" },
+      { name: "Total cloud cover (column)", group: "Weather maps" },
+      { name: "Wind speed (10m)", group: "Weather maps" },
+      { name: "Wind direction (10m)", group: "Weather maps" },
+    ]);
+  });
 });
