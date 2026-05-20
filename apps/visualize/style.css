@@ -1,3 +1,25 @@
+/*
+ * Stylesheet organization
+ * 1. Design tokens
+ * 2. Reset and base layout
+ * 3. Shared components and controls
+ * 4. Home view
+ * 5. Upload inspector
+ * 6. Model list
+ * 7. Map view
+ * 8. Data status panel
+ * 9. Forecast player
+ * 10. Runtime diagnostics
+ * 11. Vendor overrides
+ *
+ * Property order convention: layout first, then box model, visual styles,
+ * typography, interaction states, and animations.
+ */
+
+/* ══════════════════════════════════════════════════════
+ DESIGN TOKENS
+══════════════════════════════════════════════════════ */
+
 :root {
 	/* Primitive colors */
 	--gray-950: #0f1117;
@@ -59,6 +81,10 @@
 	--font-md: 0.88rem;
 }
 
+/* ══════════════════════════════════════════════════════
+ RESET AND BASE LAYOUT
+══════════════════════════════════════════════════════ */
+
 *,
 *::before,
 *::after {
@@ -73,6 +99,19 @@ body {
 	color: var(--color-text);
 	background: var(--color-bg);
 }
+
+main {
+	padding: 0;
+}
+
+.container {
+	margin: 0 auto;
+	padding: var(--space-md);
+}
+
+/* ══════════════════════════════════════════════════════
+ SHARED COMPONENTS AND CONTROLS
+══════════════════════════════════════════════════════ */
 
 header {
 	display: flex;
@@ -124,13 +163,42 @@ header {
 	}
 }
 
-main {
-	padding: 0;
+/* ── Shared: dark buttons ── */
+.btn-primary,
+.btn-grid {
+	background: var(--color-text);
+	color: var(--color-bg-darkest);
+	border: none;
+	border-radius: var(--radius);
+	cursor: pointer;
+	letter-spacing: 0.02em;
+	transition: background var(--transition-base);
+}
+.btn-primary:hover,
+.btn-grid:hover {
+	background: var(--color-text-hover);
 }
 
-.container {
-	margin: 0 auto;
-	padding: var(--space-md);
+.btn-grid {
+	margin-top: var(--space-md);
+	width: 100%;
+	padding: var(--space-sm) 0;
+	font-size: var(--font-ui);
+	font-weight: 500;
+}
+
+.toolbar-select {
+	background: var(--color-bg-darkest);
+	border: 1px solid var(--color-border-2);
+	border-radius: var(--radius);
+	padding: var(--space-sm);
+	font-size: var(--font-ui);
+	color: var(--color-text);
+	cursor: pointer;
+	transition: border-color var(--transition-fast);
+}
+.toolbar-select:hover {
+	border-color: var(--color-text-muted);
 }
 
 /* ══════════════════════════════════════════════════════
@@ -206,6 +274,10 @@ main {
 #tab-panel-upload.active {
 	display: block;
 }
+
+/* ══════════════════════════════════════════════════════
+ UPLOAD INSPECTOR
+══════════════════════════════════════════════════════ */
 
 /* ── Drop zone ── */
 #drop-zone {
@@ -367,32 +439,137 @@ main {
 	margin: var(--space-sm) 0;
 }
 
-/* ── Shared: dark buttons ── */
-.btn-primary,
-.btn-grid {
-	background: var(--color-text);
-	color: var(--color-bg-darkest);
-	border: none;
-	border-radius: var(--radius);
-	cursor: pointer;
-	letter-spacing: 0.02em;
-	transition: background var(--transition-base);
-}
-.btn-primary:hover,
-.btn-grid:hover {
-	background: var(--color-text-hover);
+/* ══════════════════════════════════════════════════════
+ MODEL LIST
+══════════════════════════════════════════════════════ */
+
+#model-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 700px), 1fr));
+	gap: var(--space-md);
 }
 
-.btn-grid {
-	margin-top: var(--space-md);
-	width: 100%;
+#model-list > .section-desc {
+	grid-column: 1 / -1;
+}
+
+/* ── Model sections ── */
+.model-section {
+	border: 1px solid var(--color-border-2);
+	border-radius: var(--radius);
+}
+
+.model-section-header {
+	padding: var(--space-md);
+	background: var(--color-bg-darkest);
+	border-top-left-radius: var(--radius);
+	border-top-right-radius: var(--radius);
+	border-bottom: 1px solid var(--color-border);
+}
+
+.model-section-title {
+	font-size: 1rem;
+	font-weight: 700;
+	letter-spacing: 0.01em;
+	color: var(--color-text);
+	margin-bottom: var(--space-xs);
+}
+
+.model-section-desc {
+	font-size: 0.85rem;
+	color: var(--color-text-2);
+	margin: 0;
+}
+
+.model-section-data {
+	padding: var(--space-md);
+	background: var(--color-bg);
+	border-bottom-left-radius: var(--radius);
+	border-bottom-right-radius: var(--radius);
+}
+
+.model-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-sm) var(--space-xxl);
 	padding: var(--space-sm) 0;
-	font-size: var(--font-ui);
-	font-weight: 500;
+	border-bottom: 1px solid var(--color-border);
+	margin-bottom: var(--space-md);
+}
+
+.model-meta .meta-item {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xxs);
+}
+
+.model-meta .meta-label {
+	font-weight: 600;
+	color: var(--color-text);
+}
+
+.model-meta .meta-value {
+	font-size: var(--font-md);
+	color: var(--color-text-2);
+}
+
+.model-packages-label {
+	font-size: var(--font-xs);
+	text-transform: uppercase;
+	letter-spacing: 0.07em;
+	color: var(--color-text);
+	margin-bottom: var(--space-sm);
+}
+
+.model-packages {
+	display: grid;
+	grid-template-columns: 1fr;
+	row-gap: var(--space-md);
+	column-gap: var(--space-xl);
+}
+
+@media (min-width: 600px) {
+	.model-packages {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+@media (min-width: 900px) {
+	.model-packages {
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+
+.model-package {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xs);
+}
+
+.model-section .btn-primary {
+	padding: var(--space-sm) var(--space-lg);
+	font-size: var(--font-md);
+	font-weight: 600;
+}
+
+.model-package-vars {
+	list-style: none;
+	font-size: var(--font-sm);
+	color: var(--color-text-2);
+	margin-top: var(--space-xs);
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-xxs);
+}
+.section-desc {
+	font-size: 0.9rem;
+	color: var(--color-text-2);
+	text-align: center;
+	margin-bottom: var(--space-md);
 }
 
 /* ══════════════════════════════════════════════════════
- GRID VIEW
+ MAP VIEW
 ══════════════════════════════════════════════════════ */
 
 #view-grid {
@@ -473,7 +650,6 @@ main {
 	font-variant-numeric: tabular-nums;
 }
 
-/* ── Map area ── */
 #map-wrap {
 	position: relative;
 }
@@ -531,9 +707,6 @@ main {
 	pointer-events: none;
 }
 #map-unavailable[hidden] {
-	display: none;
-}
-.maplibregl-ctrl-bottom-right {
 	display: none;
 }
 
@@ -663,6 +836,7 @@ main {
 	opacity: 0.85;
 }
 /* ── Palette selector ── */
+
 #palette-ctrl {
 	display: flex;
 	align-items: center;
@@ -671,147 +845,10 @@ main {
 	color: var(--color-text-2);
 	margin-left: auto;
 }
-.toolbar-select {
-	background: var(--color-bg-darkest);
-	border: 1px solid var(--color-border-2);
-	border-radius: var(--radius);
-	padding: var(--space-sm);
-	font-size: var(--font-ui);
-	color: var(--color-text);
-	cursor: pointer;
-	transition: border-color var(--transition-fast);
-}
-.toolbar-select:hover {
-	border-color: var(--color-text-muted);
-}
 
 /* ══════════════════════════════════════════════════════
- MODEL LIST (home)
+ DATA STATUS PANEL
 ══════════════════════════════════════════════════════ */
-#model-list {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(min(100%, 700px), 1fr));
-	gap: var(--space-md);
-}
-
-#model-list > .section-desc {
-	grid-column: 1 / -1;
-}
-
-/* ── Model sections ── */
-.model-section {
-	border: 1px solid var(--color-border-2);
-	border-radius: var(--radius);
-}
-
-.model-section-header {
-	padding: var(--space-md);
-	background: var(--color-bg-darkest);
-	border-top-left-radius: var(--radius);
-	border-top-right-radius: var(--radius);
-	border-bottom: 1px solid var(--color-border);
-}
-
-.model-section-title {
-	font-size: 1rem;
-	font-weight: 700;
-	letter-spacing: 0.01em;
-	color: var(--color-text);
-	margin-bottom: var(--space-xs);
-}
-
-.model-section-desc {
-	font-size: 0.85rem;
-	color: var(--color-text-2);
-	margin: 0;
-}
-
-.model-section-data {
-	padding: var(--space-md);
-	background: var(--color-bg);
-	border-bottom-left-radius: var(--radius);
-	border-bottom-right-radius: var(--radius);
-}
-
-.model-meta {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--space-sm) var(--space-xxl);
-	padding: var(--space-sm) 0;
-	border-bottom: 1px solid var(--color-border);
-	margin-bottom: var(--space-md);
-}
-
-.model-meta .meta-item {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-xxs);
-}
-
-.model-meta .meta-label {
-	font-weight: 600;
-	color: var(--color-text);
-}
-
-.model-meta .meta-value {
-	font-size: var(--font-md);
-	color: var(--color-text-2);
-}
-
-.model-packages-label {
-	font-size: var(--font-xs);
-	text-transform: uppercase;
-	letter-spacing: 0.07em;
-	color: var(--color-text);
-	margin-bottom: var(--space-sm);
-}
-
-.model-packages {
-	display: grid;
-	grid-template-columns: 1fr;
-	row-gap: var(--space-md);
-	column-gap: var(--space-xl);
-}
-
-@media (min-width: 600px) {
-	.model-packages {
-		grid-template-columns: repeat(2, 1fr);
-	}
-}
-
-@media (min-width: 900px) {
-	.model-packages {
-		grid-template-columns: repeat(3, 1fr);
-	}
-}
-
-.model-package {
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-xs);
-}
-
-.model-section .btn-primary {
-	padding: var(--space-sm) var(--space-lg);
-	font-size: var(--font-md);
-	font-weight: 600;
-}
-
-.model-package-vars {
-	list-style: none;
-	font-size: var(--font-sm);
-	color: var(--color-text-2);
-	margin-top: var(--space-xs);
-	display: flex;
-	flex-direction: column;
-	gap: var(--space-xxs);
-}
-.section-desc {
-	font-size: 0.9rem;
-	color: var(--color-text-2);
-	text-align: center;
-	margin-bottom: var(--space-md);
-}
 
 #data-status-panel {
 	padding: var(--space-lg) 0;
@@ -941,8 +978,9 @@ main {
 }
 
 /* ══════════════════════════════════════════════════════
- AROME PLAYER TOOLBAR (inside #view-grid)
-    ══════════════════════════════════════════════════════ */
+ FORECAST PLAYER
+══════════════════════════════════════════════════════ */
+
 #arome-player-toolbar {
 	display: flex;
 	align-items: center;
@@ -1021,26 +1059,6 @@ main {
 	font-variant-numeric: tabular-nums;
 }
 
-#perf-debug {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--space-sm);
-	align-items: center;
-	padding: var(--space-xs) var(--space-sm);
-	border-top: 1px solid var(--color-border);
-	color: var(--color-text-2);
-	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-	font-size: var(--font-xs);
-	font-variant-numeric: tabular-nums;
-}
-#perf-debug[hidden] {
-	display: none;
-}
-#perf-debug > span:first-child {
-	color: var(--color-text);
-	font-weight: 700;
-}
-
 #player-reset,
 #player-play {
 	flex-shrink: 0;
@@ -1086,4 +1104,36 @@ main {
 	color: var(--color-text);
 	white-space: nowrap;
 	font-variant-numeric: tabular-nums;
+}
+
+/* ══════════════════════════════════════════════════════
+ RUNTIME DIAGNOSTICS
+══════════════════════════════════════════════════════ */
+
+#perf-debug {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-sm);
+	align-items: center;
+	padding: var(--space-xs) var(--space-sm);
+	border-top: 1px solid var(--color-border);
+	color: var(--color-text-2);
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-size: var(--font-xs);
+	font-variant-numeric: tabular-nums;
+}
+#perf-debug[hidden] {
+	display: none;
+}
+#perf-debug > span:first-child {
+	color: var(--color-text);
+	font-weight: 700;
+}
+
+/* ══════════════════════════════════════════════════════
+ VENDOR OVERRIDES
+══════════════════════════════════════════════════════ */
+
+.maplibregl-ctrl-bottom-right {
+	display: none;
 }
