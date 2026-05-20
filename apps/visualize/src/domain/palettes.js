@@ -29,6 +29,9 @@ const PALETTE_DOMAINS = {
   Temperature: [-30, -20, -10, 0, 10, 20, 30, 50],
   CAPE: [0, 100, 500, 1000, 2000, 3000, 4000],
 };
+const PALETTE_LEGEND_TICKS = {
+  Temperature: [-30, -20, -10, 0, 10, 20, 30, 40, 50],
+};
 const LOG_LEGEND_TICKS = [0, 1, 5, 10, 25, 50, 100, 150];
 
 function normalizedDomain(domain, min, max) {
@@ -63,9 +66,9 @@ function genericLinearTicks(min, max) {
 }
 
 export function legendTicksFor({ paletteName, min, max, isLog = false }) {
-  const domain = PALETTE_DOMAINS[paletteName];
-  if (domain) {
-    return domain
+  const customTicks = PALETTE_LEGEND_TICKS[paletteName] ?? PALETTE_DOMAINS[paletteName];
+  if (customTicks) {
+    return customTicks
       .filter((value) => value >= min && value <= max)
       .map((value) => ({ value, position: linearPosition(value, min, max) }));
   }
@@ -81,6 +84,24 @@ export function legendTicksFor({ paletteName, min, max, isLog = false }) {
   return genericLinearTicks(min, max).map((value) => ({
     value,
     position: linearPosition(value, min, max),
+  }));
+}
+
+export function gradientStopsFor(paletteName, { min = 0, max = 1 } = {}) {
+  const colors = PALETTE_COLORS[paletteName];
+  const domain = PALETTE_DOMAINS[paletteName];
+  if (domain) {
+    return colors
+      .map((color, index) => ({
+        color,
+        position: linearPosition(domain[index], min, max),
+      }))
+      .filter((stop) => stop.position >= 0 && stop.position <= 100);
+  }
+  const range = colors.length - 1 || 1;
+  return colors.map((color, index) => ({
+    color,
+    position: roundedPercent((index / range) * 100),
   }));
 }
 

@@ -18,9 +18,9 @@ import {
 } from "./src/domain/model-packages.js";
 import {
 	buildLUT,
+	gradientStopsFor,
 	legendTicksFor,
 	LOG_SCALE_FLOOR,
-	makeScale,
 } from "./src/domain/palettes.js";
 import { generateIsobars, supportsIsobars } from "./src/domain/isobars.js";
 import {
@@ -1211,11 +1211,13 @@ async function presentBitmapEntry(hour, entry, { values } = {}) {
 	const corners = gridCorners(grid);
 	drawBitmapToHeatCanvas(entry.bitmap);
 
-	const sc = makeScale(currentPalette, {
+	const scaleRange = {
 		min: entry.renderMin,
 		max: entry.renderMin + entry.range,
-	});
-	const stops = Array.from({ length: 8 }, (_, i) => sc(i / 7).css()).join(", ");
+	};
+	const stops = gradientStopsFor(currentPalette, scaleRange)
+		.map((stop) => `${stop.color} ${stop.position}%`)
+		.join(", ");
 	document.getElementById("cs-bar").style.background =
 		`linear-gradient(to right, ${stops})`;
 

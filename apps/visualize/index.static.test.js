@@ -644,12 +644,12 @@ test("unit conversion rules are shared between the main thread and render worker
 test("palette and scale helpers live in a pure domain module", () => {
   assert.match(
     source,
-    /import \{[\s\S]*buildLUT,[\s\S]*legendTicksFor,[\s\S]*LOG_SCALE_FLOOR,[\s\S]*makeScale,[\s\S]*\} from "\.\/src\/domain\/palettes\.js";/,
+    /import \{[\s\S]*buildLUT,[\s\S]*gradientStopsFor,[\s\S]*legendTicksFor,[\s\S]*LOG_SCALE_FLOOR,[\s\S]*\} from "\.\/src\/domain\/palettes\.js";/,
     "expected index.js to consume palette helpers from the domain module",
   );
   assert.match(
     palettes,
-    /import chroma from "chroma-js";[\s\S]*export function makeScale\(paletteName,[\s\S]*export function buildLUT\(paletteName,/,
+    /import chroma from "chroma-js";[\s\S]*export function gradientStopsFor\(paletteName,[\s\S]*export function makeScale\(paletteName,[\s\S]*export function buildLUT\(paletteName,/,
     "expected palette construction and LUT generation to share one pure module",
   );
   assert.doesNotMatch(
@@ -671,6 +671,11 @@ test("palette and scale helpers live in a pure domain module", () => {
     source,
     /function renderColorScaleTicks\(\{ min, max, units, isLog \}\)[\s\S]*legendTicksFor\(\{[\s\S]*paletteName: currentPalette,[\s\S]*isLog,[\s\S]*\}\)/,
     "expected color scale tick rendering to use domain-computed legend ticks",
+  );
+  assert.match(
+    source,
+    /gradientStopsFor\(currentPalette, scaleRange\)[\s\S]*`\$\{stop\.color\} \$\{stop\.position\}%`/,
+    "expected color scale gradients to use positioned domain stops",
   );
 });
 

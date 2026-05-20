@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { buildLUT, legendTicksFor, makeScale } from "./palettes.js";
+import { buildLUT, gradientStopsFor, legendTicksFor, makeScale } from "./palettes.js";
 
 describe("palette helpers", () => {
   test("buildLUT creates one RGB triplet per byte value", () => {
@@ -30,6 +30,17 @@ describe("palette helpers", () => {
   });
 
   test("legend ticks use custom palette domains when available", () => {
+    expect(legendTicksFor({ paletteName: "Temperature", min: -30, max: 50 })).toEqual([
+      { value: -30, position: 0 },
+      { value: -20, position: 12.5 },
+      { value: -10, position: 25 },
+      { value: 0, position: 37.5 },
+      { value: 10, position: 50 },
+      { value: 20, position: 62.5 },
+      { value: 30, position: 75 },
+      { value: 40, position: 87.5 },
+      { value: 50, position: 100 },
+    ]);
     expect(legendTicksFor({ paletteName: "CAPE", min: 0, max: 4000 })).toEqual([
       { value: 0, position: 0 },
       { value: 100, position: 2.5 },
@@ -38,6 +49,18 @@ describe("palette helpers", () => {
       { value: 2000, position: 50 },
       { value: 3000, position: 75 },
       { value: 4000, position: 100 },
+    ]);
+  });
+
+  test("gradient stops use custom palette domains when available", () => {
+    expect(gradientStopsFor("CAPE", { min: 0, max: 4000 })).toEqual([
+      { color: "#1f2937", position: 0 },
+      { color: "#2563eb", position: 2.5 },
+      { color: "#22c55e", position: 12.5 },
+      { color: "#facc15", position: 25 },
+      { color: "#f97316", position: 50 },
+      { color: "#dc2626", position: 75 },
+      { color: "#7e22ce", position: 100 },
     ]);
   });
 
