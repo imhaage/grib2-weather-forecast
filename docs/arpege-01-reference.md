@@ -22,7 +22,7 @@ forecast-hour list for the slider.
 | `Relative humidity (2m)` | `r` | 2 m above ground | `%` | `%` | Weather maps | Direct 2 m humidity field. |
 | `U (wind, 10m)` | `u` | 10 m above ground | `m s-1` | `m s-1` | Component fields | Zonal wind component. |
 | `V (wind, 10m)` | `v` | 10 m above ground | `m s-1` | `m s-1` | Component fields | Meridional wind component. |
-| `Mean sea-level pressure` | `msl` | Mean sea level | `Pa` | `hPa` | Weather maps | Correct source for synoptic isobars. Display as `Pa / 100`. |
+| `Pressure (mean sea-level)` | `msl` | Mean sea level | `Pa` | `hPa` | Weather maps | Correct source for synoptic isobars. Display as `Pa / 100`. |
 | `Total cloud cover (column)` | `tcc` | Ground-surface diagnostic | `%` | `%` | Weather maps | Represents total sky/cloud-column cover, not an altitude-specific cloud layer. |
 | `Wind speed (10m)` | `wspd` | 10 m above ground | `m s-1` | `km/h` | Weather maps | Display as `m s-1 * 3.6`. |
 | `Wind direction (10m)` | `wdir` | 10 m above ground | degrees true | `°` | Weather maps | Direction fields need circular color/legend handling before they are meteorologically ideal. |

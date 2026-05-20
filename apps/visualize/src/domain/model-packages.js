@@ -362,7 +362,7 @@ export const PACKAGES = {
       },
       {
         shortName: "msl",
-        name: "Mean sea-level pressure",
+        name: "Pressure (mean sea-level)",
         units: "hPa",
         level: "Mean sea level",
         group: "Weather maps",
