@@ -401,6 +401,10 @@ main {
 	display: none;
 }
 
+#view-grid .container {
+	background-color: var(--color-bg);
+}
+
 /* ── Toolbar ── */
 #grid-toolbar {
 	display: flex;
