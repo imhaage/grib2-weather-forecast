@@ -25,4 +25,29 @@ describe("model packages", () => {
       { name: "Snow precipitation (surface rate)", group: "Weather maps" },
     ]);
   });
+
+  test("exposes verified AROME HP1 height-level variables", () => {
+    expect(PACKAGES.AROME_HP1.variables.map(({ name, group }) => ({ name, group }))).toEqual([
+      { name: "Wind speed (10m)", group: "Weather maps" },
+      { name: "Wind speed (20m)", group: "Weather maps" },
+      { name: "Wind speed (50m)", group: "Weather maps" },
+      { name: "Wind speed (100m)", group: "Weather maps" },
+      { name: "Wind direction (10m)", group: "Weather maps" },
+      { name: "Wind direction (20m)", group: "Weather maps" },
+      { name: "Wind direction (50m)", group: "Weather maps" },
+      { name: "Wind direction (100m)", group: "Weather maps" },
+      { name: "Relative humidity (10m)", group: "Weather maps" },
+      { name: "Relative humidity (20m)", group: "Weather maps" },
+      { name: "Relative humidity (50m)", group: "Weather maps" },
+      { name: "Relative humidity (100m)", group: "Weather maps" },
+      { name: "U (wind, 10m)", group: "Component fields" },
+      { name: "U (wind, 20m)", group: "Component fields" },
+      { name: "U (wind, 50m)", group: "Component fields" },
+      { name: "U (wind, 100m)", group: "Component fields" },
+      { name: "V (wind, 10m)", group: "Component fields" },
+      { name: "V (wind, 20m)", group: "Component fields" },
+      { name: "V (wind, 50m)", group: "Component fields" },
+      { name: "V (wind, 100m)", group: "Component fields" },
+    ]);
+  });
 });

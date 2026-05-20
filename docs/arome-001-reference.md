@@ -63,7 +63,7 @@ Visualization consequences:
 
 | Package | Official content | Approx. file size | App status |
 | --- | --- | ---: | --- |
-| `HP1` | humidity, U wind, V wind on 10, 20, 50, and 100 m height levels | 70 MB/hour | Used experimentally / needs re-check |
+| `HP1` | humidity, wind speed/direction, U wind, V wind on 10, 20, 50, and 100 m height levels | 70 MB/hour | Used |
 
 ## Variables
 
@@ -107,15 +107,15 @@ Pressure warning: `P(sol)` is not `P(mer)`. Météo-France defines `P(mer)` as p
 
 The official 0.01° technical description says HP1 contains `HU`, `U`, and `V` on height levels `10`, `20`, `50`, and `100 m`.
 
-meteofetch reports a practical decoded table with some fields split between explicit 2D short names and multi-level height dimensions. This needs direct GRIB inspection before expanding app support.
+Direct inspection of current public HP1 files also shows decoded `wspd` and `wdir` fields at the same levels. Files for forecast hour `00H` are technically available, but the app skips hour 0 for HP1 because it represents model initialization rather than a useful forecast step for the current UX.
 
 | Official parameter | Observed GRIB name | Levels | Unit | Temporal type | Description | Visualization notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | `HU` | `r` | 10, 20, 50, 100 m above model relief | `%` | Instantaneous | Relative humidity at height levels. | Multi-level variable; UI must distinguish levels. |
 | `U` | `u`, plus possible `u10`, `u100` aliases | 10, 20, 50, 100 m above model relief | `m s-1` | Instantaneous | Zonal wind component at height levels. | Prefer U/V source fields for derived wind speed/direction. |
 | `V` | `v`, plus possible `v10`, `v100` aliases | 10, 20, 50, 100 m above model relief | `m s-1` | Instantaneous | Meridional wind component at height levels. | Prefer U/V source fields for derived wind speed/direction. |
-| Derived `FF` / speed | `ws`, `si10`, `si100` in meteofetch | 10, 20, 50, 100 m may not all be present as direct fields | `m s-1` | Instantaneous | Wind speed, either directly provided or derived from U/V depending on GRIB product. | App should not assume all levels exist until real-message metadata confirms it. |
-| Derived `DD` / direction | `wdir`, `wdir10` in meteofetch | 10, 20, 50, 100 m may not all be present as direct fields | degrees true | Instantaneous | Wind direction, either directly provided or derived from U/V depending on GRIB product. | Direction palettes need circular handling; a linear palette around `0/360` can be misleading. |
+| `FF` / speed | `wspd` | 10, 20, 50, 100 m above model relief | `m s-1` | Instantaneous | Wind speed at height levels. | Display as km/h. Directly useful as weather maps. |
+| `DD` / direction | `wdir` | 10, 20, 50, 100 m above model relief | degrees true | Instantaneous | Wind direction at height levels. | Direction palettes need circular handling; a linear palette around `0/360` can be misleading. |
 
 ## Pressure and Isobars
 
@@ -144,7 +144,7 @@ Fields are not all equivalent over time:
 | --- | --- | --- |
 | `AROME_SP1` | `t`, `r`, `u`, `v`, `ugust`, `vgust` | Matches the useful SP1 subset. |
 | `AROME_SP2` | `p`, `cape`, `lcc`, `mcc`, `hcc`, `tgrp`, `rrate`, `srate` | `p` is surface pressure. `rrate`, `srate`, and `tgrp` are display rates derived from cumulative fields. |
-| `AROME_HP1` | wind speed/direction at selected heights | Needs direct metadata verification against current public files. Official package says `HU`, `U`, `V`; app currently exposes derived wind speed/direction concepts. |
+| `AROME_HP1` | `wspd`, `wdir`, `r`, `u`, `v` at 10, 20, 50, and 100 m | Verified against current public HP1 files. App skips hour 0 by product choice. |
 
 ## Implementation Checklist for Data Correctness
 
@@ -154,13 +154,10 @@ Fields are not all equivalent over time:
 - Generate classic isobars only from mean sea-level pressure.
 - Preserve missing-value masks through rendering, statistics, contours, and tooltips.
 - For precipitation, store/display both source accumulation and derived hourly increment semantics.
-- For wind speed/direction, prefer deriving from U/V when the source fields are available and clearly level-matched.
+- For wind speed/direction, prefer direct `wspd`/`wdir` HP1 fields when available; use U/V for component analysis and possible derived products.
 - For direction fields, use circular color/legend logic instead of a normal linear scalar palette.
-- Re-check HP1 against real files before making it a stable UI feature.
-
 ## Open Questions
 
-- Does current AROME 0.01° HP1 expose direct `ws`/`wdir` products consistently, or should the app derive speed/direction from U/V at all levels?
 - What is the exact GRIB identity of `RFLCTVT_MAX(sol)` in current files?
 - Is there a current public 0.01° package containing `P(mer)`? The official 2025 package description does not list it for AROME 0.01°.
-- Should `H+00` be shown when available for instantaneous fields, while disabled only for accumulated/max fields?
+- Should `H+00` stay hidden for all model packages as a product choice, even when instantaneous initialization fields are technically available?

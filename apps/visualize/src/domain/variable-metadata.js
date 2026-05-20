@@ -120,6 +120,54 @@ export const VARIABLE_METADATA = Object.freeze({
     defaultPalette: "Plasma",
     staticScale: { min: 0, max: 360 },
   },
+  r_10: {
+    defaultPalette: "Blues",
+    staticScale: { min: 0, max: 100 },
+  },
+  r_20: {
+    defaultPalette: "Blues",
+    staticScale: { min: 0, max: 100 },
+  },
+  r_50: {
+    defaultPalette: "Blues",
+    staticScale: { min: 0, max: 100 },
+  },
+  r_100: {
+    defaultPalette: "Blues",
+    staticScale: { min: 0, max: 100 },
+  },
+  u_10: {
+    defaultPalette: "Viridis",
+    staticScale: { min: -30, max: 30 },
+  },
+  u_20: {
+    defaultPalette: "Viridis",
+    staticScale: { min: -30, max: 30 },
+  },
+  u_50: {
+    defaultPalette: "Viridis",
+    staticScale: { min: -30, max: 30 },
+  },
+  u_100: {
+    defaultPalette: "Viridis",
+    staticScale: { min: -30, max: 30 },
+  },
+  v_10: {
+    defaultPalette: "Viridis",
+    staticScale: { min: -30, max: 30 },
+  },
+  v_20: {
+    defaultPalette: "Viridis",
+    staticScale: { min: -30, max: 30 },
+  },
+  v_50: {
+    defaultPalette: "Viridis",
+    staticScale: { min: -30, max: 30 },
+  },
+  v_100: {
+    defaultPalette: "Viridis",
+    staticScale: { min: -30, max: 30 },
+  },
 });
 
 /**

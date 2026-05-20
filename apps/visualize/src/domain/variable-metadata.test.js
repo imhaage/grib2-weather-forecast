@@ -30,6 +30,12 @@ describe("variable metadata helpers", () => {
     });
     expect(defaultPaletteFor("cape")).toBe("CAPE");
     expect(staticScaleFor("cape")).toEqual({ min: 0, max: 4000 });
+    expect(defaultPaletteFor("r_100")).toBe("Blues");
+    expect(staticScaleFor("r_100")).toEqual({ min: 0, max: 100 });
+    expect(defaultPaletteFor("u_100")).toBe("Viridis");
+    expect(staticScaleFor("u_100")).toEqual({ min: -30, max: 30 });
+    expect(defaultPaletteFor("v_100")).toBe("Viridis");
+    expect(staticScaleFor("v_100")).toEqual({ min: -30, max: 30 });
     expect(staticScaleFor("unknown")).toBe(null);
   });
 });
