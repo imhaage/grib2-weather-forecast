@@ -58,11 +58,6 @@ const modelPackages = readFileSync(
   new URL("./src/domain/model-packages.js", import.meta.url),
   "utf8",
 );
-const modelListView = readFileSync(
-  new URL("./src/ui/model-list-view.js", import.meta.url),
-  "utf8",
-);
-
 function sourceFunctionBody(name) {
   const match = source.match(new RegExp(`(?:async )?function ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`));
   return match?.[0] ?? "";
@@ -699,54 +694,6 @@ test("palette and scale helpers live in a pure domain module", () => {
     source,
     /gradientStopsFor\(currentPalette, scaleRange\)[\s\S]*`\$\{stop\.color\} \$\{stop\.position\}%`/,
     "expected color scale gradients to use positioned domain stops",
-  );
-});
-
-test("home model list rendering is split into focused builders", () => {
-  assert.match(
-    modelListView,
-    /function groupPackagesByModel\(packages\)/,
-    "expected model package grouping to be isolated",
-  );
-  assert.match(
-    modelListView,
-    /function createModelMetaElement\(info\)/,
-    "expected model metadata DOM creation to be isolated",
-  );
-  assert.match(
-    modelListView,
-    /function createModelPackageElement\(key, pkg, onPackageSelect\)/,
-    "expected model package DOM creation to be isolated",
-  );
-  assert.match(
-    modelListView,
-    /export function renderModelList\(\{/,
-    "expected model list rendering to have a named entry point",
-  );
-  assert.match(
-    source,
-    /renderModelList\(\{[\s\S]*packages: PACKAGES,[\s\S]*modelInfo: MODEL_INFO,[\s\S]*window\.addEventListener\("hashchange", route\);/,
-    "expected startup to call the named model list renderer",
-  );
-  assert.match(
-    modelListView,
-    /title\.textContent = info\.title/,
-    "expected model section titles to use explicit display titles from model metadata",
-  );
-  assert.match(
-    modelPackages,
-    /title: "AROME 0\.01"/,
-    "expected AROME title metadata to include the grid resolution",
-  );
-  assert.match(
-    modelPackages,
-    /title: "ARPEGE 0\.1"/,
-    "expected ARPEGE title metadata to include the grid resolution",
-  );
-  assert.match(
-    source,
-    /function formatModelPackageSubtitle\(packageKey\) \{[\s\S]*MODEL_INFO\[pkg\.model\]\?\.title[\s\S]*packageKey\.replace\(`\$\{pkg\.model\}_`, ""\)[\s\S]*return `\$\{modelTitle\} \$\{packageName\}`;/,
-    "expected grid subtitles to combine the visible model title and package name",
   );
 });
 

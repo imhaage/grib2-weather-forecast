@@ -4,11 +4,13 @@ import { MODEL_INFO, PACKAGES } from "./model-packages.js";
 describe("model packages", () => {
   test("exposes verified model descriptions and coverage metadata", () => {
     expect(MODEL_INFO.AROME).toMatchObject({
+      title: "AROME 0.01",
       description: "High-resolution, limited-area French atmospheric model.",
       boundingBox: "12°W – 16°E · 37.5°N – 55.4°N",
       coverage: "Mainland France and Corsica (EURW1S100)",
     });
     expect(MODEL_INFO.ARPEGE).toMatchObject({
+      title: "ARPEGE 0.1",
       description: "French global atmospheric forecast model.",
       boundingBox: "32°W – 42°E · 20°N – 72°N",
       coverage: "Europe, North Africa, the northeast Atlantic, and the Middle East (EURAT01)",
