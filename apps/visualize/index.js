@@ -2029,7 +2029,7 @@ function resetUploadState() {
 
 function setToolbarMode(mode) {
 	const isGrid = mode === "grid";
-	document.getElementById("arome-back-btn").hidden = false;
+	document.getElementById("grid-back-btn").hidden = false;
 	document.getElementById("grid-toolbar").hidden = !isGrid;
 	document.getElementById("arome-player-toolbar").hidden = isGrid;
 }
@@ -2187,7 +2187,7 @@ document
 
 // ── Model player events ───────────────────────────────────────────────────────
 
-document.getElementById("arome-back-btn").addEventListener("click", resetApp);
+document.getElementById("grid-back-btn").addEventListener("click", resetApp);
 
 dom.aromeVarSelect.addEventListener("change", async (e) => {
 	if (!modelState) return;

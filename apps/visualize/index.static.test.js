@@ -99,18 +99,18 @@ test("grid views share the same back button", () => {
   );
   assert.match(
     html,
-    /id="arome-back-btn"[\s\S]*aria-label="Back to the home page"/,
+    /id="grid-back-btn"[\s\S]*aria-label="Back to the home page"/,
     "expected the universal grid back button to be available in the grid title bar",
   );
   assert.match(
     source,
-    /function setToolbarMode\(mode\) \{[\s\S]*document\.getElementById\("arome-back-btn"\)\.hidden = false;[\s\S]*document\.getElementById\("grid-toolbar"\)\.hidden = !isGrid;[\s\S]*document\.getElementById\("arome-player-toolbar"\)\.hidden = isGrid;/,
+    /function setToolbarMode\(mode\) \{[\s\S]*document\.getElementById\("grid-back-btn"\)\.hidden = false;[\s\S]*document\.getElementById\("grid-toolbar"\)\.hidden = !isGrid;[\s\S]*document\.getElementById\("arome-player-toolbar"\)\.hidden = isGrid;/,
     "expected both uploaded files and model packages to use the same grid back button",
   );
   assert.doesNotMatch(
     source,
     /document\.getElementById\("back-btn"\)/,
-    "expected back-button wiring to use the universal arome-back-btn only",
+    "expected back-button wiring to use the universal grid-back-btn only",
   );
 });
 

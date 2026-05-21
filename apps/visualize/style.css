@@ -296,7 +296,7 @@ header {
 	margin-bottom: var(--space-md);
 }
 
-.subtitle-wrapper #arome-back-btn {
+.subtitle-wrapper #grid-back-btn {
 	position: absolute;
 	left: 0;
 	margin-bottom: 0;
