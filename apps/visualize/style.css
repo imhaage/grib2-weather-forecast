@@ -141,9 +141,9 @@ main {
 ══════════════════════════════════════════════════════ */
 
 .surface {
-	background: var(--color-bg-darkest);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius);
+	background: var(--color-bg-darkest);
 }
 
 .icon-button {
@@ -203,12 +203,12 @@ header {
 /* ── Shared: dark buttons ── */
 .btn-primary,
 .btn-grid {
-	background: var(--color-text);
-	color: var(--color-bg-darkest);
 	border: none;
 	border-radius: var(--radius);
-	cursor: pointer;
+	background: var(--color-text);
+	color: var(--color-bg-darkest);
 	letter-spacing: var(--letter-spacing-control);
+	cursor: pointer;
 	transition: background var(--transition-base);
 }
 .btn-primary:hover,
@@ -225,12 +225,12 @@ header {
 }
 
 .toolbar-select {
-	background: var(--color-bg-darkest);
+	padding: var(--space-sm);
 	border: 1px solid var(--color-border-2);
 	border-radius: var(--radius);
-	padding: var(--space-sm);
-	font-size: var(--font-ui);
+	background: var(--color-bg-darkest);
 	color: var(--color-text);
+	font-size: var(--font-ui);
 	cursor: pointer;
 	transition: border-color var(--transition-fast);
 }
@@ -340,10 +340,10 @@ header {
 
 /* ── Drop zone ── */
 #drop-zone {
+	padding: var(--space-md) var(--space-xl);
 	border: 2px dashed var(--color-border-2);
 	border-radius: var(--radius);
 	background: var(--color-bg-darkest);
-	padding: var(--space-md) var(--space-xl);
 	text-align: center;
 	cursor: pointer;
 	transition:
@@ -455,13 +455,13 @@ header {
 	margin-bottom: var(--space-md);
 }
 .badge {
+	padding: var(--space-xs) var(--space-sm);
+	border-radius: var(--radius);
 	background: var(--color-text);
 	color: var(--color-bg-darkest);
 	font-family: var(--font-family-mono);
 	font-size: 0.85rem;
 	font-weight: 700;
-	padding: var(--space-xs) var(--space-sm);
-	border-radius: var(--radius);
 	letter-spacing: var(--letter-spacing-control);
 	white-space: nowrap;
 }
@@ -535,17 +535,17 @@ header {
 	border-bottom: 1px solid var(--color-border);
 
 	& .model-section-title {
+		margin-bottom: var(--space-xs);
+		color: var(--color-text);
 		font-size: 1rem;
 		font-weight: 700;
 		letter-spacing: 0.01em;
-		color: var(--color-text);
-		margin-bottom: var(--space-xs);
 	}
 
 	& .model-section-desc {
-		font-size: 0.85rem;
-		color: var(--color-text-2);
 		margin: 0;
+		color: var(--color-text-2);
+		font-size: 0.85rem;
 	}
 }
 
@@ -615,19 +615,19 @@ header {
 }
 
 .model-package-vars {
-	list-style: none;
-	font-size: var(--font-sm);
-	color: var(--color-text-2);
-	margin-top: var(--space-xs);
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-xxs);
+	margin-top: var(--space-xs);
+	color: var(--color-text-2);
+	font-size: var(--font-sm);
+	list-style: none;
 }
 .section-desc {
-	font-size: 0.9rem;
-	color: var(--color-text-2);
-	text-align: center;
 	margin-bottom: var(--space-md);
+	color: var(--color-text-2);
+	font-size: 0.9rem;
+	text-align: center;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -653,15 +653,15 @@ header {
 	flex-shrink: 0;
 	margin-bottom: var(--space-md);
 	padding: var(--space-sm);
-	font-size: var(--font-ui);
-	color: var(--color-text-2);
+	border: 1px solid var(--color-border-2);
+	border-radius: 100%;
 	background: var(--color-bg-darkest);
+	color: var(--color-text-2);
+	font-size: var(--font-ui);
+	cursor: pointer;
 	transition:
 		background var(--transition-fast),
 		border-color var(--transition-fast);
-	border: 1px solid var(--color-border-2);
-	border-radius: 100%;
-	cursor: pointer;
 }
 .btn-back:hover {
 	background: var(--color-bg-hover);
