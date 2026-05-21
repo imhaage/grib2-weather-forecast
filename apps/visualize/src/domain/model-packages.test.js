@@ -1,7 +1,20 @@
 import { describe, expect, test } from "vitest";
-import { PACKAGES } from "./model-packages.js";
+import { MODEL_INFO, PACKAGES } from "./model-packages.js";
 
 describe("model packages", () => {
+  test("exposes verified model descriptions and coverage metadata", () => {
+    expect(MODEL_INFO.AROME).toMatchObject({
+      description: "High-resolution, limited-area French atmospheric model.",
+      boundingBox: "12°W – 16°E · 37.5°N – 55.4°N",
+      coverage: "Mainland France and Corsica (EURW1S100)",
+    });
+    expect(MODEL_INFO.ARPEGE).toMatchObject({
+      description: "French global atmospheric forecast model.",
+      boundingBox: "32°W – 42°E · 20°N – 72°N",
+      coverage: "Europe, North Africa, the northeast Atlantic, and the Middle East (EURAT01)",
+    });
+  });
+
   test("groups AROME SP1 variables by map readability", () => {
     expect(PACKAGES.AROME_SP1.variables.map(({ name, group }) => ({ name, group }))).toEqual([
       { name: "Temperature (2m)", group: "Weather maps" },

@@ -402,22 +402,19 @@ export const PACKAGES = {
 export const MODEL_INFO = {
   AROME: {
     title: "AROME 0.01",
-    description:
-      "High-resolution model from Météo-France, covering metropolitan France and its Atlantic, English Channel, and Mediterranean seaboards.",
+    description: "High-resolution, limited-area French atmospheric model.",
     resolution: "0.01° (~1 km)",
-    domain: "12°W – 16°E · 37°N – 55°N",
-    domainDesc:
-      "Metropolitan France and its Atlantic, English Channel, and Mediterranean seaboards",
+    boundingBox: "12°W – 16°E · 37.5°N – 55.4°N",
+    coverage: "Mainland France and Corsica (EURW1S100)",
     horizon: "H+01 to H+51",
     filesInfo: "1 hour per file (51 files)",
   },
   ARPEGE: {
     title: "ARPEGE 0.1",
-    description:
-      "Limited-area model from Météo-France covering Europe, the northeast Atlantic, and the Middle East.",
+    description: "French global atmospheric forecast model.",
     resolution: "0.1° (~11 km)",
-    domain: "32°W – 42°E · 20°N – 72°N",
-    domainDesc: "Western to central Europe, from the Sahara to the Norwegian Sea",
+    boundingBox: "32°W – 42°E · 20°N – 72°N",
+    coverage: "Europe, North Africa, the northeast Atlantic, and the Middle East (EURAT01)",
     horizon: "H+000 to H+102",
     filesInfo: "12 hours per file (9 files)",
   },
