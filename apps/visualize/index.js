@@ -56,25 +56,17 @@ import {
 	createForecastPackageHash,
 	parseForecastRoute,
 } from "./src/ui/forecast-route.js";
+import {
+	BLOCK_STATUS,
+	BLOCK_STATUS_CLASSES,
+	createDataStatusSummaryNodes,
+} from "./src/ui/data-status-summary.js";
 import { setGridToolbarMode } from "./src/ui/grid-toolbar-controller.js";
 import { renderModelList } from "./src/ui/model-list-view.js";
 import { createDownloadWorker } from "./src/workers/download-worker-client.js";
 
 const byId = (id) => document.getElementById(id);
 const STAT_VALUE_IDS = ["gv-min", "gv-max", "gv-mean", "gv-valid"];
-const BLOCK_STATUS = Object.freeze({
-	MISSING: "missing",
-	LOADED_FROM_CACHE: "loaded-from-cache",
-	DOWNLOADING: "downloading",
-	READY: "ready",
-});
-const BLOCK_STATUS_LABELS = Object.freeze({
-	[BLOCK_STATUS.MISSING]: "missing",
-	[BLOCK_STATUS.LOADED_FROM_CACHE]: "loaded from cache",
-	[BLOCK_STATUS.DOWNLOADING]: "updating",
-	[BLOCK_STATUS.READY]: "loaded from network",
-});
-const BLOCK_STATUS_CLASSES = [...Object.values(BLOCK_STATUS), "done", "cached"];
 const VARIABLE_GROUP_ORDER = ["Weather maps", "Component fields"];
 const DECODED_CACHE_SIZE = 2;
 const RASTER_OPACITY = 0.8;
@@ -1459,39 +1451,9 @@ function resetBlockDownloadProgress(block) {
 function updateDataStatusSummary() {
 	const summary = dom.dataStatusSummary;
 	if (!summary || !modelState?.resources.length) return;
-	const counts = Object.fromEntries(
-		Object.values(BLOCK_STATUS).map((status) => [status, 0]),
+	summary.replaceChildren(
+		...createDataStatusSummaryNodes(document, modelState.resources),
 	);
-	for (const block of modelState.resources) {
-		const status = block.status ?? BLOCK_STATUS.MISSING;
-		counts[status] ??= 0;
-		counts[status]++;
-	}
-	const items = [
-		{
-			status: BLOCK_STATUS.LOADED_FROM_CACHE,
-			text: `${counts[BLOCK_STATUS.LOADED_FROM_CACHE]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.LOADED_FROM_CACHE]}`,
-		},
-		{
-			status: BLOCK_STATUS.READY,
-			text: `${counts[BLOCK_STATUS.READY]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.READY]}`,
-		},
-		{
-			status: BLOCK_STATUS.DOWNLOADING,
-			text: `${counts[BLOCK_STATUS.DOWNLOADING]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.DOWNLOADING]}`,
-		},
-		{
-			status: BLOCK_STATUS.MISSING,
-			text: `${counts[BLOCK_STATUS.MISSING]} ${BLOCK_STATUS_LABELS[BLOCK_STATUS.MISSING]}`,
-		},
-	];
-	const fragments = items.flatMap(({ status, text }, index) => {
-		const item = document.createElement("span");
-		item.className = `data-status-count ${status}`;
-		item.textContent = text;
-		return index === 0 ? [item] : [document.createTextNode(" · "), item];
-	});
-	summary.replaceChildren(...fragments);
 }
 
 function blockForHour(hour) {
