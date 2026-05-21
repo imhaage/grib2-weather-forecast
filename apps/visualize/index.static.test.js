@@ -938,6 +938,11 @@ test("player stays disabled until the deferred animation cache is generated", ()
     "expected Play label to use the latched animation cache readiness state",
   );
   assert.match(
+    animationPlayer,
+    /iconPlay\.toggleAttribute\("hidden", playing\);[\s\S]*iconPause\.toggleAttribute\("hidden", !playing\);/,
+    "expected SVG play/pause icons to toggle their hidden attributes during playback",
+  );
+  assert.match(
     source,
     /animationCacheStatus: "waiting",/,
     "expected model state to track the deferred animation cache phase",
