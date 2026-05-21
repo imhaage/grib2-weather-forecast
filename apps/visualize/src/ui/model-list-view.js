@@ -10,14 +10,14 @@ function groupPackagesByModel(packages) {
 function createModelMetaElement(info) {
   const meta = document.createElement("div");
   meta.className = "model-meta";
-  for (const [label, value, wide] of [
+  for (const [label, value] of [
     ["Resolution", info.resolution],
     ["Forecast horizon", info.horizon],
     ["Files", info.filesInfo],
-    ["Coverage", `${info.domain} — ${info.domainDesc}`, true],
+    ["Coverage", `${info.domain} — ${info.domainDesc}`],
   ]) {
     const item = document.createElement("div");
-    item.className = wide ? "meta-item meta-item-full" : "meta-item";
+    item.className = "meta-item";
     const lbl = document.createElement("span");
     lbl.className = "meta-label";
     lbl.textContent = label;
