@@ -2029,8 +2029,7 @@ function resetUploadState() {
 
 function setToolbarMode(mode) {
 	const isGrid = mode === "grid";
-	document.getElementById("back-btn").hidden = !isGrid;
-	document.getElementById("arome-back-btn").hidden = isGrid;
+	document.getElementById("arome-back-btn").hidden = false;
 	document.getElementById("grid-toolbar").hidden = !isGrid;
 	document.getElementById("arome-player-toolbar").hidden = isGrid;
 }
@@ -2115,11 +2114,6 @@ dropZone.addEventListener("drop", (e) => {
 document.getElementById("cards").addEventListener("click", (e) => {
 	const btn = e.target.closest(".btn-grid");
 	if (btn) location.hash = "#grid/" + encodeURIComponent(btn.dataset.var);
-});
-
-document.getElementById("back-btn").addEventListener("click", () => {
-	clearMapLayer();
-	location.hash = "";
 });
 
 async function refreshCurrentModelVisuals({ clearDecoded = false } = {}) {
