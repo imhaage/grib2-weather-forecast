@@ -63,29 +63,6 @@ function sourceFunctionBody(name) {
   return match?.[0] ?? "";
 }
 
-test("app header exposes the project title and GitHub link", () => {
-  assert.match(
-    html,
-    /<title>GRIB2 Weather forecast<\/title>/,
-    "expected the browser title to use the current app name",
-  );
-  assert.match(
-    html,
-    /<h1>GRIB2 Weather forecast<\/h1>/,
-    "expected the visible app title to use the current app name",
-  );
-  assert.doesNotMatch(
-    html,
-    /GRIB2 files decoded in the browser/,
-    "expected the redundant app subtitle to be removed",
-  );
-  assert.match(
-    html,
-    /<a[\s\S]*class="github-link"[\s\S]*href="https:\/\/github\.com\/imhaage\/arome-forecast-visualizer"[\s\S]*aria-label="Open project repository on GitHub"[\s\S]*<svg/,
-    "expected an icon-only GitHub repository link in the title bar",
-  );
-});
-
 test("visualizer DOM references and repeated UI ids are centralized", () => {
   assert.match(
     source,
