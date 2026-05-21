@@ -104,7 +104,7 @@ test("grid views share the same back button", () => {
   );
   assert.match(
     source,
-    /function setToolbarMode\(mode\) \{[\s\S]*document\.getElementById\("grid-back-btn"\)\.hidden = false;[\s\S]*document\.getElementById\("grid-toolbar"\)\.hidden = !isGrid;[\s\S]*document\.getElementById\("arome-player-toolbar"\)\.hidden = isGrid;/,
+    /function setToolbarMode\(mode\) \{[\s\S]*document\.getElementById\("grid-back-btn"\)\.hidden = false;[\s\S]*document\.getElementById\("grid-toolbar"\)\.hidden = !isGrid;[\s\S]*document\.getElementById\("forecast-player-toolbar"\)\.hidden = isGrid;/,
     "expected both uploaded files and model packages to use the same grid back button",
   );
   assert.doesNotMatch(
@@ -132,17 +132,17 @@ test("visualizer DOM references and repeated UI ids are centralized", () => {
   );
   assert.match(
     source,
-    /get aromeDownloadStatus\(\) \{ return byId\("arome-dl-status"\); \}/,
+    /get forecastDownloadStatus\(\) \{ return byId\("forecast-dl-status"\); \}/,
     "expected model download status DOM access to be centralized",
   );
   assert.match(
     source,
-    /get aromeVarSelect\(\) \{ return byId\("arome-var-select"\); \}/,
+    /get forecastVarSelect\(\) \{ return byId\("forecast-var-select"\); \}/,
     "expected model variable select DOM access to be centralized",
   );
   assert.doesNotMatch(
     source,
-    /document\.getElementById\("(arome-dl-status|arome-dl-bars|arome-dl-file-list|data-status-summary|arome-var-select)"\)/,
+    /document\.getElementById\("(forecast-dl-status|forecast-dl-bars|forecast-dl-file-list|data-status-summary|forecast-var-select)"\)/,
     "expected model download DOM ids to be accessed through dom getters",
   );
 });
@@ -185,12 +185,12 @@ test("model block statuses are centralized and use clear cache wording", () => {
   );
   assert.match(
     css,
-    /\.arome-dl-item\.loaded-from-cache \{\s*background: var\(--color-cache\);/,
+    /\.forecast-dl-item\.loaded-from-cache \{\s*background: var\(--color-cache\);/,
     "expected cache block color to come from the shared cache color variable",
   );
   assert.doesNotMatch(
     css,
-    /\.arome-dl-item\.loaded-from-cache \{[\s\S]*#7c3aed/,
+    /\.forecast-dl-item\.loaded-from-cache \{[\s\S]*#7c3aed/,
     "expected cache block styling not to duplicate the cache color hex value",
   );
 });
@@ -550,7 +550,7 @@ test("model map scene appears after the first available downloaded or cached fil
   );
   assert.match(
     source,
-    /document\.getElementById\("arome-valid-time"\)\.textContent =\s*`Forecast time: \$\{fmtUnavailableValidTime\(hour\)\}`;/,
+    /document\.getElementById\("forecast-valid-time"\)\.textContent =\s*`Forecast time: \$\{fmtUnavailableValidTime\(hour\)\}`;/,
     "expected unavailable state not to replace the forecast time with the warning text",
   );
 });
@@ -932,7 +932,7 @@ test("CAPE keeps zero values visible in the static color scale", () => {
 test("player stays disabled until the deferred animation cache is generated", () => {
   assert.match(
     html,
-    /id="arome-slider-wrap"[\s\S]*id="cache-warmup"[\s\S]*id="map-wrap"/,
+    /id="forecast-slider-wrap"[\s\S]*id="cache-warmup"[\s\S]*id="map-wrap"/,
     "expected a visible cache warm-up indicator between the slider and map",
   );
   assert.match(
@@ -1011,7 +1011,7 @@ test("palette and variable changes stop playback before invalidating bitmap cach
   );
   assert.match(
     source,
-    /dom\.aromeVarSelect[\s\S]*\.addEventListener\("change", async \(e\) => \{[\s\S]*await refreshCurrentModelVisuals\(\{ clearDecoded: true \}\);/,
+    /dom\.forecastVarSelect[\s\S]*\.addEventListener\("change", async \(e\) => \{[\s\S]*await refreshCurrentModelVisuals\(\{ clearDecoded: true \}\);/,
     "expected variable changes to use the shared refresh path",
   );
 });

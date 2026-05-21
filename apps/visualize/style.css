@@ -757,11 +757,11 @@ header {
 /* While pre-rendering: hide map + controls, keep only the var select visible */
 #map-scene.rendering #map-wrap,
 #map-scene.rendering #gv-meta,
-#map-scene.rendering #arome-slider-wrap {
+#map-scene.rendering #forecast-slider-wrap {
 	visibility: hidden;
 }
 
-#arome-var-wrap {
+#forecast-var-wrap {
 	display: flex;
 	align-items: center;
 	gap: var(--space-md);
@@ -968,12 +968,12 @@ header {
 	color: var(--color-error);
 }
 
-#arome-dl-status {
+#forecast-dl-status {
 	font-size: var(--font-md);
 	color: var(--color-text-2);
 	margin-block: var(--space-md);
 }
-#arome-dl-details {
+#forecast-dl-details {
 	margin-top: var(--space-sm);
 
 	& > summary {
@@ -981,11 +981,11 @@ header {
 		color: var(--color-text-muted);
 	}
 
-	&[open] #arome-dl-chevron {
+	&[open] #forecast-dl-chevron {
 		transform: rotate(180deg);
 	}
 }
-#arome-dl-file-list {
+#forecast-dl-file-list {
 	margin: var(--space-sm) 0 0;
 	padding: 0;
 	list-style: none;
@@ -996,7 +996,7 @@ header {
 	flex-direction: column;
 	gap: var(--space-xxs);
 }
-#arome-dl-bars {
+#forecast-dl-bars {
 	display: grid;
 	grid-template-columns: repeat(24, minmax(max-content, 1fr));
 	gap: var(--space-xs);
@@ -1006,7 +1006,7 @@ header {
 	overflow-x: auto;
 	box-sizing: border-box;
 }
-.arome-dl-item {
+.forecast-dl-item {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -1044,7 +1044,7 @@ header {
  FORECAST PLAYER
 ══════════════════════════════════════════════════════ */
 
-#arome-player-toolbar {
+#forecast-player-toolbar {
 	display: flex;
 	align-items: center;
 	gap: var(--space-md);
@@ -1052,7 +1052,7 @@ header {
 	padding: var(--space-md) var(--space-sm);
 	border-top: var(--border-default);
 
-	& #arome-var-row {
+	& #forecast-var-row {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -1061,11 +1061,11 @@ header {
 		width: 100%;
 	}
 
-	& #arome-var-select {
+	& #forecast-var-select {
 		max-width: 100%;
 	}
 
-	& #arome-slider-wrap {
+	& #forecast-slider-wrap {
 		display: flex;
 		align-items: center;
 		flex-wrap: wrap;
@@ -1073,7 +1073,7 @@ header {
 		width: 100%;
 	}
 
-	& #arome-slider {
+	& #forecast-slider {
 		flex: 1;
 		cursor: pointer;
 	}
@@ -1149,14 +1149,14 @@ header {
 	}
 }
 
-#arome-hour-label {
+#forecast-hour-label {
 	font-family: var(--font-family-mono);
 	font-size: var(--font-md);
 	font-weight: 700;
 	min-width: var(--size-hour-label);
 	white-space: nowrap;
 }
-#arome-valid-time {
+#forecast-valid-time {
 	width: 100%;
 	font-size: var(--font-lg);
 	font-weight: 600;

@@ -189,16 +189,16 @@
 							<span id="data-status-summary">Data status</span>
 						</summary>
 
-						<p id="arome-dl-status"></p>
+						<p id="forecast-dl-status"></p>
 
-						<div id="arome-dl-bars"></div>
+						<div id="forecast-dl-bars"></div>
 
 						<button type="button" id="clear-grib-cache">Clear cache</button>
 
-						<details id="arome-dl-details">
+						<details id="forecast-dl-details">
 							<summary class="disclosure-summary">
 								Files
-								<span id="arome-dl-chevron" class="disclosure-chevron">
+								<span id="forecast-dl-chevron" class="disclosure-chevron">
 									<svg
 										xmlns="http://www.w3.org/2000/svg"
 										width="32"
@@ -213,7 +213,7 @@
 									</svg>
 								</span>
 							</summary>
-							<ul id="arome-dl-file-list"></ul>
+							<ul id="forecast-dl-file-list"></ul>
 						</details>
 					</details>
 
@@ -247,19 +247,19 @@
 					</div>
 
 					<div id="map-scene">
-						<!-- AROME player toolbar (shown instead of #grid-toolbar in AROME mode) -->
-						<div id="arome-player-toolbar" hidden>
-							<div id="arome-var-row">
-								<div id="arome-var-wrap">
-									<select id="arome-var-select" class="toolbar-select"></select>
+						<!-- Forecast player toolbar (shown instead of #grid-toolbar in forecast mode) -->
+						<div id="forecast-player-toolbar" hidden>
+							<div id="forecast-var-row">
+								<div id="forecast-var-wrap">
+									<select id="forecast-var-select" class="toolbar-select"></select>
 								</div>
 
 								<span id="var-spinner"></span>
 
-								<div id="palette-ctrl-arome" class="palette-ctrl-shared">
-									<label for="palette-select-arome">Color scale</label>
+								<div id="palette-ctrl-forecast" class="palette-ctrl-shared">
+									<label for="palette-select-forecast">Color scale</label>
 									<select
-										id="palette-select-arome"
+										id="palette-select-forecast"
 										class="toolbar-select"
 									></select>
 								</div>
@@ -273,13 +273,13 @@
 								</div>
 							</div>
 
-							<div id="arome-slider-wrap">
-								<span id="arome-valid-time"></span>
-								<span id="arome-hour-label">+01H</span>
+							<div id="forecast-slider-wrap">
+								<span id="forecast-valid-time"></span>
+								<span id="forecast-hour-label">+01H</span>
 
 								<input
 									type="range"
-									id="arome-slider"
+									id="forecast-slider"
 									min="0"
 									step="1"
 									value="0"

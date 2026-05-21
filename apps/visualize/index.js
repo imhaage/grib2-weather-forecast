@@ -78,20 +78,20 @@ const CACHE_LOAD_RESULT = Object.freeze({
 const DECODED_CACHE_SIZE = 2;
 const RASTER_OPACITY = 0.8;
 const dom = {
-	get aromeDownloadBars() {
-		return byId("arome-dl-bars");
+	get forecastDownloadBars() {
+		return byId("forecast-dl-bars");
 	},
-	get aromeDownloadFileList() {
-		return byId("arome-dl-file-list");
+	get forecastDownloadFileList() {
+		return byId("forecast-dl-file-list");
 	},
-	get aromeDownloadStatus() {
-		return byId("arome-dl-status");
+	get forecastDownloadStatus() {
+		return byId("forecast-dl-status");
 	},
-	get aromeSlider() {
-		return byId("arome-slider");
+	get forecastSlider() {
+		return byId("forecast-slider");
 	},
-	get aromeVarSelect() {
-		return byId("arome-var-select");
+	get forecastVarSelect() {
+		return byId("forecast-var-select");
 	},
 	get cacheWarmup() {
 		return byId("cache-warmup");
@@ -111,18 +111,18 @@ const dom = {
 	get paletteSelect() {
 		return byId("palette-select");
 	},
-	get paletteSelectArome() {
-		return byId("palette-select-arome");
+	get paletteSelectForecast() {
+		return byId("palette-select-forecast");
 	},
 };
 
 function setPaletteSelectValues(palette) {
 	dom.paletteSelect.value = palette;
-	dom.paletteSelectArome.value = palette;
+	dom.paletteSelectForecast.value = palette;
 }
 
 // Populate all palette selects from the shared template
-for (const sel of [dom.paletteSelect, dom.paletteSelectArome]) {
+for (const sel of [dom.paletteSelect, dom.paletteSelectForecast]) {
 	const paletteTemplate = dom.paletteOptions;
 	sel.appendChild(paletteTemplate.content.cloneNode(true));
 	sel.value = "Plasma";
@@ -654,7 +654,7 @@ function clearStats() {
 function showUnavailableHour(hour) {
 	clearMapLayer();
 	clearStats();
-	document.getElementById("arome-valid-time").textContent =
+	document.getElementById("forecast-valid-time").textContent =
 		`Forecast time: ${fmtUnavailableValidTime(hour)}`;
 	showMapUnavailable();
 }
@@ -861,8 +861,8 @@ function resetModelState() {
 	pendingHourIdx = null;
 	gridState = null;
 	updateWarmupProgress();
-	dom.aromeDownloadBars.innerHTML = "";
-	dom.aromeDownloadFileList.innerHTML = "";
+	dom.forecastDownloadBars.innerHTML = "";
+	dom.forecastDownloadFileList.innerHTML = "";
 }
 
 function resetApp() {
@@ -964,7 +964,7 @@ async function rerenderUploadedGridView() {
 	mapRenderer.triggerRepaint();
 }
 
-// ── AROME live data ───────────────────────────────────────────────────────────
+// ── Forecast package live data ────────────────────────────────────────────────
 
 function proxyUrl(url) {
 	const u = new URL(url);
@@ -1248,7 +1248,7 @@ async function presentBitmapEntry(hour, entry, { values } = {}) {
 		product.pdtNumber === 8
 			? { ...product, forecastTime: hour, timeUnit: 1 }
 			: product;
-	document.getElementById("arome-valid-time").textContent =
+	document.getElementById("forecast-valid-time").textContent =
 		`Forecast time: ${fmtValidTime(header, validTimeProduct)}`;
 }
 
@@ -1304,7 +1304,7 @@ function queueTooltipValueHydration(idx, hour) {
 
 function queueCurrentTooltipValueHydration() {
 	if (!modelState || gridState?.values) return;
-	const slider = dom.aromeSlider;
+	const slider = dom.forecastSlider;
 	const idx = parseInt(slider.value, 10);
 	const hour = modelState.hourList[idx];
 	if (animationCache.hasHour(hour)) queueTooltipValueHydration(idx, hour);
@@ -1319,7 +1319,7 @@ async function showHour(idx) {
 	pendingHourIdx = null;
 	try {
 		const hour = modelState.hourList[idx];
-		document.getElementById("arome-hour-label").textContent =
+		document.getElementById("forecast-hour-label").textContent =
 			fmtHourLabel(hour);
 
 		const cachedEntry = animationCache.getHour(hour);
@@ -1555,7 +1555,7 @@ function defaultVariableForPackage(pkg) {
 }
 
 function configureModelVariableControls(pkg) {
-	const varSelect = dom.aromeVarSelect;
+	const varSelect = dom.forecastVarSelect;
 	varSelect.innerHTML = "";
 
 	const pkgVars = pkg.variables;
@@ -1576,14 +1576,14 @@ function buildHourList(resources) {
 }
 
 function renderDownloadItems(resources) {
-	const barsEl = dom.aromeDownloadBars;
-	const fileListEl = dom.aromeDownloadFileList;
+	const barsEl = dom.forecastDownloadBars;
+	const fileListEl = dom.forecastDownloadFileList;
 	barsEl.innerHTML = "";
 	fileListEl.innerHTML = "";
 	for (const r of resources) {
 		setBlockStatus(r, BLOCK_STATUS.MISSING);
 		const item = document.createElement("div");
-		item.className = `arome-dl-item ${BLOCK_STATUS.MISSING}`;
+		item.className = `forecast-dl-item ${BLOCK_STATUS.MISSING}`;
 		item.id = `dl-${r.key}`;
 		item.textContent = r.key;
 		item.title = formatRunSummary([r]);
@@ -1664,7 +1664,7 @@ function createModelDownloadSession({
 		resources,
 		runSummary,
 		downloadKey,
-		slider: dom.aromeSlider,
+		slider: dom.forecastSlider,
 		availableCount: 0,
 		legendInitialized: false,
 		presentationQueue: [],
@@ -1676,7 +1676,7 @@ function createModelDownloadSession({
 function applyModelResources(resources) {
 	modelState.resources = resources;
 	modelState.hourList = buildHourList(resources);
-	const slider = dom.aromeSlider;
+	const slider = dom.forecastSlider;
 	slider.max = modelState.hourList.length - 1;
 	if (Number(slider.value) > Number(slider.max)) slider.value = slider.max;
 }
@@ -1703,7 +1703,7 @@ function isModelBlockInMemoryStale(block, previousBlock) {
 }
 
 function updateAvailableFileCount(session) {
-	dom.aromeDownloadStatus.textContent = `${session.availableCount} / ${session.resources.length} files`;
+	dom.forecastDownloadStatus.textContent = `${session.availableCount} / ${session.resources.length} files`;
 }
 
 function markInMemoryModelBlockAvailable(block, status, session) {
@@ -1965,10 +1965,10 @@ async function startDownload(packageKey) {
 
 	configureModelVariableControls(pkg);
 
-	const slider = dom.aromeSlider;
+	const slider = dom.forecastSlider;
 	slider.value = 0;
 
-	dom.aromeDownloadStatus.textContent = "Fetching file list…";
+	dom.forecastDownloadStatus.textContent = "Fetching file list…";
 
 	let resources;
 	try {
@@ -1976,14 +1976,14 @@ async function startDownload(packageKey) {
 		if (!isModelResourceRefreshActive(downloadKey) || !resources) return;
 	} catch (e) {
 		if (!isModelResourceRefreshActive(downloadKey)) return;
-		dom.aromeDownloadStatus.textContent = "API error: " + e.message;
+		dom.forecastDownloadStatus.textContent = "API error: " + e.message;
 		return;
 	}
 
 	applyModelResources(resources);
 	const runSummary = formatRunSummary(resources);
 
-	dom.aromeDownloadStatus.textContent = `Downloading ${resources.length} ${packageKey} files (${runSummary})…`;
+	dom.forecastDownloadStatus.textContent = `Downloading ${resources.length} ${packageKey} files (${runSummary})…`;
 	renderDownloadItems(resources);
 	const session = createModelDownloadSession({
 		packageKey,
@@ -2031,7 +2031,7 @@ function setToolbarMode(mode) {
 	const isGrid = mode === "grid";
 	document.getElementById("grid-back-btn").hidden = false;
 	document.getElementById("grid-toolbar").hidden = !isGrid;
-	document.getElementById("arome-player-toolbar").hidden = isGrid;
+	document.getElementById("forecast-player-toolbar").hidden = isGrid;
 }
 
 function route() {
@@ -2040,14 +2040,16 @@ function route() {
 		showView("view-grid");
 		setToolbarMode("grid");
 		showGridView(decodeURIComponent(hash.slice(6)));
-	} else if (hash.startsWith("#arome/")) {
-		const packageKey = hash.slice(7);
+	} else if (hash.startsWith("#forecast/") || hash.startsWith("#arome/")) {
+		const packageKey = hash.startsWith("#forecast/")
+			? hash.slice(10)
+			: hash.slice(7);
 		if (!PACKAGES[packageKey]) {
 			location.hash = "";
 			return;
 		}
 		showView("view-grid");
-		setToolbarMode("arome");
+		setToolbarMode("forecast");
 		dom.dataStatusPanel.hidden = false;
 		if (modelState?.packageKey !== packageKey) {
 			resetModelState();
@@ -2064,7 +2066,7 @@ renderModelList({
 	packages: PACKAGES,
 	modelInfo: MODEL_INFO,
 	onPackageSelect: (key) => {
-		location.hash = `#arome/${key}`;
+		location.hash = `#forecast/${key}`;
 	},
 });
 
@@ -2075,7 +2077,7 @@ for (const btn of document.querySelectorAll(".tab-btn")) {
 const animationPlayer = createAnimationPlayer({
 	playButton: document.getElementById("player-play"),
 	resetButton: document.getElementById("player-reset"),
-	slider: dom.aromeSlider,
+	slider: dom.forecastSlider,
 	iconPlay: document.getElementById("icon-play"),
 	iconPause: document.getElementById("icon-pause"),
 	getModelState: () => modelState,
@@ -2127,7 +2129,7 @@ async function refreshCurrentModelVisuals({ clearDecoded = false } = {}) {
 	}
 	invalidateBitmapCache();
 	const myGen = renderGen;
-	await showHour(parseInt(dom.aromeSlider.value, 10));
+	await showHour(parseInt(dom.forecastSlider.value, 10));
 	const session = await refreshCurrentModelResourcesToLatest(downloadKey);
 	if (session && renderGen === myGen && isModelResourceRefreshActive(downloadKey))
 		await buildAnimationCacheAfterNetworkSettles(session);
@@ -2139,20 +2141,20 @@ async function refreshCurrentModelResourcesToLatest(downloadKey) {
 	const pkg = PACKAGES[packageKey];
 	const previousResources = downloadKey.state.resources;
 
-	dom.aromeDownloadStatus.textContent = "Checking latest files…";
+	dom.forecastDownloadStatus.textContent = "Checking latest files…";
 	let resources;
 	try {
 		resources = await fetchPackageResources(packageKey, downloadKey);
 	} catch (e) {
 		if (isModelResourceRefreshActive(downloadKey))
-			dom.aromeDownloadStatus.textContent = "API error: " + e.message;
+			dom.forecastDownloadStatus.textContent = "API error: " + e.message;
 		return null;
 	}
 	if (!isModelResourceRefreshActive(downloadKey) || !resources) return null;
 
 	applyModelResources(resources);
 	const runSummary = formatRunSummary(resources);
-	dom.aromeDownloadStatus.textContent = `Checking ${resources.length} ${packageKey} files (${runSummary})…`;
+	dom.forecastDownloadStatus.textContent = `Checking ${resources.length} ${packageKey} files (${runSummary})…`;
 	renderDownloadItems(resources);
 
 	const session = createModelDownloadSession({
@@ -2182,14 +2184,14 @@ document
 	.getElementById("palette-select")
 	.addEventListener("change", onPaletteChange);
 document
-	.getElementById("palette-select-arome")
+	.getElementById("palette-select-forecast")
 	.addEventListener("change", onPaletteChange);
 
 // ── Model player events ───────────────────────────────────────────────────────
 
 document.getElementById("grid-back-btn").addEventListener("click", resetApp);
 
-dom.aromeVarSelect.addEventListener("change", async (e) => {
+dom.forecastVarSelect.addEventListener("change", async (e) => {
 	if (!modelState) return;
 	const varKey = e.target.value;
 	modelState.variable = varKey;
@@ -2210,10 +2212,10 @@ dom.aromeVarSelect.addEventListener("change", async (e) => {
 	await refreshCurrentModelVisuals({ clearDecoded: true });
 });
 
-const aromeSlider = dom.aromeSlider;
-aromeSlider.addEventListener("input", () => {
+const forecastSlider = dom.forecastSlider;
+forecastSlider.addEventListener("input", () => {
 	if (!modelState) return;
-	showHour(parseInt(aromeSlider.value, 10));
+	showHour(parseInt(forecastSlider.value, 10));
 });
 
 // ── Mini-player ───────────────────────────────────────────────────────────────
@@ -2230,7 +2232,7 @@ document
 	.getElementById("clear-grib-cache")
 	.addEventListener("click", async () => {
 		await clearGribCache();
-		dom.aromeDownloadStatus.textContent = "Download cache cleared.";
+		dom.forecastDownloadStatus.textContent = "Download cache cleared.";
 	});
 
 document.addEventListener("keydown", (e) => {
