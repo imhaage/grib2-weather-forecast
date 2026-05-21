@@ -127,6 +127,10 @@ body {
 	background: var(--color-bg);
 }
 
+[hidden] {
+	display: none !important;
+}
+
 main {
 	padding: 0;
 }
@@ -395,7 +399,7 @@ header {
 
 /* ── File summary ── */
 #file-summary {
-	display: none;
+	display: flex;
 	margin-top: var(--space-xl);
 	padding: var(--space-md) var(--space-lg);
 	gap: var(--space-xl);
@@ -426,7 +430,6 @@ header {
 
 /* ── Message cards ── */
 #results {
-	display: none;
 	margin-top: var(--space-xl);
 
 	& h2 {
@@ -634,10 +637,6 @@ header {
  MAP VIEW
 ══════════════════════════════════════════════════════ */
 
-#view-grid {
-	display: none;
-}
-
 /* ── Toolbar ── */
 #grid-toolbar {
 	display: flex;
@@ -648,6 +647,7 @@ header {
 }
 
 .btn-back {
+	display: flex;
 	justify-content: center;
 	align-items: center;
 	flex-shrink: 0;

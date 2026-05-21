@@ -111,7 +111,7 @@
 						</div>
 						<div id="status"></div>
 
-						<div id="file-summary" class="surface">
+						<div id="file-summary" class="surface" hidden>
 							<div class="meta-item">
 								<span class="meta-label">File</span>
 								<span class="meta-value" id="s-name">—</span>
@@ -134,7 +134,7 @@
 							</div>
 						</div>
 
-						<div id="results">
+						<div id="results" hidden>
 							<h2>Variables</h2>
 							<div class="cards" id="cards"></div>
 						</div>
@@ -146,14 +146,14 @@
 		<!-- ══════════════════════════════════════════════════════
      GRID VIEW
     ══════════════════════════════════════════════════════ -->
-		<div id="view-grid">
+		<div id="view-grid" hidden>
 			<main>
 				<div class="container">
 					<button
 						id="back-btn"
 						class="btn-back"
 						type="button"
-						style="display: none"
+						hidden
 					>
 						← Variables
 					</button>
@@ -164,7 +164,7 @@
 						id="arome-back-btn"
 						class="btn-back"
 						type="button"
-						style="display: none"
+						hidden
 						aria-label="Back to the home page"
 					>
 						<svg
@@ -182,7 +182,7 @@
 					</button>
 				</div>
 
-				<details id="data-status-panel" open style="display: none">
+				<details id="data-status-panel" open hidden>
 					<summary class="disclosure-summary">
 						<span id="data-status-summary">Data status</span>
 						<span id="data-status-chevron" class="disclosure-chevron">▼</span>
@@ -231,7 +231,7 @@
 
 				<div id="map-scene">
 					<!-- AROME player toolbar (shown instead of #grid-toolbar in AROME mode) -->
-					<div id="arome-player-toolbar" style="display: none">
+					<div id="arome-player-toolbar" hidden>
 						<div id="arome-var-row">
 							<div id="arome-var-wrap">
 								<select id="arome-var-select" class="toolbar-select"></select>

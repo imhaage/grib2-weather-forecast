@@ -617,12 +617,12 @@ function processFile(file) {
 			document.getElementById("s-reftime").textContent = fmtRefTime(
 				first.header,
 			);
-			document.getElementById("file-summary").style.display = "flex";
+			document.getElementById("file-summary").hidden = false;
 
 			document.getElementById("cards").innerHTML = messages
 				.map(buildCard)
 				.join("");
-			document.getElementById("results").style.display = "block";
+			document.getElementById("results").hidden = false;
 			setStatus("");
 		} catch (err) {
 			setStatus("Error: " + err.message, true);
@@ -870,10 +870,10 @@ function resetApp() {
 	resetModelState();
 	clearMapLayer();
 	setStatus("");
-	document.getElementById("file-summary").style.display = "none";
-	document.getElementById("results").style.display = "none";
+	document.getElementById("file-summary").hidden = true;
+	document.getElementById("results").hidden = true;
 	document.getElementById("cards").innerHTML = "";
-	dom.dataStatusPanel.style.display = "none";
+	dom.dataStatusPanel.hidden = true;
 	location.hash = "";
 }
 
@@ -905,8 +905,7 @@ async function showGridView(shortName) {
 	hideColorScale();
 
 	// Switch view
-	document.getElementById("view-home").style.display = "none";
-	document.getElementById("view-grid").style.display = "block";
+	showView("view-grid");
 	setMapSceneVisible(true);
 
 	// Decode (WASM)
@@ -2005,7 +2004,7 @@ async function startDownload(packageKey) {
 
 function showView(name) {
 	for (const id of ["view-home", "view-grid"])
-		document.getElementById(id).style.display = id === name ? "block" : "none";
+		document.getElementById(id).hidden = id !== name;
 }
 
 function showTab(name) {
@@ -2020,8 +2019,8 @@ function showTab(name) {
 }
 
 function resetUploadState() {
-	byId("file-summary").style.display = "none";
-	byId("results").style.display = "none";
+	byId("file-summary").hidden = true;
+	byId("results").hidden = true;
 	byId("cards").innerHTML = "";
 	const status = byId("status");
 	status.textContent = "";
@@ -2030,16 +2029,10 @@ function resetUploadState() {
 
 function setToolbarMode(mode) {
 	const isGrid = mode === "grid";
-	document.getElementById("back-btn").style.display = isGrid ? "block" : "none";
-	document.getElementById("arome-back-btn").style.display = isGrid
-		? "none"
-		: "flex";
-	document.getElementById("grid-toolbar").style.display = isGrid
-		? "flex"
-		: "none";
-	document.getElementById("arome-player-toolbar").style.display = isGrid
-		? "none"
-		: "flex";
+	document.getElementById("back-btn").hidden = !isGrid;
+	document.getElementById("arome-back-btn").hidden = isGrid;
+	document.getElementById("grid-toolbar").hidden = !isGrid;
+	document.getElementById("arome-player-toolbar").hidden = isGrid;
 }
 
 function route() {
@@ -2056,7 +2049,7 @@ function route() {
 		}
 		showView("view-grid");
 		setToolbarMode("arome");
-		dom.dataStatusPanel.style.display = "block";
+		dom.dataStatusPanel.hidden = false;
 		if (modelState?.packageKey !== packageKey) {
 			resetModelState();
 			startDownload(packageKey);
