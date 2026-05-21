@@ -52,6 +52,11 @@ import {
 import { createForecastBlockRefreshService } from "./src/services/forecast-block-refresh-service.js";
 import { createMapRendererService } from "./src/services/map-renderer-service.js";
 import { createModelBlockService } from "./src/services/model-block-service.js";
+import {
+	createForecastPackageHash,
+	parseForecastRoute,
+} from "./src/ui/forecast-route.js";
+import { setGridToolbarMode } from "./src/ui/grid-toolbar-controller.js";
 import { renderModelList } from "./src/ui/model-list-view.js";
 import { createDownloadWorker } from "./src/workers/download-worker-client.js";
 
@@ -1889,22 +1894,17 @@ function resetUploadState() {
 }
 
 function setToolbarMode(mode) {
-	const isGrid = mode === "grid";
-	document.getElementById("grid-back-btn").hidden = false;
-	document.getElementById("grid-toolbar").hidden = !isGrid;
-	document.getElementById("forecast-player-toolbar").hidden = isGrid;
+	setGridToolbarMode(document, mode);
 }
 
 function route() {
-	const hash = location.hash;
-	if (hash.startsWith("#grid/")) {
+	const currentRoute = parseForecastRoute(location.hash);
+	if (currentRoute.type === "grid") {
 		showView("view-grid");
 		setToolbarMode("grid");
-		showGridView(decodeURIComponent(hash.slice(6)));
-	} else if (hash.startsWith("#forecast/") || hash.startsWith("#arome/")) {
-		const packageKey = hash.startsWith("#forecast/")
-			? hash.slice(10)
-			: hash.slice(7);
+		showGridView(currentRoute.variableShortName);
+	} else if (currentRoute.type === "forecast") {
+		const { packageKey } = currentRoute;
 		if (!PACKAGES[packageKey]) {
 			location.hash = "";
 			return;
@@ -1927,7 +1927,7 @@ renderModelList({
 	packages: PACKAGES,
 	modelInfo: MODEL_INFO,
 	onPackageSelect: (key) => {
-		location.hash = `#forecast/${key}`;
+		location.hash = createForecastPackageHash(key);
 	},
 });
 

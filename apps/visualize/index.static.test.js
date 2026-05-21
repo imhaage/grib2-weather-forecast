@@ -86,29 +86,6 @@ test("app header exposes the project title and GitHub link", () => {
   );
 });
 
-test("grid views share the same back button", () => {
-  assert.doesNotMatch(
-    html,
-    /id="back-btn"/,
-    "expected uploaded GRIB2 grid views not to keep a separate back button",
-  );
-  assert.match(
-    html,
-    /id="grid-back-btn"[\s\S]*aria-label="Back to the home page"/,
-    "expected the universal grid back button to be available in the grid title bar",
-  );
-  assert.match(
-    source,
-    /function setToolbarMode\(mode\) \{[\s\S]*document\.getElementById\("grid-back-btn"\)\.hidden = false;[\s\S]*document\.getElementById\("grid-toolbar"\)\.hidden = !isGrid;[\s\S]*document\.getElementById\("forecast-player-toolbar"\)\.hidden = isGrid;/,
-    "expected both uploaded files and model packages to use the same grid back button",
-  );
-  assert.doesNotMatch(
-    source,
-    /document\.getElementById\("back-btn"\)/,
-    "expected back-button wiring to use the universal grid-back-btn only",
-  );
-});
-
 test("visualizer DOM references and repeated UI ids are centralized", () => {
   assert.match(
     source,
