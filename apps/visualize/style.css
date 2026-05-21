@@ -734,7 +734,7 @@ header {
 	width: var(--size-spinner);
 	height: var(--size-spinner);
 	border: 2px solid var(--color-border);
-	border-top-color: var(--color-text-1);
+	border-top-color: var(--color-text);
 	border-radius: var(--radius-round);
 	animation: spin 1.2s linear infinite;
 	flex-shrink: 0;
@@ -754,6 +754,14 @@ header {
 	border-radius: var(--radius);
 	overflow: hidden;
 }
+
+.map-overlay {
+	border-radius: var(--radius);
+	background: var(--color-overlay-bg);
+	color: var(--color-overlay-text);
+	pointer-events: none;
+}
+
 #map-unavailable {
 	position: absolute;
 	top: var(--space-md);
@@ -761,12 +769,8 @@ header {
 	transform: translateX(-50%);
 	z-index: var(--z-map-overlay);
 	padding: var(--space-sm) var(--space-md);
-	border-radius: var(--radius);
-	background: var(--color-overlay-bg);
-	color: var(--color-overlay-text);
 	font-size: var(--font-ui);
 	font-weight: 600;
-	pointer-events: none;
 }
 #map-unavailable[hidden] {
 	display: none;
@@ -796,11 +800,7 @@ header {
 #map-tooltip {
 	position: absolute;
 	z-index: var(--z-map-tooltip);
-	pointer-events: none;
-	background: var(--color-overlay-bg);
-	color: var(--color-overlay-text);
 	padding: var(--space-xs) var(--space-sm);
-	border-radius: var(--radius);
 	font-size: var(--font-sm);
 	white-space: nowrap;
 }
@@ -808,24 +808,27 @@ header {
 	width: var(--size-icon-md);
 	height: var(--size-icon-md);
 	pointer-events: none;
-}
-.map-click-marker::before,
-.map-click-marker::after {
-	content: "";
-	position: absolute;
-	left: 50%;
-	top: 50%;
-	background: var(--color-overlay-text);
-	box-shadow: var(--shadow-marker);
-	transform: translate(-50%, -50%);
-}
-.map-click-marker::before {
-	width: var(--size-icon-md);
-	height: 1px;
-}
-.map-click-marker::after {
-	width: 1px;
-	height: var(--size-icon-md);
+
+	&::before,
+	&::after {
+		content: "";
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		background: var(--color-overlay-text);
+		box-shadow: var(--shadow-marker);
+		transform: translate(-50%, -50%);
+	}
+
+	&::before {
+		width: var(--size-icon-md);
+		height: 1px;
+	}
+
+	&::after {
+		width: 1px;
+		height: var(--size-icon-md);
+	}
 }
 
 /* ── Color scale ── */
@@ -839,23 +842,26 @@ header {
 	color: var(--color-text-2);
 	font-variant-numeric: tabular-nums;
 	min-height: 2.4rem;
-}
-#cs-track {
-	position: relative;
-	flex: 1;
-	min-width: 0;
-	padding-bottom: 1.2rem;
-}
-#cs-bar {
-	height: 10px;
-	border-radius: var(--radius);
-}
-#cs-ticks {
-	position: absolute;
-	top: 10px;
-	left: 0;
-	right: 0;
-	height: 1.2rem;
+
+	& #cs-track {
+		position: relative;
+		flex: 1;
+		min-width: 0;
+		padding-bottom: 1.2rem;
+	}
+
+	& #cs-bar {
+		height: 10px;
+		border-radius: var(--radius);
+	}
+
+	& #cs-ticks {
+		position: absolute;
+		top: 10px;
+		left: 0;
+		right: 0;
+		height: 1.2rem;
+	}
 }
 .cs-tick {
 	position: absolute;
@@ -866,15 +872,16 @@ header {
 	line-height: 1;
 	white-space: nowrap;
 	opacity: 0.9;
-}
-.cs-tick::before {
-	content: "";
-	display: block;
-	width: 1px;
-	height: 5px;
-	margin: 0 auto 3px;
-	background: currentColor;
-	opacity: 0.85;
+
+	&::before {
+		content: "";
+		display: block;
+		width: 1px;
+		height: 5px;
+		margin: 0 auto 3px;
+		background: currentColor;
+		opacity: 0.85;
+	}
 }
 /* ── Palette selector ── */
 
