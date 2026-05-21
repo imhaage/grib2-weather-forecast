@@ -306,7 +306,6 @@ header {
 .tab-bar {
 	display: flex;
 	gap: var(--space-xs);
-	margin-bottom: var(--space-xl);
 	background: var(--color-bg-medium);
 	border-bottom: var(--border-default);
 }
@@ -339,6 +338,10 @@ header {
 .tab-btn.active {
 	color: var(--color-logo);
 	border-bottom-color: var(--color-logo);
+}
+
+#tab-panel-upload .section-desc {
+	margin-bottom: var(--space-md);
 }
 
 #tab-panel-model,
@@ -452,7 +455,10 @@ header {
 }
 .cards {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(var(--upload-card-min-width), 1fr));
+	grid-template-columns: repeat(
+			auto-fill,
+			minmax(var(--upload-card-min-width), 1fr)
+		);
 	gap: var(--space-md);
 }
 
@@ -524,12 +530,7 @@ header {
 
 #model-list {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--model-section-min-width)), 1fr));
 	gap: var(--space-md);
-
-	& > .section-desc {
-		grid-column: 1 / -1;
-	}
 }
 
 /* ── Model sections ── */
@@ -637,8 +638,8 @@ header {
 	font-size: var(--font-sm);
 	list-style: none;
 }
+
 .section-desc {
-	margin-bottom: var(--space-md);
 	color: var(--color-text-2);
 	font-size: var(--font-md);
 	text-align: center;
