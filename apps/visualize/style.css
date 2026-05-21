@@ -41,11 +41,13 @@
 	/* Semantic colors */
 	--color-text: var(--gray-100);
 	--color-text-2: var(--gray-400);
+	--color-text-3: var(--gray-900);
 	--color-text-muted: var(--gray-500);
 	--color-text-hover: var(--gray-50);
 	--color-bg-darkest: var(--gray-950);
 	--color-bg: var(--gray-900);
 	--color-bg-medium: var(--gray-800);
+	--color-bg-light: var(--gray-100);
 	--color-bg-hover: var(--gray-850);
 	--color-border: var(--gray-800);
 	--color-border-2: var(--gray-750);
@@ -165,7 +167,7 @@ header {
 	align-items: center;
 	justify-content: space-between;
 	gap: var(--space-sm);
-	padding: var(--space-md);
+	padding: var(--space-sm) var(--space-md);
 	color: var(--color-text);
 	background: var(--color-bg-darkest);
 	border-bottom: var(--border-default);
@@ -202,13 +204,13 @@ header {
 /* ── Shared: dark buttons ── */
 .btn-primary,
 .btn-grid {
-	border: none;
-	border-radius: var(--radius);
-	background: var(--color-text);
-	color: var(--color-bg-darkest);
+	border: var(--border-strong);
+	background: var(--color-bg-light);
+	color: var(--color-text-3);
 	cursor: pointer;
 	transition: background var(--transition-base);
 }
+
 .btn-primary:hover,
 .btn-grid:hover {
 	background: var(--color-text-hover);
@@ -630,7 +632,7 @@ header {
 
 @media (min-width: 900px) {
 	.model-packages {
-		grid-template-columns: repeat(3, 1fr);
+		grid-template-columns: repeat(4, 1fr);
 	}
 }
 
@@ -638,13 +640,26 @@ header {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-xs);
+	border: var(--border-strong);
+
+	& .model-package-label {
+		padding: var(--space-xs) var(--space-sm);
+		color: var(--color-text);
+		background: var(--color-bg-medium);
+		font-weight: 600;
+	}
+
+	& .btn-primary {
+		margin: var(--space-sm);
+	}
 }
 
 .model-package-vars {
 	display: flex;
 	flex-direction: column;
-	gap: var(--space-xxs);
+	flex: 1;
 	margin: 0;
+	padding: var(--space-sm);
 	color: var(--color-text-2);
 	font-size: var(--font-sm);
 	list-style: none;

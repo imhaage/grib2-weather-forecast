@@ -36,13 +36,11 @@ function createModelPackageElement(key, pkg, onPackageSelect) {
   const pkgEl = document.createElement("div");
   pkgEl.className = "model-package";
 
-  const btn = document.createElement("button");
-  btn.className = "btn-primary";
-  btn.textContent = key.split("_").pop();
-  btn.addEventListener("click", () => {
-    onPackageSelect(key);
-  });
-  pkgEl.appendChild(btn);
+  const packageName = key.split("_").pop();
+  const title = document.createElement("span");
+  title.className = "meta-label model-package-label";
+  title.textContent = packageName;
+  pkgEl.appendChild(title);
 
   const vars = document.createElement("ul");
   vars.className = "model-package-vars";
@@ -53,6 +51,14 @@ function createModelPackageElement(key, pkg, onPackageSelect) {
     vars.appendChild(li);
   }
   pkgEl.appendChild(vars);
+
+  const btn = document.createElement("button");
+  btn.className = "btn-primary";
+  btn.textContent = "Show on map";
+  btn.addEventListener("click", () => {
+    onPackageSelect(key);
+  });
+  pkgEl.appendChild(btn);
 
   return pkgEl;
 }
