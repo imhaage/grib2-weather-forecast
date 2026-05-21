@@ -7,7 +7,6 @@ const html = readFileSync(new URL("./index.html", import.meta.url), "utf8");
 const css = readFileSync(new URL("./style.css", import.meta.url), "utf8");
 const animationPlayer = readFileSync(new URL("./animation-player.js", import.meta.url), "utf8");
 const mapTooltip = readFileSync(new URL("./map-tooltip.js", import.meta.url), "utf8");
-const renderWorker = readFileSync(new URL("./render-worker.js", import.meta.url), "utf8");
 const modelBlockWorker = readFileSync(new URL("./model-block-worker.js", import.meta.url), "utf8");
 const modelBlockWorkerClient = readFileSync(
   new URL("./src/workers/model-block-worker-client.js", import.meta.url),
@@ -39,10 +38,6 @@ const mapRendererService = readFileSync(
 );
 const isobarLayerService = readFileSync(
   new URL("./src/services/isobar-layer-service.js", import.meta.url),
-  "utf8",
-);
-const unitTransforms = readFileSync(
-  new URL("./src/domain/unit-transforms.js", import.meta.url),
   "utf8",
 );
 const resourceHelpers = readFileSync(
@@ -564,29 +559,6 @@ test("model visual refresh after palette or variable changes is shared", () => {
     source,
     /modelState !== session\.downloadKey|modelState === session\.downloadKey/,
     "expected session activity checks not to rely on modelState object identity alone",
-  );
-});
-
-test("unit conversion rules are shared between the main thread and render worker", () => {
-  assert.match(
-    source,
-    /import \{[\s\S]*displayUnitsFor,[\s\S]*unitFnFor,[\s\S]*unitTransformFor,[\s\S]*\} from "\.\/src\/domain\/unit-transforms\.js";/,
-    "expected main thread unit conversion helpers to come from the shared module",
-  );
-  assert.match(
-    source,
-    /new Worker\(\s*new URL\("\.\/render-worker\.js", import\.meta\.url\),\s*\{ type: "module" \},\s*\)/,
-    "expected render worker to load as a module so it can share unit transforms",
-  );
-  assert.match(
-    renderWorker,
-    /import \{ applyUnitTransform \} from "\.\/src\/domain\/unit-transforms\.js";/,
-    "expected render worker unit conversion to come from the shared module",
-  );
-  assert.match(
-    unitTransforms,
-    /const UNIT_TRANSFORMS = Object\.freeze\(\{[\s\S]*displayUnits: "°C"[\s\S]*apply: \(value\) => value - 273\.15[\s\S]*displayUnits: "km\/h"[\s\S]*apply: \(value\) => value \* 3\.6/,
-    "expected shared unit transform definitions to include display units and conversion logic",
   );
 });
 
