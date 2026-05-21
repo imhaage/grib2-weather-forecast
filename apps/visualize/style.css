@@ -238,6 +238,28 @@ header {
 	border-color: var(--color-text-muted);
 }
 
+.disclosure-summary {
+	display: flex;
+	align-items: center;
+	gap: var(--space-xs);
+	cursor: pointer;
+	list-style: none;
+	user-select: none;
+}
+
+.disclosure-summary::-webkit-details-marker {
+	display: none;
+}
+
+.disclosure-summary::marker {
+	display: none;
+}
+
+.disclosure-chevron {
+	font-size: 0.65rem;
+	transition: transform var(--transition-base);
+}
+
 /* ══════════════════════════════════════════════════════
  HOME VIEW
 ══════════════════════════════════════════════════════ */
@@ -739,45 +761,24 @@ header {
 	display: none;
 }
 
-#map-scene:fullscreen {
+#map-scene:is(:fullscreen, :-webkit-full-screen) {
 	display: flex;
 	flex-direction: column;
 	background: var(--color-bg);
 }
-#map-scene:fullscreen #map-wrap {
+#map-scene:is(:fullscreen, :-webkit-full-screen) #map-wrap {
 	flex: 1;
 	min-height: 0;
 	display: flex;
 	flex-direction: column;
 }
-#map-scene:fullscreen #map {
+#map-scene:is(:fullscreen, :-webkit-full-screen) #map {
 	flex: 1;
 	min-height: 0;
 	height: auto;
 	border-radius: 0;
 }
-#map-scene:fullscreen #gv-meta {
-	display: none;
-}
-/* Safari */
-#map-scene:-webkit-full-screen {
-	display: flex;
-	flex-direction: column;
-	background: var(--color-bg);
-}
-#map-scene:-webkit-full-screen #map-wrap {
-	flex: 1;
-	min-height: 0;
-	display: flex;
-	flex-direction: column;
-}
-#map-scene:-webkit-full-screen #map {
-	flex: 1;
-	min-height: 0;
-	height: auto;
-	border-radius: 0;
-}
-#map-scene:-webkit-full-screen #gv-meta {
+#map-scene:is(:fullscreen, :-webkit-full-screen) #gv-meta {
 	display: none;
 }
 
@@ -884,25 +885,9 @@ header {
 	border-top: 1px solid var(--color-border);
 }
 #data-status-panel > summary {
-	display: flex;
-	align-items: center;
-	gap: var(--space-xs);
 	color: var(--color-text);
-	cursor: pointer;
 	font-size: var(--font-md);
 	font-weight: 600;
-	list-style: none;
-	user-select: none;
-}
-#data-status-panel > summary::-webkit-details-marker {
-	display: none;
-}
-#data-status-panel > summary::marker {
-	display: none;
-}
-#data-status-chevron {
-	font-size: 0.65rem;
-	transition: transform var(--transition-base);
 }
 #data-status-panel[open] #data-status-chevron {
 	transform: rotate(180deg);
@@ -931,22 +916,6 @@ header {
 #arome-dl-details > summary {
 	font-size: 0.8rem;
 	color: var(--color-text-muted);
-	cursor: pointer;
-	user-select: none;
-	list-style: none;
-	display: flex;
-	align-items: center;
-	gap: var(--space-xs);
-}
-#arome-dl-details > summary::-webkit-details-marker {
-	display: none;
-}
-#arome-dl-details > summary::marker {
-	display: none;
-}
-#arome-dl-chevron {
-	font-size: 0.65rem;
-	transition: transform var(--transition-base);
 }
 #arome-dl-details[open] #arome-dl-chevron {
 	transform: rotate(180deg);
