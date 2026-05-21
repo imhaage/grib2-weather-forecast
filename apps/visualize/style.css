@@ -120,11 +120,11 @@
 *::before,
 *::after {
 	box-sizing: border-box;
-	margin: 0;
-	padding: 0;
 }
 
 body {
+	margin: 0;
+	padding: 0;
 	min-height: 100vh;
 	font-family: var(--font-family-base);
 	color: var(--color-text);
@@ -133,10 +133,6 @@ body {
 
 [hidden] {
 	display: none !important;
-}
-
-main {
-	padding: 0;
 }
 
 .container {
@@ -305,7 +301,7 @@ header {
 /* ── Tab bar ── */
 .tab-bar {
 	display: flex;
-	gap: var(--space-xs);
+	gap: 0;
 	background: var(--color-bg-medium);
 	border-bottom: var(--border-default);
 }
@@ -323,6 +319,13 @@ header {
 	transition:
 		color var(--transition-base),
 		border-color var(--transition-base);
+}
+
+@media (max-width: 425px) {
+	.tab-btn {
+		flex: 0 0 50%;
+		min-width: 0;
+	}
 }
 
 .tab-btn:hover {
