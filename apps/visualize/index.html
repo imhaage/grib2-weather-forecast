@@ -80,11 +80,7 @@
 						role="tabpanel"
 						aria-labelledby="tab-btn-model"
 					>
-						<div id="model-list">
-							<p class="section-desc">
-								Visualize and animate a complete forecast run.
-							</p>
-						</div>
+						<div id="model-list"></div>
 					</div>
 
 					<div
@@ -103,7 +99,9 @@
 							aria-label="Upload a GRIB2 file"
 						>
 							<div class="icon">🌐</div>
-							<p><strong>Drop a GRIB2 file here</strong><br>or click to select</p>
+							<p>
+								<strong>Drop a GRIB2 file here</strong><br>or click to select
+							</p>
 							<br>
 							<input type="file" id="file-input" accept=".grib2,.grib">
 						</div>
@@ -171,157 +169,168 @@
 						</button>
 					</div>
 
-				<details id="data-status-panel" open hidden>
-					<summary class="disclosure-summary">
-						<span id="data-status-summary">Data status</span>
-						<span id="data-status-chevron" class="disclosure-chevron">▼</span>
-					</summary>
+					<details id="data-status-panel" open hidden>
+						<summary class="disclosure-summary">
+							<span id="data-status-summary">Data status</span>
+							<span id="data-status-chevron" class="disclosure-chevron">▼</span>
+						</summary>
 
-					<p id="arome-dl-status"></p>
+						<p id="arome-dl-status"></p>
 
-					<div id="arome-dl-bars"></div>
+						<div id="arome-dl-bars"></div>
 
-					<button type="button" id="clear-grib-cache">Clear cache</button>
+						<button type="button" id="clear-grib-cache">Clear cache</button>
 
-					<details id="arome-dl-details">
-						<summary class="disclosure-summary">Files <span id="arome-dl-chevron" class="disclosure-chevron">▼</span></summary>
-						<ul id="arome-dl-file-list"></ul>
+						<details id="arome-dl-details">
+							<summary class="disclosure-summary">
+								Files
+								<span id="arome-dl-chevron" class="disclosure-chevron">▼</span>
+							</summary>
+							<ul id="arome-dl-file-list"></ul>
+						</details>
 					</details>
-				</details>
 
-				<div id="grid-toolbar">
-					<div id="grid-stats">
-						<div class="stat-item">
-							<span class="stat-label">Min</span>
-							<span class="stat-value" id="gv-min">—</span>
+					<div id="grid-toolbar">
+						<div id="grid-stats">
+							<div class="stat-item">
+								<span class="stat-label">Min</span>
+								<span class="stat-value" id="gv-min">—</span>
+							</div>
+
+							<div class="stat-item">
+								<span class="stat-label">Max</span>
+								<span class="stat-value" id="gv-max">—</span>
+							</div>
+
+							<div class="stat-item">
+								<span class="stat-label">Mean</span>
+								<span class="stat-value" id="gv-mean">—</span>
+							</div>
+
+							<div class="stat-item">
+								<span class="stat-label">Valid pts</span>
+								<span class="stat-value" id="gv-valid">—</span>
+							</div>
 						</div>
 
-						<div class="stat-item">
-							<span class="stat-label">Max</span>
-							<span class="stat-value" id="gv-max">—</span>
-						</div>
-
-						<div class="stat-item">
-							<span class="stat-label">Mean</span>
-							<span class="stat-value" id="gv-mean">—</span>
-						</div>
-
-						<div class="stat-item">
-							<span class="stat-label">Valid pts</span>
-							<span class="stat-value" id="gv-valid">—</span>
+						<div id="palette-ctrl">
+							<label for="palette-select">Color scale</label>
+							<select id="palette-select" class="toolbar-select"></select>
 						</div>
 					</div>
 
-					<div id="palette-ctrl">
-						<label for="palette-select">Color scale</label>
-						<select id="palette-select" class="toolbar-select"></select>
-					</div>
-				</div>
+					<div id="map-scene">
+						<!-- AROME player toolbar (shown instead of #grid-toolbar in AROME mode) -->
+						<div id="arome-player-toolbar" hidden>
+							<div id="arome-var-row">
+								<div id="arome-var-wrap">
+									<select id="arome-var-select" class="toolbar-select"></select>
+								</div>
 
-				<div id="map-scene">
-					<!-- AROME player toolbar (shown instead of #grid-toolbar in AROME mode) -->
-					<div id="arome-player-toolbar" hidden>
-						<div id="arome-var-row">
-							<div id="arome-var-wrap">
-								<select id="arome-var-select" class="toolbar-select"></select>
+								<span id="var-spinner"></span>
+
+								<div id="palette-ctrl-arome" class="palette-ctrl-shared">
+									<label for="palette-select-arome">Color scale</label>
+									<select
+										id="palette-select-arome"
+										class="toolbar-select"
+									></select>
+								</div>
 							</div>
 
-							<span id="var-spinner"></span>
-
-							<div id="palette-ctrl-arome" class="palette-ctrl-shared">
-								<label for="palette-select-arome">Color scale</label>
-								<select
-									id="palette-select-arome"
-									class="toolbar-select"
-								></select>
+							<div id="gv-meta">
+								<div>
+									<div id="gv-name"></div>
+									<div id="gv-level"></div>
+									<div id="gv-desc"></div>
+								</div>
 							</div>
-						</div>
 
-						<div id="gv-meta">
-							<div>
-								<div id="gv-name"></div>
-								<div id="gv-level"></div>
-								<div id="gv-desc"></div>
-							</div>
-						</div>
+							<div id="arome-slider-wrap">
+								<span id="arome-valid-time"></span>
+								<span id="arome-hour-label">+01H</span>
 
-						<div id="arome-slider-wrap">
-							<span id="arome-valid-time"></span>
-							<span id="arome-hour-label">+01H</span>
-
-							<input type="range" id="arome-slider" min="0" step="1" value="0">
-
-							<button
-								id="player-reset"
-								class="icon-button"
-								type="button"
-								title="Reset"
-								aria-label="Reset"
-							>
-								<svg viewBox="0 0 24 24" fill="currentColor">
-									<title>Reset</title>
-									<path
-										d="M2 12c0 5.523 4.477 10 10 10s10-4.477 10-10S17.523 2 12 2v2a8 8 0 1 1-5.135 1.865L9 8V2H3l2.446 2.447A9.98 9.98 0 0 0 2 12"
-									/>
-								</svg>
-							</button>
-
-							<button
-								id="player-play"
-								class="icon-button"
-								type="button"
-								title="Play"
-								aria-label="Play"
-							>
-								<svg id="icon-play" viewBox="0 0 24 24" fill="currentColor">
-									<title>Play</title>
-									<polygon points="5,3 19,12 5,21" />
-								</svg>
-
-								<svg
-									id="icon-pause"
-									viewBox="0 0 24 24"
-									fill="currentColor"
-									hidden
+								<input
+									type="range"
+									id="arome-slider"
+									min="0"
+									step="1"
+									value="0"
 								>
-									<title>Pause</title>
-									<rect x="5" y="3" width="4" height="18" />
-									<rect x="15" y="3" width="4" height="18" />
-								</svg>
-							</button>
+
+								<button
+									id="player-reset"
+									class="icon-button"
+									type="button"
+									title="Reset"
+									aria-label="Reset"
+								>
+									<svg viewBox="0 0 24 24" fill="currentColor">
+										<title>Reset</title>
+										<path
+											d="M2 12c0 5.523 4.477 10 10 10s10-4.477 10-10S17.523 2 12 2v2a8 8 0 1 1-5.135 1.865L9 8V2H3l2.446 2.447A9.98 9.98 0 0 0 2 12"
+										/>
+									</svg>
+								</button>
+
+								<button
+									id="player-play"
+									class="icon-button"
+									type="button"
+									title="Play"
+									aria-label="Play"
+								>
+									<svg id="icon-play" viewBox="0 0 24 24" fill="currentColor">
+										<title>Play</title>
+										<polygon points="5,3 19,12 5,21" />
+									</svg>
+
+									<svg
+										id="icon-pause"
+										viewBox="0 0 24 24"
+										fill="currentColor"
+										hidden
+									>
+										<title>Pause</title>
+										<rect x="5" y="3" width="4" height="18" />
+										<rect x="15" y="3" width="4" height="18" />
+									</svg>
+								</button>
+							</div>
 						</div>
-					</div>
 
-					<div id="cache-warmup" hidden aria-live="polite">
-						<span id="cache-warmup-label">Animation cache</span>
-						<div id="cache-warmup-track">
-							<div id="cache-warmup-bar"></div>
+						<div id="cache-warmup" hidden aria-live="polite">
+							<span id="cache-warmup-label">Animation cache</span>
+							<div id="cache-warmup-track">
+								<div id="cache-warmup-bar"></div>
+							</div>
+							<span id="cache-warmup-count">0 / 0</span>
 						</div>
-						<span id="cache-warmup-count">0 / 0</span>
-					</div>
 
-					<div id="perf-debug" hidden aria-live="polite">
-						<span>Perf</span>
-						<span id="perf-debug-render">render —</span>
-						<span id="perf-debug-decode">decode —</span>
-						<span id="perf-debug-queue">queue —</span>
-						<span id="perf-debug-cache">cache —</span>
-						<span id="perf-debug-decoded">decoded —</span>
-						<span id="perf-debug-gen">gen —</span>
-					</div>
+						<div id="perf-debug" hidden aria-live="polite">
+							<span>Perf</span>
+							<span id="perf-debug-render">render —</span>
+							<span id="perf-debug-decode">decode —</span>
+							<span id="perf-debug-queue">queue —</span>
+							<span id="perf-debug-cache">cache —</span>
+							<span id="perf-debug-decoded">decoded —</span>
+							<span id="perf-debug-gen">gen —</span>
+						</div>
 
-					<div id="map-wrap">
-						<div id="map"></div>
-						<div id="map-unavailable" class="map-overlay" hidden>Data not available yet</div>
-						<div id="map-tooltip" class="map-overlay" hidden></div>
-						<div id="colorscale" hidden>
-							<div id="cs-track">
-								<div id="cs-bar"></div>
-								<div id="cs-ticks"></div>
+						<div id="map-wrap">
+							<div id="map"></div>
+							<div id="map-unavailable" class="map-overlay" hidden>
+								Data not available yet
+							</div>
+							<div id="map-tooltip" class="map-overlay" hidden></div>
+							<div id="colorscale" hidden>
+								<div id="cs-track">
+									<div id="cs-bar"></div>
+									<div id="cs-ticks"></div>
+								</div>
 							</div>
 						</div>
 					</div>
-				</div>
 				</div>
 			</main>
 		</div>

@@ -94,14 +94,9 @@
 	/* Typography */
 	--font-family-base: "Barlow", system-ui, -apple-system, sans-serif;
 	--font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-	--font-xs: 0.72rem;
-	--font-sm: 0.78rem;
-	--font-ui: 0.82rem;
-	--font-md: 0.88rem;
-	--font-lg: 0.95rem;
-	--font-xl: 1rem;
-	--letter-spacing-label: 0.07em;
-	--letter-spacing-control: 0.02em;
+	--font-sm: 0.8rem;
+	--font-md: 0.9rem;
+	--font-lg: 1rem;
 
 	/* Effects */
 	--shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.08);
@@ -179,7 +174,7 @@ header {
 		display: flex;
 		align-items: center;
 		gap: var(--space-sm);
-		font-size: var(--font-xl);
+		font-size: var(--font-lg);
 		font-weight: 600;
 
 		& svg {
@@ -189,8 +184,8 @@ header {
 }
 
 .github-link {
-	border: var(--border-default);
-	color: var(--color-text-2);
+	border: var(--border-strong);
+	color: var(--color-text);
 	transition:
 		color var(--transition-fast),
 		background var(--transition-fast),
@@ -211,7 +206,6 @@ header {
 	border-radius: var(--radius);
 	background: var(--color-text);
 	color: var(--color-bg-darkest);
-	letter-spacing: var(--letter-spacing-control);
 	cursor: pointer;
 	transition: background var(--transition-base);
 }
@@ -224,7 +218,7 @@ header {
 	margin-top: var(--space-md);
 	width: 100%;
 	padding: var(--space-sm) 0;
-	font-size: var(--font-ui);
+	font-size: var(--font-sm);
 	font-weight: 500;
 }
 
@@ -234,7 +228,7 @@ header {
 	border-radius: var(--radius);
 	background: var(--color-bg-darkest);
 	color: var(--color-text);
-	font-size: var(--font-ui);
+	font-size: var(--font-sm);
 	cursor: pointer;
 	transition: border-color var(--transition-fast);
 }
@@ -386,7 +380,7 @@ header {
 
 	& p {
 		color: var(--color-text-2);
-		font-size: var(--font-ui);
+		font-size: var(--font-sm);
 		line-height: 1.4;
 	}
 
@@ -396,7 +390,7 @@ header {
 
 	& small {
 		color: var(--color-text-muted);
-		font-size: var(--font-xs);
+		font-size: var(--font-sm);
 	}
 }
 #file-input {
@@ -432,7 +426,7 @@ header {
 	}
 
 	& .meta-value {
-		font-size: var(--font-lg);
+		font-size: var(--font-md);
 		font-weight: 600;
 	}
 }
@@ -442,9 +436,8 @@ header {
 .stat-label,
 #results h2,
 .model-section-data .model-packages-label {
-	font-size: var(--font-xs);
+	font-size: var(--font-sm);
 	text-transform: uppercase;
-	letter-spacing: var(--letter-spacing-label);
 	color: var(--color-text-muted);
 }
 
@@ -488,11 +481,10 @@ header {
 	font-family: var(--font-family-mono);
 	font-size: var(--font-md);
 	font-weight: 700;
-	letter-spacing: var(--letter-spacing-control);
 	white-space: nowrap;
 }
 .card-title {
-	font-size: var(--font-lg);
+	font-size: var(--font-md);
 	font-weight: 600;
 	line-height: 1.3;
 }
@@ -506,7 +498,7 @@ header {
 	display: flex;
 	justify-content: space-between;
 	align-items: baseline;
-	font-size: var(--font-ui);
+	font-size: var(--font-sm);
 	gap: var(--space-sm);
 
 	& .key {
@@ -556,11 +548,10 @@ header {
 	border-bottom: var(--border-default);
 
 	& .model-section-title {
-		margin-bottom: var(--space-xs);
+		margin-block: 0 var(--space-xs);
 		color: var(--color-text);
-		font-size: var(--font-xl);
+		font-size: var(--font-lg);
 		font-weight: 700;
-		letter-spacing: 0.01em;
 	}
 
 	& .model-section-desc {
@@ -573,25 +564,31 @@ header {
 .model-meta {
 	display: flex;
 	flex-wrap: wrap;
-	gap: var(--space-sm) var(--space-xxl);
-	padding: var(--space-sm) 0;
+	gap: var(--space-sm);
+	padding-bottom: var(--space-md);
 	border-bottom: var(--border-default);
-	margin-bottom: var(--space-md);
 
 	& .meta-item {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-xxs);
+		border: var(--border-strong);
+
+		& > span {
+			padding: var(--space-xs) var(--space-sm);
+		}
 	}
 
 	& .meta-label {
-		font-weight: 600;
+		padding: var(--space-xs) var(--space-sm);
 		color: var(--color-text);
+		background: var(--color-bg-medium);
+		font-weight: 600;
 	}
 
 	& .meta-value {
 		font-size: var(--font-md);
-		color: var(--color-text-2);
+		color: var(--color-text);
 	}
 }
 
@@ -603,7 +600,8 @@ header {
 
 	& .model-packages-label {
 		color: var(--color-text);
-		margin-bottom: var(--space-sm);
+		font-weight: 600;
+		margin-block: var(--space-md);
 	}
 }
 
@@ -636,7 +634,7 @@ header {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-xxs);
-	margin-top: var(--space-xs);
+	margin: 0;
 	color: var(--color-text-2);
 	font-size: var(--font-sm);
 	list-style: none;
@@ -646,6 +644,7 @@ header {
 	color: var(--color-text-2);
 	font-size: var(--font-md);
 	text-align: center;
+	margin: 0;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -670,7 +669,7 @@ header {
 	padding: var(--space-sm);
 	border-radius: var(--radius-round);
 	color: var(--color-text-2);
-	font-size: var(--font-ui);
+	font-size: var(--font-sm);
 	transition:
 		background var(--transition-fast),
 		border-color var(--transition-fast);
@@ -687,7 +686,7 @@ header {
 	margin-bottom: var(--space-sm);
 }
 #gv-name {
-	font-size: var(--font-xl);
+	font-size: var(--font-lg);
 	font-weight: 600;
 }
 #gv-level {
@@ -781,7 +780,7 @@ header {
 	transform: translateX(-50%);
 	z-index: var(--z-map-overlay);
 	padding: var(--space-sm) var(--space-md);
-	font-size: var(--font-ui);
+	font-size: var(--font-sm);
 	font-weight: 600;
 }
 #map-unavailable[hidden] {
@@ -900,7 +899,7 @@ header {
 	display: flex;
 	align-items: center;
 	gap: var(--space-sm);
-	font-size: var(--font-ui);
+	font-size: var(--font-sm);
 	color: var(--color-text-2);
 }
 
@@ -950,7 +949,7 @@ header {
 	margin-top: var(--space-sm);
 
 	& > summary {
-		font-size: var(--font-ui);
+		font-size: var(--font-sm);
 		color: var(--color-text-muted);
 	}
 
@@ -973,7 +972,7 @@ header {
 	display: grid;
 	grid-template-columns: repeat(24, minmax(max-content, 1fr));
 	gap: var(--space-xs);
-	font-size: var(--font-xs);
+	font-size: var(--font-sm);
 	width: 100%;
 	max-width: 100%;
 	overflow-x: auto;
@@ -1059,7 +1058,7 @@ header {
 	padding: var(--space-xs) var(--space-sm);
 	border-top: var(--border-default);
 	color: var(--color-text-2);
-	font-size: var(--font-ui);
+	font-size: var(--font-sm);
 
 	&[hidden] {
 		display: none;
@@ -1131,7 +1130,7 @@ header {
 }
 #arome-valid-time {
 	width: 100%;
-	font-size: var(--font-xl);
+	font-size: var(--font-lg);
 	font-weight: 600;
 	color: var(--color-text);
 	white-space: nowrap;
@@ -1151,7 +1150,7 @@ header {
 	border-top: var(--border-default);
 	color: var(--color-text-2);
 	font-family: var(--font-family-mono);
-	font-size: var(--font-xs);
+	font-size: var(--font-sm);
 	font-variant-numeric: tabular-nums;
 
 	&[hidden] {
