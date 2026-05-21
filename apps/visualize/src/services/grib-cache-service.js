@@ -80,132 +80,175 @@ function isOlderCachedGribBlock(record, block) {
   return runTimeValue(record.runId) < runTimeValue(block.runId);
 }
 
-async function findCachedGribBlock(packageKey, block, predicate) {
-  const db = await openGribCacheDb();
-  if (!db) return null;
-  const transaction = db.transaction(GRIB_BLOCK_STORE, "readonly");
-  const index = transaction.objectStore(GRIB_BLOCK_STORE).index("byPackageBlock");
-  const range = IDBKeyRange.only([packageKey, block.key]);
-  let match = null;
-  await new Promise((resolve, reject) => {
-    const request = index.openCursor(range);
-    request.onsuccess = () => {
-      const cursor = request.result;
-      if (!cursor) {
-        resolve();
-        return;
-      }
-      const record = cursor.value;
-      if (predicate(record) && (!match || String(record.savedAt) > String(match.savedAt))) {
-        match = record;
-      }
-      cursor.continue();
-    };
-    request.onerror = () => reject(request.error);
-  });
-  return match;
+export function createIndexedDbGribCacheStorage() {
+  return {
+    async get(id) {
+      const db = await openGribCacheDb();
+      if (!db) return null;
+      const transaction = db.transaction(GRIB_BLOCK_STORE, "readonly");
+      return idbRequest(transaction.objectStore(GRIB_BLOCK_STORE).get(id));
+    },
+
+    async put(record) {
+      const db = await openGribCacheDb();
+      if (!db) return false;
+      const transaction = db.transaction(GRIB_BLOCK_STORE, "readwrite");
+      transaction.objectStore(GRIB_BLOCK_STORE).put(record);
+      await idbTransactionDone(transaction);
+      return true;
+    },
+
+    async findByPackageBlock(packageKey, blockKey, predicate) {
+      const db = await openGribCacheDb();
+      if (!db) return null;
+      const transaction = db.transaction(GRIB_BLOCK_STORE, "readonly");
+      const index = transaction.objectStore(GRIB_BLOCK_STORE).index("byPackageBlock");
+      const range = IDBKeyRange.only([packageKey, blockKey]);
+      let match = null;
+      await new Promise((resolve, reject) => {
+        const request = index.openCursor(range);
+        request.onsuccess = () => {
+          const cursor = request.result;
+          if (!cursor) {
+            resolve();
+            return;
+          }
+          const record = cursor.value;
+          if (predicate(record) && (!match || String(record.savedAt) > String(match.savedAt))) {
+            match = record;
+          }
+          cursor.continue();
+        };
+        request.onerror = () => reject(request.error);
+      });
+      return match;
+    },
+
+    async deleteObsolete(packageKey, blockKey, currentId) {
+      const db = await openGribCacheDb();
+      if (!db) return;
+      const transaction = db.transaction(GRIB_BLOCK_STORE, "readwrite");
+      const index = transaction.objectStore(GRIB_BLOCK_STORE).index("byPackageBlock");
+      const range = IDBKeyRange.only([packageKey, blockKey]);
+      await new Promise((resolve, reject) => {
+        const request = index.openCursor(range);
+        request.onsuccess = () => {
+          const cursor = request.result;
+          if (!cursor) {
+            resolve();
+            return;
+          }
+          if (cursor.value.id !== currentId) cursor.delete();
+          cursor.continue();
+        };
+        request.onerror = () => reject(request.error);
+      });
+      await idbTransactionDone(transaction);
+    },
+
+    async clear() {
+      const db = await openGribCacheDb();
+      if (!db) return;
+      const transaction = db.transaction(GRIB_BLOCK_STORE, "readwrite");
+      transaction.objectStore(GRIB_BLOCK_STORE).clear();
+      await idbTransactionDone(transaction);
+    },
+  };
 }
 
-export async function readCachedGribBlock(packageKey, block) {
-  try {
-    const db = await openGribCacheDb();
-    if (!db) return null;
-    const transaction = db.transaction(GRIB_BLOCK_STORE, "readonly");
-    const record = await idbRequest(
-      transaction.objectStore(GRIB_BLOCK_STORE).get(gribBlockCacheKey(packageKey, block)),
-    );
-    const exactBuffer = cachedGribBlockBuffer(record);
-    if (exactBuffer) return exactBuffer;
+export function createGribCacheService({ storage = createIndexedDbGribCacheStorage() } = {}) {
+  return {
+    async readCachedGribBlock(packageKey, block) {
+      try {
+        const record = await storage.get(gribBlockCacheKey(packageKey, block));
+        const exactBuffer = cachedGribBlockBuffer(record);
+        if (exactBuffer) return exactBuffer;
 
-    const runRecord = await findCachedGribBlock(packageKey, block, (record) =>
-      isUsableCachedGribBlock(record, block),
-    );
-    return cachedGribBlockBuffer(runRecord);
-  } catch (error) {
-    console.warn("IndexedDB cache read failed:", error);
-    return null;
-  }
+        const runRecord = await storage.findByPackageBlock(packageKey, block.key, (record) =>
+          isUsableCachedGribBlock(record, block),
+        );
+        return cachedGribBlockBuffer(runRecord);
+      } catch (error) {
+        console.warn("IndexedDB cache read failed:", error);
+        return null;
+      }
+    },
+
+    async readLatestCachedGribBlock(packageKey, block) {
+      try {
+        const currentId = gribBlockCacheKey(packageKey, block);
+        const latest = await storage.findByPackageBlock(
+          packageKey,
+          block.key,
+          (record) => record.id !== currentId && isOlderCachedGribBlock(record, block),
+        );
+        const buffer = cachedGribBlockBuffer(latest);
+        return buffer ? { ...latest, buffer } : null;
+      } catch (error) {
+        console.warn("IndexedDB stale cache read failed:", error);
+        return null;
+      }
+    },
+
+    async writeCachedGribBlock(packageKey, block, buffer) {
+      try {
+        const cacheBuffer =
+          buffer.byteOffset === 0 && buffer.byteLength === buffer.buffer.byteLength
+            ? buffer.buffer
+            : buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+        const record = {
+          id: gribBlockCacheKey(packageKey, block),
+          packageKey,
+          blockKey: block.key,
+          runId: block.runId,
+          url: block.url,
+          filesize: block.filesize ?? null,
+          savedAt: new Date().toISOString(),
+          buffer: cacheBuffer,
+        };
+        return storage.put(record);
+      } catch (error) {
+        console.warn("IndexedDB cache write failed:", error);
+        return false;
+      }
+    },
+
+    async deleteObsoleteCachedGribBlocks(packageKey, block) {
+      try {
+        await storage.deleteObsolete(packageKey, block.key, gribBlockCacheKey(packageKey, block));
+      } catch (error) {
+        console.warn("IndexedDB obsolete cache cleanup failed:", error);
+      }
+    },
+
+    async clearGribCache() {
+      try {
+        await storage.clear();
+      } catch (error) {
+        console.warn("IndexedDB cache clear failed:", error);
+      }
+    },
+  };
+}
+
+const defaultGribCacheService = createGribCacheService();
+
+export async function readCachedGribBlock(packageKey, block) {
+  return defaultGribCacheService.readCachedGribBlock(packageKey, block);
 }
 
 export async function readLatestCachedGribBlock(packageKey, block) {
-  try {
-    const currentId = gribBlockCacheKey(packageKey, block);
-    const latest = await findCachedGribBlock(
-      packageKey,
-      block,
-      (record) => record.id !== currentId && isOlderCachedGribBlock(record, block),
-    );
-    const buffer = cachedGribBlockBuffer(latest);
-    return buffer ? { ...latest, buffer } : null;
-  } catch (error) {
-    console.warn("IndexedDB stale cache read failed:", error);
-    return null;
-  }
+  return defaultGribCacheService.readLatestCachedGribBlock(packageKey, block);
 }
 
 export async function writeCachedGribBlock(packageKey, block, buffer) {
-  try {
-    const db = await openGribCacheDb();
-    if (!db) return false;
-    const cacheBuffer =
-      buffer.byteOffset === 0 && buffer.byteLength === buffer.buffer.byteLength
-        ? buffer.buffer
-        : buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
-    const transaction = db.transaction(GRIB_BLOCK_STORE, "readwrite");
-    const record = {
-      id: gribBlockCacheKey(packageKey, block),
-      packageKey,
-      blockKey: block.key,
-      runId: block.runId,
-      url: block.url,
-      filesize: block.filesize ?? null,
-      savedAt: new Date().toISOString(),
-      buffer: cacheBuffer,
-    };
-    transaction.objectStore(GRIB_BLOCK_STORE).put(record);
-    await idbTransactionDone(transaction);
-    return true;
-  } catch (error) {
-    console.warn("IndexedDB cache write failed:", error);
-    return false;
-  }
+  return defaultGribCacheService.writeCachedGribBlock(packageKey, block, buffer);
 }
 
 export async function deleteObsoleteCachedGribBlocks(packageKey, block) {
-  try {
-    const db = await openGribCacheDb();
-    if (!db) return;
-    const currentId = gribBlockCacheKey(packageKey, block);
-    const transaction = db.transaction(GRIB_BLOCK_STORE, "readwrite");
-    const index = transaction.objectStore(GRIB_BLOCK_STORE).index("byPackageBlock");
-    const range = IDBKeyRange.only([packageKey, block.key]);
-    await new Promise((resolve, reject) => {
-      const request = index.openCursor(range);
-      request.onsuccess = () => {
-        const cursor = request.result;
-        if (!cursor) {
-          resolve();
-          return;
-        }
-        if (cursor.value.id !== currentId) cursor.delete();
-        cursor.continue();
-      };
-      request.onerror = () => reject(request.error);
-    });
-    await idbTransactionDone(transaction);
-  } catch (error) {
-    console.warn("IndexedDB obsolete cache cleanup failed:", error);
-  }
+  return defaultGribCacheService.deleteObsoleteCachedGribBlocks(packageKey, block);
 }
 
 export async function clearGribCache() {
-  try {
-    const db = await openGribCacheDb();
-    if (!db) return;
-    const transaction = db.transaction(GRIB_BLOCK_STORE, "readwrite");
-    transaction.objectStore(GRIB_BLOCK_STORE).clear();
-    await idbTransactionDone(transaction);
-  } catch (error) {
-    console.warn("IndexedDB cache clear failed:", error);
-  }
+  return defaultGribCacheService.clearGribCache();
 }
