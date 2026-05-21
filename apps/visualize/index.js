@@ -49,6 +49,7 @@ import {
 	readLatestCachedGribBlock,
 	writeCachedGribBlock,
 } from "./src/services/grib-cache-service.js";
+import { createForecastBlockRefreshService } from "./src/services/forecast-block-refresh-service.js";
 import { createMapRendererService } from "./src/services/map-renderer-service.js";
 import { createModelBlockService } from "./src/services/model-block-service.js";
 import { renderModelList } from "./src/ui/model-list-view.js";
@@ -70,11 +71,6 @@ const BLOCK_STATUS_LABELS = Object.freeze({
 });
 const BLOCK_STATUS_CLASSES = [...Object.values(BLOCK_STATUS), "done", "cached"];
 const VARIABLE_GROUP_ORDER = ["Weather maps", "Component fields"];
-const CACHE_LOAD_RESULT = Object.freeze({
-	CURRENT: "current",
-	STALE: "stale",
-	MISSING: "missing",
-});
 const DECODED_CACHE_SIZE = 2;
 const RASTER_OPACITY = 0.8;
 const dom = {
@@ -1595,61 +1591,6 @@ function renderDownloadItems(resources) {
 	}
 }
 
-async function loadCachedModelBlock(
-	packageKey,
-	block,
-	downloadKey,
-	onAvailable,
-) {
-	const cachedBuffer = await readCachedGribBlock(packageKey, block);
-	if (!isModelResourceRefreshActive(downloadKey)) return;
-	if (cachedBuffer) {
-		await onAvailable(block, cachedBuffer, BLOCK_STATUS.LOADED_FROM_CACHE);
-		return { status: CACHE_LOAD_RESULT.CURRENT, block };
-	}
-
-	const staleCachedBlock = await readLatestCachedGribBlock(packageKey, block);
-	if (!isModelResourceRefreshActive(downloadKey)) return;
-	if (staleCachedBlock) {
-		await onAvailable(
-			block,
-			staleCachedBlock.buffer,
-			BLOCK_STATUS.LOADED_FROM_CACHE,
-		);
-		return { status: CACHE_LOAD_RESULT.STALE, block };
-	}
-
-	return { status: CACHE_LOAD_RESULT.MISSING, block };
-}
-
-async function refreshModelBlockFromNetwork(
-	packageKey,
-	block,
-	downloadKey,
-	onAvailable,
-) {
-	if (!isModelResourceRefreshActive(downloadKey)) return;
-	setBlockStatus(block, BLOCK_STATUS.DOWNLOADING);
-	resetBlockDownloadProgress(block);
-	const buffer = await downloadFileProg(
-		block.url,
-		block.filesize,
-		(loaded, total) => {
-			if (!isModelResourceRefreshActive(downloadKey)) return;
-			setBlockDownloadProgress(block, Math.round((loaded / total) * 100) + "%");
-		},
-	);
-	const cacheWriteSucceeded = await writeCachedGribBlock(
-		packageKey,
-		block,
-		buffer,
-	);
-	if (!isModelResourceRefreshActive(downloadKey)) return;
-	await onAvailable(block, buffer, BLOCK_STATUS.READY);
-	if (cacheWriteSucceeded)
-		await deleteObsoleteCachedGribBlocks(packageKey, block);
-}
-
 function createModelDownloadSession({
 	packageKey,
 	pkg,
@@ -1679,10 +1620,6 @@ function applyModelResources(resources) {
 	const slider = dom.forecastSlider;
 	slider.max = modelState.hourList.length - 1;
 	if (Number(slider.value) > Number(slider.max)) slider.value = slider.max;
-}
-
-function resourcesByBlockKey(resources) {
-	return new Map(resources.map((block) => [block.key, block]));
 }
 
 function isModelBlockInMemoryCurrent(block, previousBlock) {
@@ -1827,101 +1764,25 @@ function waitForPresentationIdle(session) {
 	});
 }
 
-async function refreshModelBlocksToLatest(
-	session,
-	{ previousResources = [] } = {},
-) {
-	const previousBlocks = resourcesByBlockKey(previousResources);
-	const cacheResults = await runWithConcurrency(
-		session.resources,
-		MAX_PARALLEL_DOWNLOADS,
-		async (block) => {
-			if (!isModelResourceRefreshActive(session.downloadKey)) return null;
-			const previousBlock = previousBlocks.get(block.key);
-			if (isModelBlockInMemoryCurrent(block, previousBlock)) {
-				markInMemoryModelBlockAvailable(
-					block,
-					BLOCK_STATUS.LOADED_FROM_CACHE,
-					session,
-				);
-				return { status: CACHE_LOAD_RESULT.CURRENT, block };
-			}
-			if (isModelBlockInMemoryStale(block, previousBlock)) {
-				markInMemoryModelBlockAvailable(
-					block,
-					BLOCK_STATUS.LOADED_FROM_CACHE,
-					session,
-				);
-				return { status: CACHE_LOAD_RESULT.STALE, block };
-			}
-			return loadCachedModelBlock(
-				session.packageKey,
-				block,
-				session.downloadKey,
-				async (block, buffer, status) => {
-					await enqueueAvailableModelBlockPresentation(
-						block,
-						buffer,
-						status,
-						session,
-					);
-				},
-			);
-		},
-	);
-	const missingBlocks = cacheResults
-		.filter((result) => result?.status === CACHE_LOAD_RESULT.MISSING)
-		.map((result) => result.block);
-	const blocksNeedingRefresh = cacheResults
-		.filter((result) => result?.status === CACHE_LOAD_RESULT.STALE)
-		.map((result) => result.block);
-
-	if (!isModelResourceRefreshActive(session.downloadKey)) return false;
-	await runWithConcurrency(
-		missingBlocks,
-		MAX_PARALLEL_DOWNLOADS,
-		async (block) => {
-			await refreshModelBlockFromNetwork(
-				session.packageKey,
-				block,
-				session.downloadKey,
-				async (block, buffer, status) => {
-					await enqueueAvailableModelBlockPresentation(
-						block,
-						buffer,
-						status,
-						session,
-					);
-				},
-			);
-		},
-	);
-	if (!isModelResourceRefreshActive(session.downloadKey)) return false;
-	await waitForPresentationIdle(session);
-	if (!isModelResourceRefreshActive(session.downloadKey)) return false;
-
-	await runWithConcurrency(
-		blocksNeedingRefresh,
-		MAX_PARALLEL_DOWNLOADS,
-		async (block) => {
-			await refreshModelBlockFromNetwork(
-				session.packageKey,
-				block,
-				session.downloadKey,
-				async (block, buffer, status) => {
-					await enqueueAvailableModelBlockPresentation(
-						block,
-						buffer,
-						status,
-						session,
-					);
-				},
-			);
-		},
-	);
-	await waitForPresentationIdle(session);
-	return isModelResourceRefreshActive(session.downloadKey);
-}
+const forecastBlockRefreshService = createForecastBlockRefreshService({
+	statuses: BLOCK_STATUS,
+	maxParallelDownloads: MAX_PARALLEL_DOWNLOADS,
+	runWithConcurrency,
+	isRefreshActive: isModelResourceRefreshActive,
+	isBlockInMemoryCurrent: isModelBlockInMemoryCurrent,
+	isBlockInMemoryStale: isModelBlockInMemoryStale,
+	markInMemoryBlockAvailable: markInMemoryModelBlockAvailable,
+	readCachedBlock: readCachedGribBlock,
+	readLatestCachedBlock: readLatestCachedGribBlock,
+	setBlockStatus,
+	resetBlockDownloadProgress,
+	setBlockDownloadProgress,
+	downloadFile: downloadFileProg,
+	writeCachedBlock: writeCachedGribBlock,
+	deleteObsoleteCachedBlocks: deleteObsoleteCachedGribBlocks,
+	enqueueAvailableBlock: enqueueAvailableModelBlockPresentation,
+	waitForPresentationIdle,
+});
 
 async function enqueueAvailableModelBlockPresentation(
 	block,
@@ -1994,7 +1855,7 @@ async function startDownload(packageKey) {
 	});
 	updateWarmupProgress();
 
-	const latestReady = await refreshModelBlocksToLatest(session);
+	const latestReady = await forecastBlockRefreshService.refreshBlocksToLatest(session);
 	if (!latestReady) return;
 
 	await buildAnimationCacheAfterNetworkSettles(session);
@@ -2164,7 +2025,7 @@ async function refreshCurrentModelResourcesToLatest(downloadKey) {
 		runSummary,
 		downloadKey,
 	});
-	const latestReady = await refreshModelBlocksToLatest(session, {
+	const latestReady = await forecastBlockRefreshService.refreshBlocksToLatest(session, {
 		previousResources,
 	});
 	return latestReady ? session : null;
