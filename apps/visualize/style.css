@@ -140,6 +140,27 @@ main {
  SHARED COMPONENTS AND CONTROLS
 ══════════════════════════════════════════════════════ */
 
+.surface {
+	background: var(--color-bg-darkest);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+}
+
+.icon-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: var(--size-icon-button);
+	height: var(--size-icon-button);
+	padding: 0;
+	border-radius: var(--radius-round);
+}
+
+.icon-button svg {
+	width: var(--size-icon-md);
+	height: var(--size-icon-md);
+}
+
 header {
 	display: flex;
 	align-items: center;
@@ -164,13 +185,7 @@ header {
 }
 
 .github-link {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: var(--size-icon-button);
-	height: var(--size-icon-button);
 	border: 1px solid var(--color-border);
-	border-radius: var(--radius-round);
 	color: var(--color-text-2);
 	transition:
 		color var(--transition-fast),
@@ -182,11 +197,6 @@ header {
 		color: var(--color-text);
 		background: var(--color-bg-hover);
 		border-color: var(--color-border-2);
-	}
-
-	& svg {
-		width: var(--size-icon-md);
-		height: var(--size-icon-md);
 	}
 }
 
@@ -353,14 +363,6 @@ header {
 }
 #status.error {
 	color: var(--color-error);
-}
-
-/* ── Shared: surface panels ── */
-.card,
-#file-summary {
-	background: var(--color-bg-darkest);
-	border: 1px solid var(--color-border);
-	border-radius: var(--radius);
 }
 
 /* ── File summary ── */
@@ -1089,17 +1091,10 @@ header {
 #player-reset,
 #player-play {
 	flex-shrink: 0;
-	width: var(--size-icon-button);
-	height: var(--size-icon-button);
-	border-radius: var(--radius-round);
 	border: 1px solid var(--color-border-2);
 	background: var(--color-bg-darkest);
 	color: var(--color-text);
 	cursor: pointer;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 0;
 	transition: background var(--transition-fast);
 }
 #player-reset:hover,

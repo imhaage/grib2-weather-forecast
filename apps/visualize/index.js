@@ -573,7 +573,7 @@ function buildCard(msg) {
 <span class="val">${val}</span>
     </div>`;
 	return `
-    <div class="card">
+    <div class="card surface">
 <div class="card-header">
   <span class="badge">${p.shortName}</span>
   <div><div class="card-title">${p.name}</div></div>
