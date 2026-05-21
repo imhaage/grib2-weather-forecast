@@ -426,7 +426,7 @@ header {
 	}
 
 	& .meta-value {
-		font-size: var(--font-md);
+		font-size: var(--font-sm);
 		font-weight: 600;
 	}
 }
@@ -562,8 +562,8 @@ header {
 }
 
 .model-meta {
-	display: flex;
-	flex-wrap: wrap;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
 	gap: var(--space-sm);
 	padding-bottom: var(--space-md);
 	border-bottom: var(--border-default);
@@ -587,7 +587,7 @@ header {
 	}
 
 	& .meta-value {
-		font-size: var(--font-md);
+		font-size: var(--font-sm);
 		color: var(--color-text);
 	}
 }
