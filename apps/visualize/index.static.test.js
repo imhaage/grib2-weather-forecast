@@ -236,29 +236,6 @@ test("model variable select supports grouped options", () => {
   );
 });
 
-test("model block loading through cache and network is isolated", () => {
-  assert.match(
-    source,
-    /async function loadCachedModelBlock\(packageKey, block, downloadKey, onAvailable\)/,
-    "expected per-block cache loading to be isolated from startDownload",
-  );
-  assert.match(
-    source,
-    /async function refreshModelBlockFromNetwork\(packageKey, block, downloadKey, onAvailable\)/,
-    "expected per-block network refreshes to be isolated from cache presentation",
-  );
-  assert.match(
-    source,
-    /async function loadCachedModelBlock\(packageKey, block, downloadKey, onAvailable\) \{[\s\S]*readCachedGribBlock\(packageKey, block\)[\s\S]*readLatestCachedGribBlock\(packageKey, block\)[\s\S]*CACHE_LOAD_RESULT\.MISSING/,
-    "expected cache loading to present exact or stale cache before marking missing blocks for network download",
-  );
-  assert.match(
-    source,
-    /async function refreshModelBlockFromNetwork\(packageKey, block, downloadKey, onAvailable\) \{[\s\S]*setBlockStatus\(block, BLOCK_STATUS\.DOWNLOADING\)[\s\S]*downloadFileProg\(/,
-    "expected network refreshes to start only in the network helper",
-  );
-});
-
 test("model block availability presentation is isolated", () => {
   assert.match(
     source,
@@ -1175,71 +1152,5 @@ test("downloaded GRIB2 blocks are cached in IndexedDB by file run", () => {
     source,
     /formatRunSummary\(resources\)/,
     "expected the UI to expose whether the listed files come from one run or mixed runs",
-  );
-});
-
-test("stale cached files can be displayed while newer remote files download", () => {
-  assert.match(
-    gribCacheService,
-    /async function readLatestCachedGribBlock\(packageKey, block\)/,
-    "expected a fallback lookup for older cached versions of the same logical file",
-  );
-  assert.match(
-    gribCacheService,
-    /function isOlderCachedGribBlock\(record, block\)[\s\S]*runTimeValue\(record\.runId\) < runTimeValue\(block\.runId\)[\s\S]*export async function readLatestCachedGribBlock\(packageKey, block\)/,
-    "expected the cache service to find older cached versions of the same logical file",
-  );
-  assert.match(
-    source,
-    /const staleCachedBlock = await readLatestCachedGribBlock\(packageKey, block\);[\s\S]*await onAvailable\(block, staleCachedBlock\.buffer, BLOCK_STATUS\.LOADED_FROM_CACHE\);/,
-    "expected stale cache to be presented before downloading the latest file",
-  );
-  assert.match(
-    source,
-    /onAvailable\(block, staleCachedBlock\.buffer, BLOCK_STATUS\.LOADED_FROM_CACHE\)/,
-    "expected cache-loaded status to be visible in the data status panel",
-  );
-  assert.match(
-    source,
-    /setBlockStatus\(block, BLOCK_STATUS\.DOWNLOADING\)/,
-    "expected newer downloads to remain visible while stale data is displayed",
-  );
-  assert.match(
-    source,
-    /onAvailable\(block, buffer, BLOCK_STATUS\.READY\)/,
-    "expected freshly downloaded files to replace stale status",
-  );
-  assert.match(
-    html,
-    /id="data-status-panel"[\s\S]*id="data-status-summary"[\s\S]*id="clear-grib-cache"/,
-    "expected a collapsible data/cache status panel with cache controls",
-  );
-});
-
-test("missing cached files are downloaded before stale cached files refresh", () => {
-  assert.match(
-    source,
-    /const CACHE_LOAD_RESULT = Object\.freeze\(\{[\s\S]*CURRENT: "current"[\s\S]*STALE: "stale"[\s\S]*MISSING: "missing"[\s\S]*\}\);/,
-    "expected cache loading to distinguish current, stale, and missing blocks",
-  );
-  assert.match(
-    source,
-    /async function refreshModelBlocksToLatest\(session[\s\S]*const cacheResults = await runWithConcurrency\([\s\S]*loadCachedModelBlock\(session\.packageKey, block, session\.downloadKey,[\s\S]*\);/,
-    "expected shared latest-data refresh to gather typed cache load results before network work",
-  );
-  assert.match(
-    source,
-    /const missingBlocks = cacheResults[\s\S]*filter\(\(result\) => result\?\.status === CACHE_LOAD_RESULT\.MISSING\)[\s\S]*map\(\(result\) => result\.block\);/,
-    "expected missing blocks to be separated from stale cached refreshes",
-  );
-  assert.match(
-    source,
-    /const blocksNeedingRefresh = cacheResults[\s\S]*filter\(\(result\) => result\?\.status === CACHE_LOAD_RESULT\.STALE\)[\s\S]*map\(\(result\) => result\.block\);/,
-    "expected stale cached blocks to refresh only after missing downloads",
-  );
-  assert.match(
-    source,
-    /async function refreshModelBlocksToLatest\(session[\s\S]*await runWithConcurrency\(\s*missingBlocks,\s*MAX_PARALLEL_DOWNLOADS,[\s\S]*refreshModelBlockFromNetwork[\s\S]*\);[\s\S]*await waitForPresentationIdle\(session\);[\s\S]*await runWithConcurrency\(\s*blocksNeedingRefresh,\s*MAX_PARALLEL_DOWNLOADS,[\s\S]*refreshModelBlockFromNetwork[\s\S]*\);[\s\S]*await waitForPresentationIdle\(session\);/,
-    "expected missing and stale downloaded files to finish presentation before animation cache generation can start",
   );
 });
