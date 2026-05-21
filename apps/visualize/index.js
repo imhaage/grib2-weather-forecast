@@ -700,11 +700,11 @@ function renderColorScaleTicks({ min, max, units, isLog }) {
 // Populate and show the color scale legend bar.
 function showColorScale(min, max, units, { isLog = false } = {}) {
 	renderColorScaleTicks({ min, max, units, isLog });
-	document.getElementById("colorscale").style.display = "flex";
+	document.getElementById("colorscale").hidden = false;
 }
 
 function hideColorScale() {
-	document.getElementById("colorscale").style.display = "none";
+	document.getElementById("colorscale").hidden = true;
 }
 
 function updateLevelInfo(varDef) {

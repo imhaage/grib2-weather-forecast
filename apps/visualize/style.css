@@ -833,7 +833,7 @@ header {
 
 /* ── Color scale ── */
 #colorscale {
-	display: none;
+	display: flex;
 	align-items: center;
 	gap: var(--space-sm);
 	margin-top: var(--space-sm);

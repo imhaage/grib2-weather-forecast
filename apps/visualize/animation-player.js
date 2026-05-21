@@ -17,8 +17,8 @@ export function createAnimationPlayer({
   }
 
   function setPlaying(playing) {
-    iconPlay.style.display = playing ? "none" : "";
-    iconPause.style.display = playing ? "" : "none";
+    iconPlay.hidden = playing;
+    iconPause.hidden = !playing;
     syncPlayButtonAvailability();
   }
 
