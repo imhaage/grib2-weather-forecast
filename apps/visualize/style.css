@@ -541,7 +541,7 @@ header {
 }
 
 .model-section-header {
-	padding: var(--space-md);
+	padding: var(--space-sm) var(--space-md);
 	background: var(--color-bg-darkest);
 	border-top-left-radius: var(--radius);
 	border-top-right-radius: var(--radius);
@@ -557,7 +557,7 @@ header {
 	& .model-section-desc {
 		margin: 0;
 		color: var(--color-text-2);
-		font-size: var(--font-md);
+		font-size: var(--font-sm);
 	}
 }
 
