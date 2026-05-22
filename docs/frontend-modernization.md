@@ -36,7 +36,7 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 - [x] Keep app behavior identical.
 - [x] Update npm scripts.
 - [x] Update Netlify/build output config.
-- [x] Verify local dev, build, static tests, and decoder tests.
+- [x] Verify local dev, build, Vitest suites, and decoder tests.
 
 ## Phase 2 — Source Layout Without Behavior Change
 
@@ -53,7 +53,7 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 - [x] Extract variable metadata and type boundaries.
 - [x] Extract palette and scale helpers.
 - [x] Add Vitest for new pure modules.
-- [x] Keep regex tests until equivalent unit tests exist.
+- [x] Replace regex tests when equivalent unit, service, or DOM tests exist.
 
 ## Phase 4 — Headless Services
 
@@ -63,6 +63,14 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 - [x] Extract worker client helpers.
 - [x] Extract map renderer lifecycle service.
 - [ ] Keep UI vanilla as an adapter only.
+
+## Current Test Strategy
+
+- `npm test -w visualize` runs all maintainable Vitest suites under `apps/visualize/src`.
+- `npm run test:domain -w visualize` covers pure domain logic: model metadata, resources, palettes, units, and isobars.
+- `npm run test:services -w visualize` covers injected services such as GRIB cache storage and forecast block refresh sequencing.
+- `npm run test:ui -w visualize` covers DOM adapters and small UI contracts with jsdom.
+- `index.static.test.js` has been removed. New tests should exercise exported modules or rendered DOM, not implementation regexes over `index.js`.
 
 ## Phase 5 — Minimal Store
 
@@ -75,7 +83,7 @@ The store must not own `ImageBitmap`, GRIB buffers, worker instances, MapLibre i
 ## Phase 6 — Cleanup And Stabilization
 
 - [ ] Reduce `index.ts` to bootstrap and orchestration.
-- [ ] Remove obsolete static regex tests when covered by Vitest.
+- [x] Remove obsolete static regex tests when covered by Vitest.
 - [ ] Update `docs/frontend.md`.
 - [ ] Update `docs/mobile-performance.md` if architecture changes performance assumptions.
 - [ ] Run full verification.

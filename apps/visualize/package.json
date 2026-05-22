@@ -15,7 +15,9 @@
     "format": "biome format --write src",
     "preview": "vite preview --host 0.0.0.0",
     "serve": "npm run build && npm run preview",
+    "test": "vitest run src",
     "test:domain": "vitest run src/domain",
+    "test:services": "vitest run src/services",
     "test:ui": "vitest run src/ui",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
