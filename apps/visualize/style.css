@@ -782,12 +782,12 @@ header {
 	align-items: center;
 	gap: var(--space-sm);
 	width: 100%;
-	margin-bottom: var(--space-sm);
-	padding-top: var(--space-md);
+	padding-top: var(--space-sm);
 	border-top: var(--border-strong);
 }
 #gv-meta-param {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: baseline;
 	gap: var(--space-sm);
 }
@@ -799,6 +799,7 @@ header {
 	display: inline-block;
 	padding: var(--space-xs) var(--space-sm);
 	font-size: var(--font-sm);
+	white-space: nowrap;
 	color: var(--color-text-1);
 	background: var(--color-bg-0);
 	border: var(--border-strong);
@@ -841,12 +842,6 @@ header {
 #map-scene.rendering #gv-meta,
 #map-scene.rendering #forecast-slider-wrap {
 	visibility: hidden;
-}
-
-#forecast-var-wrap {
-	display: flex;
-	align-items: center;
-	gap: var(--space-md);
 }
 
 #var-spinner {
@@ -1002,17 +997,23 @@ header {
 	}
 }
 #palette-ctrl,
-.palette-ctrl-shared {
+.toolbar-ctrl {
 	display: flex;
-	align-items: center;
-	gap: var(--space-sm);
 	font-size: var(--font-sm);
 	color: var(--color-text-2);
 }
 
 /* ── Palette selector ── */
 #palette-ctrl {
+	align-items: center;
+	gap: var(--space-sm);
 	margin-left: auto;
+}
+
+.toolbar-ctrl {
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--space-xs);
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1031,6 +1032,12 @@ header {
 	&[open] #data-status-chevron {
 		transform: rotate(180deg);
 	}
+}
+
+#data-status-summary {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: var(--space-sm) var(--space-md);
 }
 
 .data-status-count.ready {
@@ -1129,17 +1136,17 @@ header {
 #forecast-player-toolbar {
 	display: flex;
 	align-items: center;
-	gap: var(--space-md);
+	gap: var(--space-sm);
 	flex-wrap: wrap;
-	padding: var(--space-md) 0;
+	padding: var(--space-sm) 0;
 	border-top: var(--border-light);
 
 	& #forecast-var-row {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		justify-content: start;
 		flex-wrap: wrap;
-		gap: var(--space-md);
+		gap: var(--space-sm);
 		width: 100%;
 	}
 
@@ -1240,12 +1247,17 @@ header {
 }
 
 #forecast-valid-time {
-	width: 100%;
-	font-size: var(--font-lg);
-	font-weight: 600;
+	position: absolute;
+	top: var(--space-sm);
+	left: var(--space-sm);
+	z-index: var(--z-map-overlay);
+	padding: var(--space-xs);
+	font-size: var(--font-sm);
+	background: var(--color-bg-300);
 	color: var(--color-text);
 	white-space: nowrap;
 	font-variant-numeric: tabular-nums;
+	pointer-events: none;
 }
 
 /* ══════════════════════════════════════════════════════

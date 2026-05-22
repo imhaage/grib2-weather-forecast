@@ -16,9 +16,9 @@ export const BLOCK_STATUS_CLASSES = [...Object.values(BLOCK_STATUS), "done", "ca
 
 const DATA_STATUS_SUMMARY_ORDER = [
   BLOCK_STATUS.LOADED_FROM_CACHE,
+  BLOCK_STATUS.MISSING,
   BLOCK_STATUS.READY,
   BLOCK_STATUS.DOWNLOADING,
-  BLOCK_STATUS.MISSING,
 ];
 
 export function countBlockStatuses(blocks) {
@@ -33,10 +33,10 @@ export function countBlockStatuses(blocks) {
 
 export function createDataStatusSummaryNodes(document, blocks) {
   const counts = countBlockStatuses(blocks);
-  return DATA_STATUS_SUMMARY_ORDER.flatMap((status, index) => {
+  return DATA_STATUS_SUMMARY_ORDER.map((status) => {
     const item = document.createElement("span");
     item.className = `data-status-count ${status}`;
     item.textContent = `${counts[status]} ${BLOCK_STATUS_LABELS[status]}`;
-    return index === 0 ? [item] : [document.createTextNode(" · "), item];
+    return item;
   });
 }

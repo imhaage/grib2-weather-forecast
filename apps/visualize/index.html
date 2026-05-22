@@ -313,7 +313,8 @@
 						<!-- Forecast player toolbar (shown instead of #grid-toolbar in forecast mode) -->
 						<div id="forecast-player-toolbar" hidden>
 							<div id="forecast-var-row">
-								<div id="forecast-var-wrap">
+								<div id="forecast-var-wrap" class="toolbar-ctrl">
+									<label for="forecast-var-select">Parameter</label>
 									<select
 										id="forecast-var-select"
 										class="toolbar-select"
@@ -322,7 +323,7 @@
 
 								<span id="var-spinner"></span>
 
-								<div id="palette-ctrl-forecast" class="palette-ctrl-shared">
+								<div id="palette-ctrl-forecast" class="toolbar-ctrl">
 									<label for="palette-select-forecast">Color scale</label>
 									<select
 										id="palette-select-forecast"
@@ -343,7 +344,6 @@
 							</div>
 
 							<div id="forecast-slider-wrap">
-								<span id="forecast-valid-time"></span>
 								<span id="forecast-hour-label">+01H</span>
 
 								<input
@@ -415,6 +415,7 @@
 
 						<div id="map-wrap">
 							<div id="map"></div>
+							<span id="forecast-valid-time"></span>
 							<div id="map-unavailable" class="map-overlay" hidden>
 								Data not available yet
 							</div>

@@ -8,7 +8,7 @@ import {
 } from "./data-status-summary.js";
 
 describe("data status summary", () => {
-  test("renders cache, network, updating, and missing counts in display order", () => {
+  test("renders cache, missing, network, updating counts in display order", () => {
     const nodes = createDataStatusSummaryNodes(document, [
       { status: BLOCK_STATUS.READY },
       { status: BLOCK_STATUS.LOADED_FROM_CACHE },
@@ -23,15 +23,15 @@ describe("data status summary", () => {
 
     expect(items.map((node) => node.textContent)).toEqual([
       "1 loaded from cache",
+      "1 missing",
       "1 loaded from network",
       "1 updating",
-      "1 missing",
     ]);
     expect(items.map((node) => node.classList.item(1))).toEqual([
       BLOCK_STATUS.LOADED_FROM_CACHE,
+      BLOCK_STATUS.MISSING,
       BLOCK_STATUS.READY,
       BLOCK_STATUS.DOWNLOADING,
-      BLOCK_STATUS.MISSING,
     ]);
   });
 

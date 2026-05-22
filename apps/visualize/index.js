@@ -11,6 +11,7 @@ import {
 	MISSING_VALUE,
 } from "grib2-decoder";
 import { createAnimationPlayer } from "./animation-player.js";
+import { generateIsobars, supportsIsobars } from "./src/domain/isobars.js";
 import {
 	findPackageVariable,
 	MODEL_INFO,
@@ -19,10 +20,9 @@ import {
 import {
 	buildLUT,
 	gradientStopsFor,
-	legendTicksFor,
 	LOG_SCALE_FLOOR,
+	legendTicksFor,
 } from "./src/domain/palettes.js";
-import { generateIsobars, supportsIsobars } from "./src/domain/isobars.js";
 import {
 	extractRunId,
 	formatRunId,
@@ -42,6 +42,7 @@ import {
 	variableKeyFor,
 } from "./src/domain/variable-metadata.js";
 import { createAnimationCacheService } from "./src/services/animation-cache-service.js";
+import { createForecastBlockRefreshService } from "./src/services/forecast-block-refresh-service.js";
 import {
 	clearGribCache,
 	deleteObsoleteCachedGribBlocks,
@@ -49,18 +50,17 @@ import {
 	readLatestCachedGribBlock,
 	writeCachedGribBlock,
 } from "./src/services/grib-cache-service.js";
-import { createForecastBlockRefreshService } from "./src/services/forecast-block-refresh-service.js";
 import { createMapRendererService } from "./src/services/map-renderer-service.js";
 import { createModelBlockService } from "./src/services/model-block-service.js";
-import {
-	createForecastPackageHash,
-	parseForecastRoute,
-} from "./src/ui/forecast-route.js";
 import {
 	BLOCK_STATUS,
 	BLOCK_STATUS_CLASSES,
 	createDataStatusSummaryNodes,
 } from "./src/ui/data-status-summary.js";
+import {
+	createForecastPackageHash,
+	parseForecastRoute,
+} from "./src/ui/forecast-route.js";
 import { setGridToolbarMode } from "./src/ui/grid-toolbar-controller.js";
 import { renderModelList } from "./src/ui/model-list-view.js";
 import { formatStorageEstimate } from "./src/ui/storage-warning.js";
@@ -633,7 +633,7 @@ function showUnavailableHour(hour) {
 	clearMapLayer();
 	clearStats();
 	document.getElementById("forecast-valid-time").textContent =
-		`Forecast time: ${fmtUnavailableValidTime(hour)}`;
+		formatForecastValidTimeLabel(fmtUnavailableValidTime(hour));
 	showMapUnavailable();
 }
 
@@ -697,11 +697,24 @@ function updateParamInfo(name, desc, sub) {
 }
 
 function formatModelPackageSubtitle(packageKey) {
+	const parts = getModelPackageLabelParts(packageKey);
+	if (!parts) return packageKey;
+	return `${parts.modelTitle} ${parts.packageName}`;
+}
+
+function getModelPackageLabelParts(packageKey) {
 	const pkg = PACKAGES[packageKey];
-	if (!pkg) return packageKey;
+	if (!pkg) return null;
 	const modelTitle = MODEL_INFO[pkg.model]?.title ?? pkg.model;
 	const packageName = packageKey.replace(`${pkg.model}_`, "");
-	return `${modelTitle} ${packageName}`;
+	return { modelTitle, packageName };
+}
+
+function formatForecastValidTimeLabel(timeLabel) {
+	if (!modelState) return timeLabel;
+	const parts = getModelPackageLabelParts(modelState.packageKey);
+	if (!parts) return `${modelState.packageKey} : ${timeLabel}`;
+	return `${parts.modelTitle} - ${parts.packageName} : ${timeLabel}`;
 }
 
 function updateStats(min, max, mean, count, units) {
@@ -803,9 +816,7 @@ function updateIsobarOverlay(entry, values) {
 		values,
 		missingValue: MISSING_VALUE,
 	});
-	mapRenderer.updateIsobars(
-		entry.isobars,
-	);
+	mapRenderer.updateIsobars(entry.isobars);
 }
 
 function updateStatsAndColorScale(entry) {
@@ -1227,7 +1238,7 @@ async function presentBitmapEntry(hour, entry, { values } = {}) {
 			? { ...product, forecastTime: hour, timeUnit: 1 }
 			: product;
 	document.getElementById("forecast-valid-time").textContent =
-		`Forecast time: ${fmtValidTime(header, validTimeProduct)}`;
+		formatForecastValidTimeLabel(fmtValidTime(header, validTimeProduct));
 }
 
 async function hydrateTooltipValues(
@@ -1499,7 +1510,9 @@ function appendGroupedVariableOptions(select, variables) {
 }
 
 function defaultVariableForPackage(pkg) {
-	return pkg.variables.find((v) => v.group === "Weather maps") ?? pkg.variables[0];
+	return (
+		pkg.variables.find((v) => v.group === "Weather maps") ?? pkg.variables[0]
+	);
 }
 
 function configureModelVariableControls(pkg) {
@@ -1807,7 +1820,8 @@ async function startDownload(packageKey) {
 	});
 	updateWarmupProgress();
 
-	const latestReady = await forecastBlockRefreshService.refreshBlocksToLatest(session);
+	const latestReady =
+		await forecastBlockRefreshService.refreshBlocksToLatest(session);
 	if (!latestReady) return;
 
 	await buildAnimationCacheAfterNetworkSettles(session);
@@ -1825,18 +1839,28 @@ function mountStorageWarning(viewId) {
 	const warning = document.getElementById("storage-warning");
 	const main = document.querySelector(`#${viewId} main`);
 	const container = main?.querySelector(":scope > .container");
-	if (!warning || !main || !container || warning.nextElementSibling === container)
+	if (
+		!warning ||
+		!main ||
+		!container ||
+		warning.nextElementSibling === container
+	)
 		return;
 	main.insertBefore(warning, container);
 }
 
 function showTab(name) {
 	for (const panel of ["model", "upload"]) {
-		document.getElementById(`tab-panel-${panel}`).classList.toggle("active", panel === name);
+		document
+			.getElementById(`tab-panel-${panel}`)
+			.classList.toggle("active", panel === name);
 	}
 	for (const btn of document.querySelectorAll(".tab-btn")) {
 		btn.classList.toggle("active", btn.dataset.tab === name);
-		btn.setAttribute("aria-selected", btn.dataset.tab === name ? "true" : "false");
+		btn.setAttribute(
+			"aria-selected",
+			btn.dataset.tab === name ? "true" : "false",
+		);
 	}
 	if (name === "model") resetUploadState();
 }
@@ -1949,7 +1973,11 @@ async function refreshCurrentModelVisuals({ clearDecoded = false } = {}) {
 	const myGen = renderGen;
 	await showHour(parseInt(dom.forecastSlider.value, 10));
 	const session = await refreshCurrentModelResourcesToLatest(downloadKey);
-	if (session && renderGen === myGen && isModelResourceRefreshActive(downloadKey))
+	if (
+		session &&
+		renderGen === myGen &&
+		isModelResourceRefreshActive(downloadKey)
+	)
 		await buildAnimationCacheAfterNetworkSettles(session);
 }
 
@@ -1982,9 +2010,12 @@ async function refreshCurrentModelResourcesToLatest(downloadKey) {
 		runSummary,
 		downloadKey,
 	});
-	const latestReady = await forecastBlockRefreshService.refreshBlocksToLatest(session, {
-		previousResources,
-	});
+	const latestReady = await forecastBlockRefreshService.refreshBlocksToLatest(
+		session,
+		{
+			previousResources,
+		},
+	);
 	return latestReady ? session : null;
 }
 
@@ -2066,7 +2097,8 @@ async function updateStorageWarningSize() {
 	}
 }
 storageWarningButton.addEventListener("click", () => {
-	const isExpanded = storageWarningButton.getAttribute("aria-expanded") === "true";
+	const isExpanded =
+		storageWarningButton.getAttribute("aria-expanded") === "true";
 	storageWarning.hidden = isExpanded;
 	storageWarningButton.setAttribute("aria-expanded", String(!isExpanded));
 	if (!isExpanded) updateStorageWarningSize();

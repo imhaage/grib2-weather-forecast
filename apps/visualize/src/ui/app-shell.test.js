@@ -45,4 +45,11 @@ describe("app shell markup", () => {
     expect(warning?.previousElementSibling?.classList.contains("tab-bar")).toBe(true);
     expect(warning?.nextElementSibling?.classList.contains("container")).toBe(true);
   });
+
+  test("places forecast valid time as a map overlay", () => {
+    const validTime = document.getElementById("forecast-valid-time");
+
+    expect(validTime?.parentElement?.id).toBe("map-wrap");
+    expect(document.querySelector("#forecast-slider-wrap #forecast-valid-time")).toBeNull();
+  });
 });
