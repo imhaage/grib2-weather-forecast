@@ -63,6 +63,7 @@ import {
 } from "./src/ui/data-status-summary.js";
 import { setGridToolbarMode } from "./src/ui/grid-toolbar-controller.js";
 import { renderModelList } from "./src/ui/model-list-view.js";
+import { renderUploadedMessageCard } from "./src/ui/upload-inspector-view.js";
 import { createDownloadWorker } from "./src/workers/download-worker-client.js";
 
 const byId = (id) => document.getElementById(id);
@@ -558,31 +559,14 @@ function mercatorCanvasHeight(grid) {
 
 // ── Card builder ──────────────────────────────────────────────────────────────
 
-function buildCard(msg) {
-	const { index, header, product: p, grid: g } = msg;
-	const row = (key, val) => `
-    <div class="card-row">
-<span class="key">${key}</span>
-<span class="val">${val}</span>
-    </div>`;
-	return `
-    <div class="card surface">
-<div class="card-header">
-  <span class="badge">${p.shortName}</span>
-  <div><div class="card-title">${p.name}</div></div>
-</div>
-<div class="card-rows">
-  ${row("Unit", p.units)}
-  ${row("Level", fmtLevel(p))}
-  ${row("Forecast time (UTC)", fmtValidTime(header, p))}
-  ${row("Process", code(GENERATING_PROCESS, p.typeOfGeneratingProcess))}
-  <hr class="card-divider">
-  ${row("Grid", fmtGrid(g))}
-  ${row("Resolution", `${g.di}° × ${g.dj}°`)}
-  ${row("Message #", index)}
-</div>
-<button class="btn-grid" data-var="${p.shortName}">View grid</button>
-    </div>`;
+function buildCard(message) {
+	return renderUploadedMessageCard(message, {
+		code,
+		formatGrid: fmtGrid,
+		formatLevel: fmtLevel,
+		formatValidTime: fmtValidTime,
+		generatingProcess: GENERATING_PROCESS,
+	});
 }
 
 // ── Home view: process uploaded file ─────────────────────────────────────────
