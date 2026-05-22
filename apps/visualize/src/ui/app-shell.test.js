@@ -41,5 +41,8 @@ describe("app shell markup", () => {
     expect(button?.getAttribute("aria-controls")).toBe("storage-warning");
     expect(button?.getAttribute("aria-expanded")).toBe("false");
     expect(warning?.hidden).toBe(true);
+    expect(warning?.closest("main")?.parentElement?.id).toBe("view-home");
+    expect(warning?.previousElementSibling?.classList.contains("tab-bar")).toBe(true);
+    expect(warning?.nextElementSibling?.classList.contains("container")).toBe(true);
   });
 });

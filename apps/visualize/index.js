@@ -1818,6 +1818,16 @@ async function startDownload(packageKey) {
 function showView(name) {
 	for (const id of ["view-home", "view-grid"])
 		document.getElementById(id).hidden = id !== name;
+	mountStorageWarning(name);
+}
+
+function mountStorageWarning(viewId) {
+	const warning = document.getElementById("storage-warning");
+	const main = document.querySelector(`#${viewId} main`);
+	const container = main?.querySelector(":scope > .container");
+	if (!warning || !main || !container || warning.nextElementSibling === container)
+		return;
+	main.insertBefore(warning, container);
 }
 
 function showTab(name) {

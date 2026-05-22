@@ -152,13 +152,34 @@ body {
 	background: var(--color-bg-0);
 }
 
-:where(button, summary, [role="button"], .icon-button, .tab-btn, .disclosure-summary):focus,
-:where(button, summary, [role="button"], .icon-button, .tab-btn, .disclosure-summary):focus-visible {
+:where(
+	button,
+	summary,
+	[role="button"],
+	.icon-button,
+	.tab-btn,
+	.disclosure-summary
+):focus,
+:where(
+	button,
+	summary,
+	[role="button"],
+	.icon-button,
+	.tab-btn,
+	.disclosure-summary
+):focus-visible {
 	outline: none;
 	box-shadow: none;
 }
 
-:where(button, summary, [role="button"], .icon-button, .tab-btn, .disclosure-summary) {
+:where(
+	button,
+	summary,
+	[role="button"],
+	.icon-button,
+	.tab-btn,
+	.disclosure-summary
+) {
 	-webkit-tap-highlight-color: transparent;
 }
 
@@ -189,28 +210,26 @@ body {
 	height: var(--size-icon-md);
 }
 
-.warning {
+#storage-warning {
 	display: flex;
-	flex-wrap: wrap;
 	align-items: center;
-	gap: var(--space-md);
-	margin-block: 0 var(--space-sm);
+	gap: var(--space-xl);
+	margin: var(--space-md) var(--space-md) 0;
 	padding: var(--space-xs) var(--space-sm);
 	font-size: var(--font-sm);
 	color: var(--color-warning);
 	background-color: var(--color-bg-100);
 	border: 1px solid var(--color-warning);
-}
 
-.warning-message {
-	display: flex;
-	flex: 1 1 auto;
-	align-items: center;
-	gap: var(--space-sm);
+	p {
+		margin: 0;
+	}
 }
 
 .warning-storage {
-	flex: 0 0 auto;
+	display: flex;
+	align-items: inherit;
+	gap: var(--space-sm);
 	white-space: nowrap;
 	color: var(--color-text-2);
 }
@@ -584,7 +603,7 @@ header {
 
 #model-list {
 	display: grid;
-	gap: var(--space-lg);
+	gap: var(--space-md);
 }
 
 /* ── Model sections ── */
@@ -762,6 +781,7 @@ header {
 	display: flex;
 	align-items: center;
 	gap: var(--space-sm);
+	width: 100%;
 	margin-bottom: var(--space-sm);
 	padding-top: var(--space-md);
 	border-top: var(--border-strong);
@@ -1218,6 +1238,7 @@ header {
 	min-width: var(--size-hour-label);
 	white-space: nowrap;
 }
+
 #forecast-valid-time {
 	width: 100%;
 	font-size: var(--font-lg);
