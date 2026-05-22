@@ -98,4 +98,63 @@ describe("forecast block refresh service", () => {
       block: missingBlock,
     });
   });
+
+  test("does not present a network result after the refresh becomes inactive", async () => {
+    let active = true;
+    const enqueueAvailableBlock = vi.fn();
+    const deleteObsoleteCachedBlocks = vi.fn();
+    const service = createService({
+      isRefreshActive: () => active,
+      downloadFile: vi.fn(async () => {
+        active = false;
+        return new Uint8Array([1]);
+      }),
+      enqueueAvailableBlock,
+      deleteObsoleteCachedBlocks,
+    });
+
+    await service.refreshBlockFromNetwork(
+      "AROME_SP1",
+      { key: "01H", url: "https://example.test/01H", filesize: 1 },
+      {},
+      enqueueAvailableBlock,
+    );
+
+    expect(enqueueAvailableBlock).not.toHaveBeenCalled();
+    expect(deleteObsoleteCachedBlocks).not.toHaveBeenCalled();
+  });
+
+  test("presents in-memory stale blocks before refreshing them from network", async () => {
+    const events = [];
+    const block = { key: "01H", url: "https://example.test/01H", filesize: 1 };
+    const previousBlock = { key: "01H", runId: "2026-05-22T00:00:00Z" };
+    const service = createService({
+      isBlockInMemoryStale: (_block, candidate) => candidate === previousBlock,
+      markInMemoryBlockAvailable: vi.fn((block, status) => {
+        events.push(`${status}:${block.key}`);
+      }),
+      downloadFile: vi.fn(async () => {
+        events.push("download");
+        return new Uint8Array([1]);
+      }),
+      enqueueAvailableBlock: vi.fn(async (block, _buffer, status) => {
+        events.push(`${status}:${block.key}`);
+      }),
+    });
+
+    await service.refreshBlocksToLatest(
+      {
+        packageKey: "AROME_SP1",
+        resources: [block],
+        downloadKey: {},
+      },
+      { previousResources: [previousBlock] },
+    );
+
+    expect(events).toEqual([
+      `${BLOCK_STATUS.LOADED_FROM_CACHE}:01H`,
+      "download",
+      `${BLOCK_STATUS.READY}:01H`,
+    ]);
+  });
 });
