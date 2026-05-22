@@ -145,7 +145,6 @@ body {
 
 .surface {
 	border: var(--border-default);
-	border-radius: var(--radius);
 	background: var(--color-bg-0);
 }
 
@@ -229,7 +228,6 @@ header {
 .toolbar-select {
 	padding: var(--space-sm);
 	border: var(--border-strong);
-	border-radius: var(--radius);
 	background: var(--color-bg-0);
 	color: var(--color-text);
 	font-size: var(--font-sm);
@@ -333,7 +331,6 @@ header {
 .tab-btn:focus-visible {
 	outline: 2px solid var(--color-logo);
 	outline-offset: 2px;
-	border-radius: var(--radius);
 }
 
 .tab-btn.active {
@@ -363,7 +360,7 @@ header {
 #drop-zone {
 	padding: var(--space-md) var(--space-xl);
 	border: 2px dashed var(--color-border-2);
-	border-radius: var(--radius);
+
 	background: var(--color-bg-0);
 	text-align: center;
 	cursor: pointer;
@@ -479,7 +476,6 @@ header {
 }
 .badge {
 	padding: var(--space-xs) var(--space-sm);
-	border-radius: var(--radius);
 	background: var(--color-text);
 	color: var(--color-bg-0);
 	font-family: var(--font-family-mono);
@@ -535,7 +531,6 @@ header {
 /* ── Model sections ── */
 .model-section {
 	border: var(--border-strong);
-	border-radius: var(--radius);
 
 	& .btn-primary {
 		padding: var(--space-sm) var(--space-lg);
@@ -546,8 +541,6 @@ header {
 .model-section-header {
 	padding: var(--space-sm) var(--space-md);
 	background: var(--color-bg-0);
-	border-top-left-radius: var(--radius);
-	border-top-right-radius: var(--radius);
 	border-bottom: var(--border-default);
 
 	& .model-section-title {
@@ -609,8 +602,6 @@ header {
 .model-section-data {
 	padding: var(--space-md);
 	background: var(--color-bg-100);
-	border-bottom-left-radius: var(--radius);
-	border-bottom-right-radius: var(--radius);
 
 	& .model-packages-label {
 		color: var(--color-text);
@@ -791,12 +782,10 @@ header {
 #map {
 	width: 100%;
 	height: var(--map-height);
-	border-radius: var(--radius);
 	overflow: hidden;
 }
 
 .map-overlay {
-	border-radius: var(--radius);
 	background: var(--color-overlay-bg);
 	color: var(--color-overlay-text);
 	pointer-events: none;
@@ -893,7 +882,6 @@ header {
 
 	& #cs-bar {
 		height: 10px;
-		border-radius: var(--radius);
 	}
 
 	& #cs-ticks {
@@ -945,7 +933,6 @@ header {
 #data-status-panel {
 	padding: var(--space-sm);
 	background: var(--color-bg-200);
-	border-radius: var(--radius);
 
 	& > summary {
 		color: var(--color-text);
@@ -1013,7 +1000,6 @@ header {
 	align-items: center;
 	justify-content: center;
 	padding: var(--space-xxs);
-	border-radius: var(--radius);
 	color: var(--color-text-2);
 	background: linear-gradient(
 		to right,
@@ -1038,7 +1024,6 @@ header {
 #clear-grib-cache {
 	margin-top: var(--space-sm);
 	padding: var(--space-xs) var(--space-sm);
-	border-radius: var(--radius);
 	color: var(--color-text-2);
 }
 
