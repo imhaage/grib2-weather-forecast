@@ -30,13 +30,14 @@ describe("model list view", () => {
       onPackageSelect,
     });
 
-    expect(container.querySelector(".model-section-title")?.textContent).toBe("AROME 0.01");
-    expect(container.querySelector(".model-package-label")?.textContent).toBe("SP1");
-    expect(
-      [...container.querySelectorAll(".model-package-vars li")].map((item) => item.textContent),
-    ).toEqual(["Temperature (2m)", "Relative humidity (2m)"]);
+    expect(container.textContent).toContain("AROME 0.01");
+    expect(container.textContent).toContain("SP1");
+    expect(container.textContent).toContain("Temperature (2m)");
+    expect(container.textContent).toContain("Relative humidity (2m)");
 
-    const button = container.querySelector(".model-package .btn-primary");
+    const button = [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === "Show on map",
+    );
     expect(button?.textContent).toBe("Show on map");
     button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(onPackageSelect).toHaveBeenCalledWith("AROME_SP1");

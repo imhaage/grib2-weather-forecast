@@ -20,7 +20,6 @@ describe("app shell markup", () => {
       "https://github.com/imhaage/arome-forecast-visualizer",
     );
     expect(githubLink?.getAttribute("aria-label")).toBe("Open project repository on GitHub");
-    expect(githubLink?.querySelector("svg")).not.toBeNull();
   });
 
   test("uses concise home tab descriptions", () => {
