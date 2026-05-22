@@ -23,10 +23,11 @@
 :root {
 	/* Primitive colors */
 	--gray-950: #0f1117;
-	--gray-900: #181c24;
-	--gray-850: #191b1f;
+	--gray-900: #191c22;
+	--gray-850: #1a1d22;
 	--gray-800: #23262d;
-	--gray-750: #343c4e;
+	--gray-750: #2d303a;
+	--gray-600: #474c5b;
 	--gray-500: #606878;
 	--gray-400: #9aa3b0;
 	--gray-100: #e4e7ed;
@@ -48,9 +49,10 @@
 	--color-bg-100: var(--gray-900);
 	--color-bg-200: var(--gray-850);
 	--color-bg-300: var(--gray-800);
+	--color-bg-500: var(--gray-750);
 	--color-bg-700: var(--gray-100);
 	--color-border: var(--gray-800);
-	--color-border-2: var(--gray-750);
+	--color-border-2: var(--gray-600);
 	--color-accent: var(--blue-300);
 	--color-accent-bg: var(--blue-950);
 	--color-error: var(--red-400);
@@ -594,7 +596,7 @@ header {
 	& .meta-value {
 		font-size: var(--font-sm);
 		color: var(--color-text);
-		background: var(--color-bg-300);
+		background: var(--color-bg-500);
 	}
 }
 
@@ -640,7 +642,7 @@ header {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space-xs);
-	background: var(--color-bg-300);
+	background: var(--color-bg-500);
 	border: var(--border-strong);
 
 	& .model-package-label {
