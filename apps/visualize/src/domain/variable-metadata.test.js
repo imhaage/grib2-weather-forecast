@@ -12,30 +12,42 @@ describe("variable metadata helpers", () => {
     expect(variableKeyFor({ shortName: "t" })).toBe("t");
   });
 
-  test("display metadata has safe fallbacks", () => {
+  test("returns default palettes for display-ready variable families", () => {
     expect(defaultPaletteFor("t")).toBe("Temperature");
     expect(defaultPaletteFor("p")).toBe("Plasma");
     expect(defaultPaletteFor("msl")).toBe("Plasma");
-    expect(defaultPaletteFor("unknown")).toBe(null);
-    expect(parameterDescriptionFor("cape")).toMatch(/storms also require triggering/);
-    expect(parameterDescriptionFor("unknown")).toBe("");
+    expect(defaultPaletteFor("cape")).toBe("CAPE");
+    expect(defaultPaletteFor("r_100")).toBe("Blues");
+    expect(defaultPaletteFor("u_100")).toBe("Viridis");
+    expect(defaultPaletteFor("v_100")).toBe("Viridis");
+  });
+
+  test("returns static scales for key weather-map variables", () => {
     expect(staticScaleFor("t")).toEqual({ min: -30, max: 50 });
     expect(staticScaleFor("p")).toEqual({ min: 950, max: 1050 });
     expect(staticScaleFor("msl")).toEqual({ min: 950, max: 1050 });
+    expect(staticScaleFor("cape")).toEqual({ min: 0, max: 4000 });
+    expect(staticScaleFor("r_100")).toEqual({ min: 0, max: 100 });
+    expect(staticScaleFor("u_100")).toEqual({ min: -30, max: 30 });
+    expect(staticScaleFor("v_100")).toEqual({ min: -30, max: 30 });
+  });
+
+  test("keeps logarithmic precipitation scale metadata together", () => {
     expect(staticScaleFor("rrate")).toEqual({
       min: 0,
       max: 150,
       log: true,
       zeroThreshold: 0.005,
     });
-    expect(defaultPaletteFor("cape")).toBe("CAPE");
-    expect(staticScaleFor("cape")).toEqual({ min: 0, max: 4000 });
-    expect(defaultPaletteFor("r_100")).toBe("Blues");
-    expect(staticScaleFor("r_100")).toEqual({ min: 0, max: 100 });
-    expect(defaultPaletteFor("u_100")).toBe("Viridis");
-    expect(staticScaleFor("u_100")).toEqual({ min: -30, max: 30 });
-    expect(defaultPaletteFor("v_100")).toBe("Viridis");
-    expect(staticScaleFor("v_100")).toEqual({ min: -30, max: 30 });
+  });
+
+  test("documents CAPE interpretation guidance", () => {
+    expect(parameterDescriptionFor("cape")).toMatch(/storms also require triggering/);
+  });
+
+  test("falls back safely for unknown variables", () => {
+    expect(defaultPaletteFor("unknown")).toBe(null);
+    expect(parameterDescriptionFor("unknown")).toBe("");
     expect(staticScaleFor("unknown")).toBe(null);
   });
 });
