@@ -1743,11 +1743,17 @@ const forecastBlockRefreshService = createForecastBlockRefreshService({
 	resetBlockDownloadProgress,
 	setBlockDownloadProgress,
 	downloadFile: downloadFileProg,
-	writeCachedBlock: writeCachedGribBlock,
+	writeCachedBlock: writeCachedModelBlock,
 	deleteObsoleteCachedBlocks: deleteObsoleteCachedGribBlocks,
 	enqueueAvailableBlock: enqueueAvailableModelBlockPresentation,
 	waitForPresentationIdle,
 });
+
+async function writeCachedModelBlock(packageKey, block, buffer) {
+	const cacheWriteSucceeded = await writeCachedGribBlock(packageKey, block, buffer);
+	if (cacheWriteSucceeded) updateStorageWarningSizeIfOpen();
+	return cacheWriteSucceeded;
+}
 
 async function enqueueAvailableModelBlockPresentation(
 	block,
@@ -1838,15 +1844,9 @@ function showView(name) {
 function mountStorageWarning(viewId) {
 	const warning = document.getElementById("storage-warning");
 	const main = document.querySelector(`#${viewId} main`);
-	const container = main?.querySelector(":scope > .container");
-	if (
-		!warning ||
-		!main ||
-		!container ||
-		warning.nextElementSibling === container
-	)
-		return;
-	main.insertBefore(warning, container);
+	if (!warning || !main) return;
+	if (warning.parentElement === main && warning === main.firstElementChild) return;
+	main.prepend(warning);
 }
 
 function showTab(name) {
@@ -2096,6 +2096,12 @@ async function updateStorageWarningSize() {
 		storageWarningSize.textContent = formatStorageEstimate(null);
 	}
 }
+
+function updateStorageWarningSizeIfOpen() {
+	if (storageWarningButton.getAttribute("aria-expanded") !== "true") return;
+	void updateStorageWarningSize();
+}
+
 storageWarningButton.addEventListener("click", () => {
 	const isExpanded =
 		storageWarningButton.getAttribute("aria-expanded") === "true";

@@ -42,8 +42,8 @@ describe("app shell markup", () => {
     expect(button?.getAttribute("aria-expanded")).toBe("false");
     expect(warning?.hidden).toBe(true);
     expect(warning?.closest("main")?.parentElement?.id).toBe("view-home");
-    expect(warning?.previousElementSibling?.classList.contains("tab-bar")).toBe(true);
-    expect(warning?.nextElementSibling?.classList.contains("container")).toBe(true);
+    expect(warning?.parentElement?.classList.contains("container")).toBe(true);
+    expect(warning?.parentElement?.firstElementChild).toBe(warning);
   });
 
   test("places forecast valid time as a map overlay", () => {
