@@ -3,7 +3,7 @@
 import { describe, expect, test } from "vitest";
 import {
   BLOCK_STATUS,
-  BLOCK_STATUS_CLASSES,
+  countBlockStatuses,
   createDataStatusSummaryNodes,
 } from "./data-status-summary.js";
 
@@ -19,27 +19,28 @@ describe("data status summary", () => {
     const wrapper = document.createElement("div");
     wrapper.replaceChildren(...nodes);
 
-    expect(wrapper.textContent).toBe(
-      "1 loaded from cache · 1 loaded from network · 1 updating · 1 missing",
-    );
-    expect(
-      [...wrapper.querySelectorAll(".data-status-count")].map((node) => node.className),
-    ).toEqual([
-      "data-status-count loaded-from-cache",
-      "data-status-count ready",
-      "data-status-count downloading",
-      "data-status-count missing",
+    const items = [...wrapper.querySelectorAll(".data-status-count")];
+
+    expect(items.map((node) => node.textContent)).toEqual([
+      "1 loaded from cache",
+      "1 loaded from network",
+      "1 updating",
+      "1 missing",
+    ]);
+    expect(items.map((node) => node.classList.item(1))).toEqual([
+      BLOCK_STATUS.LOADED_FROM_CACHE,
+      BLOCK_STATUS.READY,
+      BLOCK_STATUS.DOWNLOADING,
+      BLOCK_STATUS.MISSING,
     ]);
   });
 
-  test("exports every status class used by download items", () => {
-    expect(BLOCK_STATUS_CLASSES).toEqual([
-      "missing",
-      "loaded-from-cache",
-      "downloading",
-      "ready",
-      "done",
-      "cached",
-    ]);
+  test("counts unknown block statuses as missing", () => {
+    expect(
+      countBlockStatuses([{ status: BLOCK_STATUS.READY }, { status: BLOCK_STATUS.READY }, {}]),
+    ).toMatchObject({
+      [BLOCK_STATUS.READY]: 2,
+      [BLOCK_STATUS.MISSING]: 1,
+    });
   });
 });
