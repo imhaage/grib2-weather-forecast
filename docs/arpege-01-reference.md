@@ -6,13 +6,15 @@ GRIB2 files from data.gouv.fr.
 
 ## Package
 
-| Package | Content used by the app | File layout | App status |
-| --- | --- | --- | --- |
-| `SP1` | 2 m temperature and relative humidity, 10 m wind, mean sea-level pressure, total cloud cover | 9 multi-hour blocks, `H+000` to `H+102` | Used |
+| Package | Content used by the app | File layout | Current app download estimate | App status |
+| --- | --- | --- | ---: | --- |
+| `SP1` | 2 m temperature and relative humidity, 10 m wind, mean sea-level pressure, total cloud cover | 9 multi-hour blocks, `H+000` to `H+102` | about 630 MB/run | Used |
 
 ARPEGE SP1 files are grouped by forecast-hour ranges, for example
 `000H012H`, `013H024H`, and so on. The app expands those blocks into a flat
 forecast-hour list for the slider.
+
+The app estimate is rounded from current data.gouv resource `filesize` metadata for the files actually downloaded by the app. It should be treated as a user-facing order-of-magnitude warning, not a fixed product guarantee, because GRIB2 sizes can vary between runs and meteorological situations.
 
 ## Variables Used
 

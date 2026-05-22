@@ -139,6 +139,12 @@ When a new version of a logical file is successfully written, older cached entri
 hour can advance to a newer run without deleting cached files for other hours that have not been
 published yet.
 
+Browser storage usage can be estimated with `navigator.storage.estimate()`. The returned `usage`
+and `quota` are scoped to the current origin, so they are suitable for a lightweight "browser storage
+used / available" indicator. The values are browser estimates and can include IndexedDB, Cache
+Storage, service-worker cache, localStorage, and other origin storage. They should not be presented
+as an exact IndexedDB-only GRIB cache size.
+
 The slider keeps the full known forecast range. If the selected hour has no available block yet,
 `showHour()` clears the heatmap and shows `Data not available yet` instead of keeping the previous
 frame visible.

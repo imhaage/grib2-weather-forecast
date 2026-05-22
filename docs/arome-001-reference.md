@@ -29,7 +29,8 @@ The public AROME 0.01° package dataset provides hourly GRIB2 files on the EURW1
 | Format | GRIB2, CCSDS compressed (`grid_ccsds`) |
 | Forecast runs | `00`, `03`, `06`, `09`, `12`, `15`, `18`, `21` UTC |
 | Forecast range | `H+00` to `H+51`, hourly |
-| Public file layout | 51 hourly files per package/run for AROME 0.01° |
+| Public file layout | 52 hourly files per package/run for AROME 0.01°, from `H+00` to `H+51` |
+| Current app download layout | 51 hourly files per package/run, because `H+00` is skipped as model initialization |
 
 ## Grid
 
@@ -53,17 +54,19 @@ Visualization consequences:
 
 ### AROME 0.01 Surface Packages
 
-| Package | Official content | Approx. file size | App status |
-| --- | --- | ---: | --- |
-| `SP1` | 10 m wind components, 10 m gust components, 2 m temperature, 2 m relative humidity | 23 MB/hour | Used |
-| `SP2` | rain, snow, graupel, surface pressure, cloud cover, CAPE, max reflectivity | 23 MB/hour | Used partially |
-| `SP3` | constant altitude, brightness temperature | 4 MB/hour | Not used |
+| Package | Official content | Official approx. size | Current app download estimate | App status |
+| --- | --- | ---: | ---: | --- |
+| `SP1` | 10 m wind components, 10 m gust components, 2 m temperature, 2 m relative humidity | 23 MB/hour | about 1.2 GB/run | Used |
+| `SP2` | rain, snow, graupel, surface pressure, cloud cover, CAPE, max reflectivity | 23 MB/hour | about 760 MB/run | Used partially |
+| `SP3` | constant altitude, brightness temperature | 4 MB/hour | not measured | Not used |
 
 ### AROME 0.01 Height Package
 
-| Package | Official content | Approx. file size | App status |
-| --- | --- | ---: | --- |
-| `HP1` | humidity, wind speed/direction, U wind, V wind on 10, 20, 50, and 100 m height levels | 70 MB/hour | Used |
+| Package | Official content | Official approx. size | Current app download estimate | App status |
+| --- | --- | ---: | ---: | --- |
+| `HP1` | humidity, wind speed/direction, U wind, V wind on 10, 20, 50, and 100 m height levels | 70 MB/hour | about 3.9 GB/run | Used |
+
+The app estimates are rounded from current data.gouv resource `filesize` metadata for the files actually downloaded by the app. They should be treated as user-facing order-of-magnitude warnings, not fixed product guarantees, because GRIB2 sizes can vary between runs and meteorological situations.
 
 ## Variables
 
