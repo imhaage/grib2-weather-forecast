@@ -63,6 +63,7 @@ import {
 } from "./src/ui/data-status-summary.js";
 import { setGridToolbarMode } from "./src/ui/grid-toolbar-controller.js";
 import { renderModelList } from "./src/ui/model-list-view.js";
+import { formatStorageEstimate } from "./src/ui/storage-warning.js";
 import { renderUploadedMessageCard } from "./src/ui/upload-inspector-view.js";
 import { createDownloadWorker } from "./src/workers/download-worker-client.js";
 
@@ -2040,7 +2041,26 @@ document
 	.addEventListener("click", async () => {
 		await clearGribCache();
 		dom.forecastDownloadStatus.textContent = "Download cache cleared.";
+		await updateStorageWarningSize();
 	});
+
+const storageWarningButton = document.getElementById("storage-warning-button");
+const storageWarning = document.getElementById("storage-warning");
+const storageWarningSize = document.getElementById("storage-warning-size");
+async function updateStorageWarningSize() {
+	try {
+		const estimate = await navigator.storage?.estimate?.();
+		storageWarningSize.textContent = formatStorageEstimate(estimate);
+	} catch {
+		storageWarningSize.textContent = formatStorageEstimate(null);
+	}
+}
+storageWarningButton.addEventListener("click", () => {
+	const isExpanded = storageWarningButton.getAttribute("aria-expanded") === "true";
+	storageWarning.hidden = isExpanded;
+	storageWarningButton.setAttribute("aria-expanded", String(!isExpanded));
+	if (!isExpanded) updateStorageWarningSize();
+});
 
 document.addEventListener("keydown", (e) => {
 	if (e.code !== "Space" || !modelState) return;

@@ -33,4 +33,13 @@ describe("app shell markup", () => {
       "Inspect variables and metadata from GRIB2 files.",
     );
   });
+
+  test("hides the storage warning by default behind a header toggle", () => {
+    const button = document.getElementById("storage-warning-button");
+    const warning = document.getElementById("storage-warning");
+
+    expect(button?.getAttribute("aria-controls")).toBe("storage-warning");
+    expect(button?.getAttribute("aria-expanded")).toBe("false");
+    expect(warning?.hidden).toBe(true);
+  });
 });
