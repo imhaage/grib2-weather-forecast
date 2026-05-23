@@ -129,8 +129,8 @@
 						<p class="warning-storage">
 							Browser storage:
 							<strong id="storage-warning-size">Checking…</strong>
-							<button type="button" id="clear-grib-cache">Clear cache</button>
 						</p>
+						<button type="button" id="clear-grib-cache">Clear cache</button>
 					</div>
 
 					<p class="warning-message">
@@ -232,199 +232,199 @@
 					</button>
 				</div>
 
-					<details id="data-status-panel" hidden>
+				<details id="data-status-panel" hidden>
+					<summary class="disclosure-summary">
+						<svg
+							id="data-status-chevron"
+							class="disclosure-chevron"
+							xmlns="http://www.w3.org/2000/svg"
+							width="24"
+							height="24"
+							viewBox="0 0 24 24"
+						>
+							<title>Chevron</title>
+							<!-- Icon from Material Design Icons by Pictogrammers - https://github.com/Templarian/MaterialDesign/blob/master/LICENSE --> <path
+								fill="currentColor"
+								d="M7.41 8.58L12 13.17l4.59-4.59L18 10l-6 6l-6-6z"
+							/>
+						</svg>
+
+						<span id="data-status-summary">Data status</span>
+					</summary>
+
+					<p id="forecast-dl-status"></p>
+
+					<div id="forecast-dl-bars"></div>
+
+					<details id="forecast-dl-details">
 						<summary class="disclosure-summary">
-							<svg
-								id="data-status-chevron"
-								class="disclosure-chevron"
-								xmlns="http://www.w3.org/2000/svg"
-								width="24"
-								height="24"
-								viewBox="0 0 24 24"
-							>
-								<title>Chevron</title>
-								<!-- Icon from Material Design Icons by Pictogrammers - https://github.com/Templarian/MaterialDesign/blob/master/LICENSE --> <path
-									fill="currentColor"
-									d="M7.41 8.58L12 13.17l4.59-4.59L18 10l-6 6l-6-6z"
-								/>
-							</svg>
-
-							<span id="data-status-summary">Data status</span>
+							Files
+							<span id="forecast-dl-chevron" class="disclosure-chevron">
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="32"
+									height="32"
+									viewBox="0 0 24 24"
+								>
+									<title>Chevron</title>
+									<!-- Icon from Material Design Icons by Pictogrammers - https://github.com/Templarian/MaterialDesign/blob/master/LICENSE --> <path
+										fill="currentColor"
+										d="M7.41 8.58L12 13.17l4.59-4.59L18 10l-6 6l-6-6z"
+									/>
+								</svg>
+							</span>
 						</summary>
-
-						<p id="forecast-dl-status"></p>
-
-						<div id="forecast-dl-bars"></div>
-
-						<details id="forecast-dl-details">
-							<summary class="disclosure-summary">
-								Files
-								<span id="forecast-dl-chevron" class="disclosure-chevron">
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										width="32"
-										height="32"
-										viewBox="0 0 24 24"
-									>
-										<title>Chevron</title>
-										<!-- Icon from Material Design Icons by Pictogrammers - https://github.com/Templarian/MaterialDesign/blob/master/LICENSE --> <path
-											fill="currentColor"
-											d="M7.41 8.58L12 13.17l4.59-4.59L18 10l-6 6l-6-6z"
-										/>
-									</svg>
-								</span>
-							</summary>
-							<ul id="forecast-dl-file-list"></ul>
-						</details>
+						<ul id="forecast-dl-file-list"></ul>
 					</details>
+				</details>
 
-					<div id="grid-toolbar">
-						<div id="grid-stats">
-							<div class="stat-item">
-								<span class="stat-label">Min</span>
-								<span class="stat-value" id="gv-min">—</span>
-							</div>
-
-							<div class="stat-item">
-								<span class="stat-label">Max</span>
-								<span class="stat-value" id="gv-max">—</span>
-							</div>
-
-							<div class="stat-item">
-								<span class="stat-label">Mean</span>
-								<span class="stat-value" id="gv-mean">—</span>
-							</div>
-
-							<div class="stat-item">
-								<span class="stat-label">Valid pts</span>
-								<span class="stat-value" id="gv-valid">—</span>
-							</div>
+				<div id="grid-toolbar">
+					<div id="grid-stats">
+						<div class="stat-item">
+							<span class="stat-label">Min</span>
+							<span class="stat-value" id="gv-min">—</span>
 						</div>
 
-						<div id="palette-ctrl">
-							<label for="palette-select">Color scale</label>
-							<select id="palette-select" class="toolbar-select"></select>
+						<div class="stat-item">
+							<span class="stat-label">Max</span>
+							<span class="stat-value" id="gv-max">—</span>
+						</div>
+
+						<div class="stat-item">
+							<span class="stat-label">Mean</span>
+							<span class="stat-value" id="gv-mean">—</span>
+						</div>
+
+						<div class="stat-item">
+							<span class="stat-label">Valid pts</span>
+							<span class="stat-value" id="gv-valid">—</span>
 						</div>
 					</div>
 
-					<div id="map-scene">
-						<!-- Forecast player toolbar (shown instead of #grid-toolbar in forecast mode) -->
-						<div id="forecast-player-toolbar" hidden>
-							<div id="forecast-var-row">
-								<div id="forecast-var-wrap" class="toolbar-ctrl">
-									<label for="forecast-var-select">Parameter</label>
-									<select
-										id="forecast-var-select"
-										class="toolbar-select"
-									></select>
-								</div>
+					<div id="palette-ctrl">
+						<label for="palette-select">Color scale</label>
+						<select id="palette-select" class="toolbar-select"></select>
+					</div>
+				</div>
 
-								<span id="var-spinner"></span>
-
-								<div id="palette-ctrl-forecast" class="toolbar-ctrl">
-									<label for="palette-select-forecast">Color scale</label>
-									<select
-										id="palette-select-forecast"
-										class="toolbar-select"
-									></select>
-								</div>
+				<div id="map-scene">
+					<!-- Forecast player toolbar (shown instead of #grid-toolbar in forecast mode) -->
+					<div id="forecast-player-toolbar" hidden>
+						<div id="forecast-var-row">
+							<div id="forecast-var-wrap" class="toolbar-ctrl">
+								<label for="forecast-var-select">Parameter</label>
+								<select
+									id="forecast-var-select"
+									class="toolbar-select"
+								></select>
 							</div>
 
-							<div id="gv-meta">
-								<div>
-									<div id="gv-meta-param">
-										<div id="gv-name"></div>
-										<div id="gv-level"></div>
-									</div>
+							<span id="var-spinner"></span>
 
-									<div id="gv-desc"></div>
-								</div>
+							<div id="palette-ctrl-forecast" class="toolbar-ctrl">
+								<label for="palette-select-forecast">Color scale</label>
+								<select
+									id="palette-select-forecast"
+									class="toolbar-select"
+								></select>
 							</div>
+						</div>
 
-							<div id="forecast-slider-wrap">
-								<span id="forecast-hour-label">+01H</span>
+						<div id="gv-meta">
+							<div>
+								<div id="gv-meta-param">
+									<div id="gv-name"></div>
+									<div id="gv-level"></div>
+								</div>
 
-								<input
-									type="range"
-									id="forecast-slider"
-									min="0"
-									step="1"
-									value="0"
+								<div id="gv-desc"></div>
+							</div>
+						</div>
+
+						<div id="forecast-slider-wrap">
+							<span id="forecast-hour-label">+01H</span>
+
+							<input
+								type="range"
+								id="forecast-slider"
+								min="0"
+								step="1"
+								value="0"
+							>
+
+							<button
+								id="player-reset"
+								class="icon-button"
+								type="button"
+								title="Reset"
+								aria-label="Reset"
+							>
+								<svg viewBox="0 0 24 24" fill="currentColor">
+									<title>Reset</title>
+									<path
+										d="M2 12c0 5.523 4.477 10 10 10s10-4.477 10-10S17.523 2 12 2v2a8 8 0 1 1-5.135 1.865L9 8V2H3l2.446 2.447A9.98 9.98 0 0 0 2 12"
+									/>
+								</svg>
+							</button>
+
+							<button
+								id="player-play"
+								class="icon-button"
+								type="button"
+								title="Play"
+								aria-label="Play"
+							>
+								<svg id="icon-play" viewBox="0 0 24 24" fill="currentColor">
+									<title>Play</title>
+									<polygon points="5,3 19,12 5,21" />
+								</svg>
+
+								<svg
+									id="icon-pause"
+									viewBox="0 0 24 24"
+									fill="currentColor"
+									hidden
 								>
+									<title>Pause</title>
+									<rect x="5" y="3" width="4" height="18" />
+									<rect x="15" y="3" width="4" height="18" />
+								</svg>
+							</button>
+						</div>
+					</div>
 
-								<button
-									id="player-reset"
-									class="icon-button"
-									type="button"
-									title="Reset"
-									aria-label="Reset"
-								>
-									<svg viewBox="0 0 24 24" fill="currentColor">
-										<title>Reset</title>
-										<path
-											d="M2 12c0 5.523 4.477 10 10 10s10-4.477 10-10S17.523 2 12 2v2a8 8 0 1 1-5.135 1.865L9 8V2H3l2.446 2.447A9.98 9.98 0 0 0 2 12"
-										/>
-									</svg>
-								</button>
+					<div id="cache-warmup" hidden aria-live="polite">
+						<span id="cache-warmup-label">Animation cache</span>
+						<div id="cache-warmup-track">
+							<div id="cache-warmup-bar"></div>
+						</div>
+						<span id="cache-warmup-count">0 / 0</span>
+					</div>
 
-								<button
-									id="player-play"
-									class="icon-button"
-									type="button"
-									title="Play"
-									aria-label="Play"
-								>
-									<svg id="icon-play" viewBox="0 0 24 24" fill="currentColor">
-										<title>Play</title>
-										<polygon points="5,3 19,12 5,21" />
-									</svg>
+					<div id="perf-debug" hidden aria-live="polite">
+						<span>Perf</span>
+						<span id="perf-debug-render">render —</span>
+						<span id="perf-debug-decode">decode —</span>
+						<span id="perf-debug-queue">queue —</span>
+						<span id="perf-debug-cache">cache —</span>
+						<span id="perf-debug-decoded">decoded —</span>
+						<span id="perf-debug-gen">gen —</span>
+					</div>
 
-									<svg
-										id="icon-pause"
-										viewBox="0 0 24 24"
-										fill="currentColor"
-										hidden
-									>
-										<title>Pause</title>
-										<rect x="5" y="3" width="4" height="18" />
-										<rect x="15" y="3" width="4" height="18" />
-									</svg>
-								</button>
+					<div id="map-wrap">
+						<div id="map"></div>
+						<span id="forecast-valid-time"></span>
+						<div id="map-unavailable" class="map-overlay" hidden>
+							Data not available yet
+						</div>
+						<div id="map-tooltip" class="map-overlay" hidden></div>
+						<div id="colorscale" hidden>
+							<div id="cs-track">
+								<div id="cs-bar"></div>
+								<div id="cs-ticks"></div>
 							</div>
 						</div>
-
-						<div id="cache-warmup" hidden aria-live="polite">
-							<span id="cache-warmup-label">Animation cache</span>
-							<div id="cache-warmup-track">
-								<div id="cache-warmup-bar"></div>
-							</div>
-							<span id="cache-warmup-count">0 / 0</span>
-						</div>
-
-						<div id="perf-debug" hidden aria-live="polite">
-							<span>Perf</span>
-							<span id="perf-debug-render">render —</span>
-							<span id="perf-debug-decode">decode —</span>
-							<span id="perf-debug-queue">queue —</span>
-							<span id="perf-debug-cache">cache —</span>
-							<span id="perf-debug-decoded">decoded —</span>
-							<span id="perf-debug-gen">gen —</span>
-						</div>
-
-						<div id="map-wrap">
-							<div id="map"></div>
-							<span id="forecast-valid-time"></span>
-							<div id="map-unavailable" class="map-overlay" hidden>
-								Data not available yet
-							</div>
-							<div id="map-tooltip" class="map-overlay" hidden></div>
-							<div id="colorscale" hidden>
-								<div id="cs-track">
-									<div id="cs-bar"></div>
-									<div id="cs-ticks"></div>
-								</div>
-							</div>
-						</div>
+					</div>
 				</div>
 			</main>
 		</div>
