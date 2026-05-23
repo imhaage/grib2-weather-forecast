@@ -21,10 +21,14 @@ Going forward, I’m going to clean things up and continue more in a pair-progra
 
 ## TODO
 
-- [*] migrate project to vite + TypeScript + biome
-- [*] break down index.js into as many modules as necessary to make the code easier to understand and maintain
-- [*] improve layout : add tabs to switch between full run visualization and GRIB2 file analysis
-- [ ] (WIP) optimize layout : the centered container on large screens is useless, and data display should be optimized on small screens 
-- [*] improve color legends : for now, they are almost useless because the only values visible are min and max
-- [ ] update docs
-- [ ] ...
+### Fix
+- [ ] depending on zoom level, moving the slider or playing the animation doesn't
+- [ ] depending on zoom level, the weather layer is sometimes croped
+- [ ] check 3D terrain resolution, mapterhorn source should be more precise in France
+
+### Features
+- [ ] add toggle 3D terrain on/off
+
+### Doc
+- [ ] check and update docs
+- [ ] remove useless files (ex: old superpowers brainstorm plans)

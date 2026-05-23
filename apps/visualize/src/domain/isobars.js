@@ -3,6 +3,9 @@ import { contours } from "d3-contour";
 import { applyUnitTransform, unitTransformFor } from "./unit-transforms.js";
 
 const ISOBAR_VARIABLES = new Set(["msl"]);
+// GRIB2 stores longitudes in 0–360° (e.g. -8°W = 352°). Normalize to -180/180
+// so GeoJSON coordinates are valid for MapLibre.
+const normalizeLon = (lon) => (lon > 180 ? lon - 360 : lon);
 const DEFAULT_ISOBAR_INTERVAL_HPA = 5;
 const DEFAULT_MAX_CONTOUR_GRID_WIDTH = 160;
 const DEFAULT_SMOOTHING_PASSES = 2;
@@ -54,7 +57,7 @@ function generalizedGridFor(grid, maxGridWidth) {
     ...grid,
     ni,
     nj,
-    di: (grid.longitudeOfLastPoint - grid.longitudeOfFirstPoint) / (ni - 1),
+    di: (normalizeLon(grid.longitudeOfLastPoint) - normalizeLon(grid.longitudeOfFirstPoint)) / (ni - 1),
     dj: Math.abs(grid.latitudeOfLastPoint - grid.latitudeOfFirstPoint) / (nj - 1),
   };
 }
@@ -147,14 +150,14 @@ export function generalizePressureGrid({
 
 function contourPointToLonLat([x, y], grid) {
   const lonStep =
-    grid.longitudeOfLastPoint >= grid.longitudeOfFirstPoint
+    normalizeLon(grid.longitudeOfLastPoint) >= normalizeLon(grid.longitudeOfFirstPoint)
       ? Math.abs(grid.di)
       : -Math.abs(grid.di);
   const latStep =
     grid.latitudeOfLastPoint >= grid.latitudeOfFirstPoint ? Math.abs(grid.dj) : -Math.abs(grid.dj);
   const col = Math.min(Math.max(x - 0.5, 0), grid.ni - 1);
   const row = Math.min(Math.max(y - 0.5, 0), grid.nj - 1);
-  return [grid.longitudeOfFirstPoint + col * lonStep, grid.latitudeOfFirstPoint + row * latStep];
+  return [normalizeLon(grid.longitudeOfFirstPoint) + col * lonStep, grid.latitudeOfFirstPoint + row * latStep];
 }
 
 function isSameBoundarySegment(a, b, grid) {

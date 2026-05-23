@@ -542,6 +542,9 @@ const mercatorY = (lat) =>
 const invMercatorY = (my) =>
 	((2 * Math.atan(Math.exp(my)) - Math.PI / 2) * 180) / Math.PI;
 
+// Normalize GRIB2 longitude (0–360) to -180/180 expected by MapLibre.
+const normalizeLon = (lon) => (lon > 180 ? lon - 360 : lon);
+
 // Compute the Mercator-proportional canvas height for a given grid.
 // The canvas width equals grid.ni; height is chosen so that one pixel ≈ same
 // arc-length in both x and y when viewed in Web Mercator.
@@ -554,7 +557,7 @@ function mercatorCanvasHeight(grid) {
 		longitudeOfLastPoint: lo2,
 	} = grid;
 	const spanY = Math.abs(mercatorY(la1) - mercatorY(la2));
-	const spanX = Math.abs((lo2 - lo1) * Math.PI) / 180;
+	const spanX = Math.abs((normalizeLon(lo2) - normalizeLon(lo1)) * Math.PI) / 180;
 	return Math.round((ni * spanY) / spanX);
 }
 
@@ -775,8 +778,8 @@ function gridCorners({
 }) {
 	const north = Math.max(la1, la2);
 	const south = Math.min(la1, la2);
-	const west = Math.min(lo1, lo2);
-	const east = Math.max(lo1, lo2);
+	const west = Math.min(normalizeLon(lo1), normalizeLon(lo2));
+	const east = Math.max(normalizeLon(lo1), normalizeLon(lo2));
 	return [
 		[west, north],
 		[east, north],
