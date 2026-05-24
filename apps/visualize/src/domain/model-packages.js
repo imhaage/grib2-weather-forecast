@@ -80,7 +80,7 @@ export const PACKAGES = {
         shortName: "cape",
         name: "CAPE (near-surface)",
         units: "J kg-1",
-        level: "Ground surface",
+        level: "Near-surface",
         group: "Weather maps",
       },
       {
@@ -378,7 +378,7 @@ export const PACKAGES = {
         shortName: "tcc",
         name: "Total cloud cover (column)",
         units: "%",
-        level: "Ground surface",
+        level: "Atmospheric column",
         group: "Weather maps",
       },
       {
