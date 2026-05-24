@@ -1,0 +1,6 @@
+@layer overrides {
+	/* -- maplibre -- */
+	.maplibregl-ctrl-bottom-right {
+		display: none;
+	}
+}

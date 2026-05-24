@@ -12,6 +12,23 @@ Supports DRT 0 (simple packing), DRT 2/3 (complex packing + spatial differencing
 DRT 4/254 (IEEE 754), DRT 40 (JPEG 2000, OpenJPEG WASM, EWAM), DRT 42 (CCSDS, AROME/ARPEGE),
 DRT 255 (constant field).
 
+### CSS
+
+**Property order convention:** : layout first, then box model, visual styles, typography, interaction states, and animations.
+
+```css
+/* Layers */
+@layer reset, theme, global, layout, modules, state;
+
+@import "./style/reset.css";
+@import "./style/theme.css";
+@import "./style/global.css";
+@import "./style/layout.css";
+@import "./style/modules.css";
+@import "./style/state.css";
+
+```
+
 ## Documentation structure
 
 - `docs/decoder.md` — src/ modules, GRIB2 format, public API

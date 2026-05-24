@@ -10,8 +10,8 @@
 		</style>
 	</head>
 	<body>
-		<header>
-			<div class="logo">
+		<header class="topbar">
+			<div class="topbar__logo">
 				<svg
 					xmlns="http://www.w3.org/2000/svg"
 					width="24"
@@ -27,10 +27,10 @@
 				<span>GRIB2 Weather forecast</span>
 			</div>
 
-			<div id="header-buttons">
+			<div class="topbar__buttons">
 				<button
 					id="storage-warning-button"
-					class="icon-button"
+					class="storage-warning-button icon-button"
 					type="button"
 					aria-label="Warning"
 					aria-controls="storage-warning"
@@ -100,8 +100,8 @@
 			</nav>
 
 			<main class="container">
-				<div id="storage-warning" hidden>
-					<div class="warning-storage-usage">
+				<div id="storage-warning" class="storage-warning" hidden>
+					<div class="storage-warning__header">
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
 							width="24"
@@ -126,14 +126,16 @@
 							/>
 							<path fill="none" d="M0 0h36v36H0z" />
 						</svg>
-						<p class="warning-storage">
+
+						<p class="storage-warning__usage">
 							Browser storage:
 							<strong id="storage-warning-size">Checking…</strong>
 						</p>
+
 						<button type="button" id="clear-grib-cache">Clear cache</button>
 					</div>
 
-					<p class="warning-message">
+					<p class="storage-warning__message">
 						This experimental app explores how far browser-based weather
 						visualization can go. GRIB2 forecast files are very large, so
 						downloaded files are cached locally in your browser with IndexedDB
@@ -172,7 +174,7 @@
 					</div>
 					<div id="status"></div>
 
-					<div id="file-summary" class="surface" hidden>
+					<div id="file-summary" class="file-summary surface" hidden>
 						<div class="meta-item">
 							<span class="meta-label">File</span>
 							<span class="meta-value" id="s-name">—</span>

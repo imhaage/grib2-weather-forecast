@@ -1,182 +1,12 @@
-@layer reset, theme, global, layout, modules, utilities;
+@layer reset, theme, global, layout, modules, state, overrides;
 
 @import "./style/reset.css";
 @import "./style/theme.css";
 @import "./style/global.css";
 @import "./style/layout.css";
 @import "./style/modules.css";
-@import "./style/utilities.css";
-
-/*
- * Stylesheet organization (WIP -> layers)
- * 1. -> layers
- * 2. -> layers
- * 3. -> layers
- * 4. Home view
- * 5. Upload inspector
- * 6. Model list
- * 7. Map view
- * 8. Data status panel
- * 9. Forecast player
- * 10. Runtime diagnostics
- * 11. Vendor overrides
- *
- * Property order convention: layout first, then box model, visual styles,
- * typography, interaction states, and animations.
- */
-
-#storage-warning {
-	margin-bottom: var(--space-md);
-	padding: var(--space-md);
-	font-size: var(--font-sm);
-	color: var(--color-warning);
-	background-color: var(--color-bg-100);
-	border: 1px solid var(--color-warning);
-
-	& > svg {
-		flex: 0 0 24px;
-		width: 24px;
-		height: 24px;
-	}
-}
-
-.warning-storage-usage {
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: var(--space-sm);
-}
-
-.warning-storage {
-	display: flex;
-	align-items: inherit;
-	gap: var(--space-sm);
-	margin-block: 0;
-	white-space: nowrap;
-	color: var(--color-text-2);
-}
-
-.warning-message {
-	margin-block: var(--space-sm) 0;
-}
-
-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--space-sm);
-	padding: var(--space-sm) var(--space-md);
-	color: var(--color-text);
-	background: var(--color-bg-0);
-	border-bottom: var(--border-light);
-
-	& .logo {
-		display: flex;
-		align-items: center;
-		gap: var(--space-sm);
-		font-size: var(--font-lg);
-		font-weight: 600;
-
-		& svg {
-			color: var(--color-logo);
-		}
-	}
-}
-
-#header-buttons {
-	display: flex;
-	gap: var(--space-md);
-}
-
-.github-link {
-	border: var(--border-strong);
-	color: var(--color-text-2);
-}
-
-#storage-warning-button {
-	color: var(--color-warning);
-	background: none;
-	border: 1px solid var(--color-warning);
-
-	&:hover {
-		color: var(--color-warning);
-		background: var(--color-bg-500);
-		border: 1px solid var(--color-warning);
-	}
-
-	&:active,
-	&[aria-expanded="true"] {
-		color: var(--color-text-3);
-		background-color: var(--color-warning);
-		border: 1px solid var(--color-warning);
-	}
-}
-
-/* ── Shared: dark buttons ── */
-.btn-primary,
-.btn-grid {
-	border: var(--border-strong);
-	background: var(--color-bg-700);
-	color: var(--color-text-3);
-	cursor: pointer;
-	transition: background var(--transition);
-}
-
-.btn-primary:hover,
-.btn-grid:hover {
-	background: var(--color-text-hover);
-}
-
-.btn-grid {
-	margin-top: var(--space-md);
-	width: 100%;
-	padding: var(--space-sm) 0;
-	font-size: var(--font-sm);
-	font-weight: 500;
-}
-
-.toolbar-select {
-	padding: var(--space-sm);
-	border: var(--border-strong);
-	background: var(--color-bg-0);
-	color: var(--color-text);
-	font-size: var(--font-sm);
-	cursor: pointer;
-	transition: border-color var(--transition);
-}
-.toolbar-select:hover {
-	border-color: var(--color-text-muted);
-}
-
-.btn-back,
-#player-reset,
-#player-play {
-	border: var(--border-strong);
-	background: var(--color-bg-0);
-	cursor: pointer;
-}
-
-.disclosure-summary {
-	display: flex;
-	align-items: center;
-	gap: var(--space-sm);
-	list-style: none;
-	user-select: none;
-	cursor: pointer;
-}
-
-.disclosure-summary::-webkit-details-marker {
-	display: none;
-}
-
-.disclosure-summary::marker {
-	display: none;
-}
-
-.disclosure-chevron {
-	/* font-size: 0.2rem; */
-	transition: transform var(--transition);
-}
+@import "./style/state.css";
+@import "./style/overrides.css";
 
 /* ══════════════════════════════════════════════════════
  HOME VIEW
@@ -312,29 +142,6 @@ header {
 
 	&.error {
 		color: var(--color-error);
-	}
-}
-
-/* ── File summary ── */
-#file-summary {
-	display: flex;
-	gap: var(--space-xl);
-	flex-wrap: wrap;
-	align-items: center;
-	margin-top: var(--space-xl);
-	padding: var(--space-md) var(--space-lg);
-	border: var(--border-strong);
-	background: var(--color-bg-0);
-
-	& .meta-item {
-		display: flex;
-		flex-direction: column;
-		gap: var(--space-xxs);
-	}
-
-	& .meta-value {
-		font-size: var(--font-sm);
-		font-weight: 600;
 	}
 }
 
@@ -587,6 +394,9 @@ header {
 	margin-bottom: var(--space-lg);
 	flex-wrap: wrap;
 }
+#grid-toolbar[hidden] {
+	display: none;
+}
 
 .btn-back {
 	display: flex;
@@ -631,8 +441,9 @@ header {
 	font-size: var(--font-sm);
 	white-space: nowrap;
 	color: var(--color-text-1);
-	background: var(--color-bg-0);
+	background: var(--color-bg-200);
 	border: var(--border-strong);
+	border-radius: 9999px;
 }
 #gv-desc {
 	font-size: var(--font-sm);
@@ -1114,12 +925,4 @@ header {
 		color: var(--color-text);
 		font-weight: 700;
 	}
-}
-
-/* ══════════════════════════════════════════════════════
- VENDOR OVERRIDES
-══════════════════════════════════════════════════════ */
-
-.maplibregl-ctrl-bottom-right {
-	display: none;
 }

@@ -5,4 +5,84 @@
 		color: var(--color-text);
 		background: var(--color-bg-300);
 	}
+
+	/* @TODO : set a style for a11y */
+	:where(button, summary, [role="button"], .icon-button, .tab-btn, .disclosure-summary) {
+		-webkit-tap-highlight-color: transparent;
+
+		&:is(:focus, :focus-visible) {
+			outline: none;
+			box-shadow: none;
+		}
+	}
+
+	.icon-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: var(--size-icon-button);
+		height: var(--size-icon-button);
+		padding: 0;
+		border-radius: var(--radius-round);
+		cursor: pointer;
+
+		transition:
+			color var(--transition),
+			background var(--transition),
+			border-color var(--transition);
+
+		&:hover,
+		&:focus-visible {
+			color: var(--color-text);
+			border: var(--border-strong);
+		}
+	}
+
+	.icon-button svg {
+		width: var(--size-icon-md);
+		height: var(--size-icon-md);
+	}
+
+	.btn-primary,
+	.btn-grid {
+		border: var(--border-strong);
+		background: var(--color-bg-700);
+		color: var(--color-text-3);
+		cursor: pointer;
+		transition: background var(--transition);
+
+		&:hover {
+			background: var(--color-text-hover);
+		}
+	}
+
+	.btn-back,
+	#player-reset,
+	#player-play {
+		border: var(--border-strong);
+		background: var(--color-bg-0);
+		cursor: pointer;
+	}
+
+	.btn-grid {
+		margin-top: var(--space-md);
+		width: 100%;
+		padding: var(--space-sm) 0;
+		font-size: var(--font-sm);
+		font-weight: 500;
+	}
+
+	.toolbar-select {
+		padding: var(--space-sm);
+		border: var(--border-strong);
+		background: var(--color-bg-0);
+		color: var(--color-text);
+		font-size: var(--font-sm);
+		cursor: pointer;
+		transition: border-color var(--transition);
+
+		&:hover {
+			border-color: var(--color-text-muted);
+		}
+	}
 }
