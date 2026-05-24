@@ -1,8 +1,17 @@
+@layer reset, theme, global, layout, modules, utilities;
+
+@import "./style/reset.css";
+@import "./style/theme.css";
+@import "./style/global.css";
+@import "./style/layout.css";
+@import "./style/modules.css";
+@import "./style/utilities.css";
+
 /*
- * Stylesheet organization
- * 1. Design tokens
- * 2. Reset and base layout
- * 3. Shared components and controls
+ * Stylesheet organization (WIP -> layers)
+ * 1. -> layers
+ * 2. -> layers
+ * 3. -> layers
  * 4. Home view
  * 5. Upload inspector
  * 6. Model list
@@ -15,201 +24,6 @@
  * Property order convention: layout first, then box model, visual styles,
  * typography, interaction states, and animations.
  */
-
-/* ══════════════════════════════════════════════════════
- DESIGN TOKENS
-══════════════════════════════════════════════════════ */
-
-:root {
-	/* Primitive colors */
-	--gray-950: #0f1117;
-	--gray-900: #191c22;
-	--gray-850: #1a1d22;
-	--gray-800: #23262d;
-	--gray-750: #2d303a;
-	--gray-600: #474c5b;
-	--gray-500: #606878;
-	--gray-400: #9aa3b0;
-	--gray-100: #e4e7ed;
-	--gray-50: #f0f3f7;
-	--blue-950: #162038;
-	--blue-500: #3b82f6;
-	--blue-300: #43b9f4;
-	--red-400: #f87171;
-	--orange-400: #f1be76;
-	--green-400: #4ade80;
-	--violet-500: #955ef2;
-
-	/* Semantic colors */
-	/* text */
-	--color-text: var(--gray-100);
-	--color-text-2: var(--gray-400);
-	--color-text-3: var(--gray-900);
-	--color-text-muted: var(--gray-500);
-	--color-text-hover: var(--gray-50);
-	/* background */
-	--color-bg-0: var(--gray-950);
-	--color-bg-100: var(--gray-900);
-	--color-bg-200: var(--gray-850);
-	--color-bg-300: var(--gray-800);
-	--color-bg-500: var(--gray-750);
-	--color-bg-700: var(--gray-100);
-	/* border */
-	--color-border: var(--gray-750);
-	--color-border-2: var(--gray-600);
-	/* other */
-	--color-accent: var(--blue-300);
-	--color-accent-bg: var(--blue-950);
-	--color-warning: var(--orange-400);
-	--color-error: var(--red-400);
-	--color-success: var(--green-400);
-	--color-progress: var(--blue-500);
-	--color-logo: var(--green-400);
-	--color-cache: var(--violet-500);
-	--color-overlay-bg: rgba(0, 0, 0, 0.72);
-	--color-overlay-text: #fff;
-	--color-marker-shadow: rgba(0, 0, 0, 0.65);
-
-	/* Spaces */
-	--space-xxs: 2px;
-	--space-xs: 4px;
-	--space-sm: 8px;
-	--space-md: 16px;
-	--space-lg: 24px;
-	--space-xl: 32px;
-	--space-xxl: 64px;
-
-	/* Borders */
-	--border-light: 1px solid var(--color-border);
-	--border-strong: 1px solid var(--color-border-2);
-	--radius: 0.4rem;
-	--radius-round: 50%;
-	--radius-pill: 999px;
-
-	/* Component sizes */
-	--size-icon-button: 32px;
-	--size-icon-md: 18px;
-	--size-icon-sm: 14px;
-	--size-spinner: 20px;
-	--size-hour-label: 44px;
-	--map-height: 600px;
-	--upload-card-min-width: 440px;
-	--model-section-min-width: 700px;
-
-	/* Transitions */
-	--transition: 0.2s;
-
-	/* Typography */
-	--font-family-base: "Barlow", system-ui, -apple-system, sans-serif;
-	--font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-	--font-sm: 0.8rem;
-	--font-md: 0.9rem;
-	--font-lg: 1rem;
-
-	/* Effects */
-	--shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.08);
-	--shadow-marker: 0 0 2px var(--color-marker-shadow);
-
-	/* Layers */
-	--z-map-overlay: 2;
-	--z-map-tooltip: 10;
-}
-
-/* ══════════════════════════════════════════════════════
- RESET AND BASE LAYOUT
-══════════════════════════════════════════════════════ */
-
-*,
-*::before,
-*::after {
-	box-sizing: border-box;
-}
-
-body {
-	margin: 0;
-	padding: 0;
-	min-height: 100vh;
-	font-family: var(--font-family-base);
-	color: var(--color-text);
-	background: var(--color-bg-300);
-}
-
-[hidden] {
-	display: none !important;
-}
-
-.container {
-	max-width: 1500px;
-	margin: 0 auto;
-	padding: var(--space-md);
-}
-
-/* ══════════════════════════════════════════════════════
- SHARED COMPONENTS AND CONTROLS
-══════════════════════════════════════════════════════ */
-
-.surface {
-	border: var(--border-light);
-	background: var(--color-bg-0);
-}
-
-:where(
-	button,
-	summary,
-	[role="button"],
-	.icon-button,
-	.tab-btn,
-	.disclosure-summary
-):focus,
-:where(
-	button,
-	summary,
-	[role="button"],
-	.icon-button,
-	.tab-btn,
-	.disclosure-summary
-):focus-visible {
-	outline: none;
-	box-shadow: none;
-}
-
-:where(
-	button,
-	summary,
-	[role="button"],
-	.icon-button,
-	.tab-btn,
-	.disclosure-summary
-) {
-	-webkit-tap-highlight-color: transparent;
-}
-
-.icon-button {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: var(--size-icon-button);
-	height: var(--size-icon-button);
-	padding: 0;
-	border-radius: var(--radius-round);
-	cursor: pointer;
-
-	transition:
-		color var(--transition),
-		background var(--transition),
-		border-color var(--transition);
-
-	&:hover,
-	&:focus-visible {
-		color: var(--color-text);
-		border: var(--border-strong);
-	}
-}
-
-.icon-button svg {
-	width: var(--size-icon-md);
-	height: var(--size-icon-md);
-}
 
 #storage-warning {
 	margin-bottom: var(--space-md);
@@ -504,11 +318,13 @@ header {
 /* ── File summary ── */
 #file-summary {
 	display: flex;
-	margin-top: var(--space-xl);
-	padding: var(--space-md) var(--space-lg);
 	gap: var(--space-xl);
 	flex-wrap: wrap;
 	align-items: center;
+	margin-top: var(--space-xl);
+	padding: var(--space-md) var(--space-lg);
+	border: var(--border-strong);
+	background: var(--color-bg-0);
 
 	& .meta-item {
 		display: flex;
@@ -551,6 +367,8 @@ header {
 
 .card {
 	padding: var(--space-md);
+	border: var(--border-strong);
+	background: var(--color-bg-0);
 	transition: box-shadow var(--transition);
 
 	&:hover {

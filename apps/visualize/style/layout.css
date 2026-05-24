@@ -1,0 +1,7 @@
+@layer layout {
+	.container {
+		max-width: 1500px;
+		margin: 0 auto;
+		padding: var(--space-md);
+	}
+}

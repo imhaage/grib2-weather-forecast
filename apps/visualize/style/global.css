@@ -1,0 +1,8 @@
+@layer global {
+	body {
+		min-height: 100vh;
+		font-family: var(--font-family-base);
+		color: var(--color-text);
+		background: var(--color-bg-300);
+	}
+}
