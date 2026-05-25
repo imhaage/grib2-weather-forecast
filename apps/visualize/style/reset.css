@@ -1,4 +1,4 @@
-@layer reset, theme, base, layout, modules, utilities;
+@layer reset, theme, global, layout, modules, legacy, overrides;
 
 @layer reset {
 	*,

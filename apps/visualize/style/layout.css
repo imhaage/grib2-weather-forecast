@@ -4,4 +4,8 @@
 		margin: 0 auto;
 		padding: var(--space-md);
 	}
+
+	[hidden] {
+		display: none !important;
+	}
 }

@@ -12,7 +12,9 @@ describe("app shell markup", () => {
 
   test("exposes the current app title and repository link", () => {
     expect(document.title).toBe("GRIB2 Weather forecast");
-    expect(document.querySelector(".logo span")?.textContent).toBe("GRIB2 Weather forecast");
+    expect(document.querySelector(".topbar__logo span")?.textContent).toBe(
+      "GRIB2 Weather forecast",
+    );
     expect(document.body.textContent).not.toContain("GRIB2 files decoded in the browser");
 
     const githubLink = document.querySelector(".github-link");

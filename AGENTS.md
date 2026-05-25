@@ -14,20 +14,49 @@ DRT 255 (constant field).
 
 ### CSS
 
-**Property order convention:** : layout first, then box model, visual styles, typography, interaction states, and animations.
+The CSS split is a work in progress. Before editing CSS, check which layer/file owns the rule.
+
+**Property order convention:** layout first, then box model, visual styles, typography, interaction states, and animations.
+
+**CSS layers:** CSS rules are organized into multiple CSS layers, one layer per file.
 
 ```css
-/* Layers */
-@layer reset, theme, global, layout, modules, state;
+@layer reset, theme, global, layout, modules, overrides;
 
-@import "./style/reset.css";
-@import "./style/theme.css";
-@import "./style/global.css";
-@import "./style/layout.css";
-@import "./style/modules.css";
-@import "./style/state.css";
-
+@import "./style/reset.css" layer(reset);
+@import "./style/theme.css" layer(theme);
+@import "./style/global.css" layer(global);
+@import "./style/layout.css" layer(layout);
+@import "./style/modules.css" layer(modules);
+@import "./style/overrides.css" layer(overrides);
 ```
+
+**CSS naming convention:** use pragmatic BEM for module classes.
+
+- Use a clear block class for each meaningful component (`.topbar`, `.storage-warning`, `.file-summary`).
+- Use `block__element` for important internal parts that belong to that component.
+- Do not force BEM for shared components, utility-like classes, or existing generic UI primitives.
+- Prefer shallow nesting only when it improves locality and stays readable.
+- Avoid long BEM chains and deeply nested selectors.
+
+Layer responsibilities:
+
+- `reset.css`: normalize browser defaults and define the baseline box model.
+- `theme.css`: global design tokens and custom properties reused across files.
+- `global.css`: default element styles, typography, links, form defaults, and base page colors.
+- `layout.css`: page-level structure, containers, main regions, visibility states such as `[hidden]`, and high-level responsive behavior.
+- `modules.css`: component styles, including internal component layout and component-specific states.
+- `overrides.css`: third-party library overrides only.
+
+Rules:
+
+- Do not move rules between CSS files unless the target layer clearly owns them.
+- Do not create a new CSS layer/file unless there is a repeated need.
+- Keep custom properties close to their usage unless they are reused across multiple modules.
+- Component-specific states stay with the component rules in `modules.css`.
+- Simple visibility states such as `[hidden]` belong in `layout.css`.
+- Prefer modern CSS when it improves readability: cascade layers, logical properties, `:where()`, `:is()`, nesting up to two levels, and responsive grid/flex patterns.
+- Avoid deep selector nesting and avoid coupling CSS to incidental DOM structure.
 
 ## Documentation structure
 
