@@ -716,6 +716,33 @@
 	flex-direction: column;
 	gap: var(--space-xxs);
 }
+
+.forecast-dl-file-item {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--space-sm);
+
+	&.loaded-from-cache {
+		color: var(--color-cache);
+	}
+
+	&.downloading {
+		color: var(--color-progress);
+	}
+
+	&.done {
+		color: var(--color-success);
+	}
+
+	&.missing {
+		color: var(--color-error);
+	}
+}
+
+.forecast-dl-file-status {
+	flex: 0 0 auto;
+}
+
 #forecast-dl-bars {
 	display: grid;
 	grid-template-columns: repeat(24, minmax(max-content, 1fr));
@@ -750,6 +777,11 @@
 
 	&.downloading {
 		color: var(--color-text);
+	}
+
+	&.missing {
+		background: var(--color-error);
+		color: var(--color-bg-0);
 	}
 }
 

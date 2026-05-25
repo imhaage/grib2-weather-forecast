@@ -25,7 +25,6 @@ import {
 } from "./src/domain/palettes.js";
 import {
 	extractRunId,
-	formatRunId,
 	formatRunSummary,
 	runTimeValue,
 } from "./src/domain/resources.js";
@@ -55,6 +54,7 @@ import { createModelBlockService } from "./src/services/model-block-service.js";
 import {
 	BLOCK_STATUS,
 	BLOCK_STATUS_CLASSES,
+	BLOCK_STATUS_LABELS,
 	createDataStatusSummaryNodes,
 } from "./src/ui/data-status-summary.js";
 import {
@@ -1433,6 +1433,14 @@ function setBlockStatus(block, status) {
 		if (status === BLOCK_STATUS.READY) item.classList.add("done");
 		item.title = `${formatRunSummary([block])} · ${status}`;
 	}
+	const fileItem = document.getElementById(`dl-file-${block.key}`);
+	if (fileItem) {
+		fileItem.classList.remove(...BLOCK_STATUS_CLASSES);
+		fileItem.classList.add(status);
+		if (status === BLOCK_STATUS.READY) fileItem.classList.add("done");
+		fileItem.querySelector(".forecast-dl-file-status").textContent =
+			BLOCK_STATUS_LABELS[status] ?? status;
+	}
 	updateDataStatusSummary();
 }
 
@@ -1551,7 +1559,14 @@ function renderDownloadItems(resources) {
 		barsEl.appendChild(item);
 
 		const li = document.createElement("li");
-		li.textContent = `${r.url.split("/").pop()} · ${formatRunId(r.runId)}`;
+		li.id = `dl-file-${r.key}`;
+		li.className = `forecast-dl-file-item ${BLOCK_STATUS.MISSING}`;
+		const fileLabel = document.createElement("span");
+		fileLabel.textContent = `${r.url.split("/").pop()} · ${fmtSize(r.filesize)}`;
+		const statusLabel = document.createElement("span");
+		statusLabel.className = "forecast-dl-file-status";
+		statusLabel.textContent = BLOCK_STATUS_LABELS[BLOCK_STATUS.MISSING];
+		li.append(fileLabel, statusLabel);
 		fileListEl.appendChild(li);
 	}
 }
