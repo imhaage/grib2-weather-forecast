@@ -12,10 +12,6 @@
  HOME VIEW
 ══════════════════════════════════════════════════════ */
 
-#tab-panel-upload .section-desc {
-	margin-bottom: var(--space-md);
-}
-
 /* ══════════════════════════════════════════════════════
  UPLOAD INSPECTOR
 ══════════════════════════════════════════════════════ */
@@ -24,28 +20,9 @@
  MODEL LIST
 ══════════════════════════════════════════════════════ */
 
-.section-desc {
-	color: var(--color-text-2);
-	font-size: var(--font-md);
-	text-align: center;
-	margin: 0;
-}
-
 /* ══════════════════════════════════════════════════════
  MAP VIEW
 ══════════════════════════════════════════════════════ */
-
-/* ── Toolbar ── */
-#grid-toolbar {
-	display: flex;
-	align-items: center;
-	gap: var(--space-md);
-	margin-bottom: var(--space-lg);
-	flex-wrap: wrap;
-}
-#grid-toolbar[hidden] {
-	display: none;
-}
 
 #gv-meta {
 	display: flex;

@@ -91,6 +91,18 @@
 		}
 	}
 
+	/* -- section-desc -- */
+	.section-desc {
+		margin: 0;
+		color: var(--color-text-2);
+		font-size: var(--font-md);
+		text-align: center;
+	}
+
+	#tab-panel-upload .section-desc {
+		margin-bottom: var(--space-md);
+	}
+
 	/* -- subtitle-wrapper -- */
 	.subtitle-wrapper {
 		position: relative;
@@ -436,6 +448,15 @@
 		margin: 0;
 		padding: 0;
 		list-style: none;
+	}
+
+	/* -- grid-toolbar -- */
+	#grid-toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-md);
+		margin-bottom: var(--space-lg);
 	}
 
 	/* -- storage-warning -- */
