@@ -128,6 +128,60 @@
 		}
 	}
 
+	/* -- upload-inspector -- */
+	#drop-zone {
+		padding: var(--space-md) var(--space-xl);
+		color: var(--color-text-2);
+		background: var(--color-bg-0);
+		border: 2px dashed var(--color-border-2);
+		text-align: center;
+		cursor: pointer;
+		transition:
+			border-color var(--transition),
+			background var(--transition);
+
+		&:hover,
+		&.over {
+			background: var(--color-accent-bg);
+			border-color: var(--color-accent);
+		}
+
+		& .icon {
+			margin-bottom: var(--space-xs);
+			font-size: var(--font-md);
+		}
+
+		& p {
+			font-size: var(--font-sm);
+			line-height: 1.4;
+		}
+
+		& p strong {
+			color: var(--color-text);
+		}
+
+		& small {
+			color: var(--color-text-muted);
+			font-size: var(--font-sm);
+		}
+	}
+
+	#file-input {
+		display: none;
+	}
+
+	#status {
+		min-height: 1.4em;
+		margin-top: var(--space-md);
+		color: var(--color-text-2);
+		font-size: var(--font-md);
+		text-align: center;
+
+		&.error {
+			color: var(--color-error);
+		}
+	}
+
 	/* -- storage-warning -- */
 	.storage-warning {
 		margin-bottom: var(--space-md);

@@ -20,61 +20,6 @@
  UPLOAD INSPECTOR
 ══════════════════════════════════════════════════════ */
 
-/* ── Drop zone ── */
-#drop-zone {
-	padding: var(--space-md) var(--space-xl);
-	border: 2px dashed var(--color-border-2);
-
-	background: var(--color-bg-0);
-	text-align: center;
-	cursor: pointer;
-	transition:
-		border-color var(--transition),
-		background var(--transition);
-
-	&:hover,
-	&.over {
-		border-color: var(--color-accent);
-		background: var(--color-accent-bg);
-	}
-
-	& .icon {
-		font-size: var(--font-md);
-		margin-bottom: var(--space-xs);
-	}
-
-	& p {
-		color: var(--color-text-2);
-		font-size: var(--font-sm);
-		line-height: 1.4;
-	}
-
-	& p strong {
-		color: var(--color-text);
-	}
-
-	& small {
-		color: var(--color-text-muted);
-		font-size: var(--font-sm);
-	}
-}
-#file-input {
-	display: none;
-}
-
-/* ── Status ── */
-#status {
-	margin-top: var(--space-md);
-	font-size: var(--font-md);
-	color: var(--color-text-2);
-	min-height: 1.4em;
-	text-align: center;
-
-	&.error {
-		color: var(--color-error);
-	}
-}
-
 /* ── Shared: uppercase labels ── */
 .meta-label,
 .stat-label,
