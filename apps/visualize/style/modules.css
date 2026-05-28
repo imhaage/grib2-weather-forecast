@@ -52,6 +52,45 @@
 		}
 	}
 
+	/* -- tab-bar -- */
+	.tab-bar {
+		display: flex;
+		gap: 0;
+		background: var(--color-bg-200);
+		border-bottom: var(--border-light);
+	}
+
+	.tab-btn {
+		margin-bottom: -1px;
+		padding: var(--space-sm) var(--space-md);
+		color: var(--color-text-2);
+		background: none;
+		border: none;
+		border-bottom: 2px solid transparent;
+		font-family: inherit;
+		font-size: var(--font-md);
+		cursor: pointer;
+		transition:
+			color var(--transition),
+			border-color var(--transition);
+
+		&:hover {
+			color: var(--color-text);
+		}
+
+		&.active {
+			color: var(--color-logo);
+			border-bottom-color: var(--color-logo);
+		}
+	}
+
+	@media (max-width: 425px) {
+		.tab-btn {
+			flex: 0 0 50%;
+			min-width: 0;
+		}
+	}
+
 	/* -- storage-warning -- */
 	.storage-warning {
 		margin-bottom: var(--space-md);

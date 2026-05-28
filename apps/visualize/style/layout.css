@@ -8,4 +8,14 @@
 	[hidden] {
 		display: none !important;
 	}
+
+	#tab-panel-model,
+	#tab-panel-upload {
+		display: none;
+	}
+
+	#tab-panel-model.active,
+	#tab-panel-upload.active {
+		display: block;
+	}
 }
