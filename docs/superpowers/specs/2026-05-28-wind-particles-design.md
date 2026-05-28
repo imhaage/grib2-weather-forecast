@@ -1,5 +1,7 @@
 # Wind Particles Layer Design
 
+> Status: implementation is temporarily abandoned. The feature proved too complex for the current iteration and needs a dedicated R&D phase before another implementation attempt.
+
 ## Goal
 
 Add an optional animated particle layer above the existing weather raster map to make wind direction easier to read.
