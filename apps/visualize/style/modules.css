@@ -524,6 +524,46 @@
 		font-variant-numeric: tabular-nums;
 	}
 
+	/* -- map-scene -- */
+	#map-wrap {
+		position: relative;
+	}
+
+	#map-scene.rendering {
+		& #map-wrap,
+		& #gv-meta,
+		& #forecast-slider-wrap {
+			visibility: hidden;
+		}
+
+		& #var-spinner {
+			display: block;
+		}
+	}
+
+	#var-spinner {
+		display: none;
+		flex-shrink: 0;
+		width: var(--size-spinner);
+		height: var(--size-spinner);
+		border: 2px solid var(--color-border);
+		border-top-color: var(--color-text);
+		border-radius: var(--radius-round);
+		animation: spin 1.2s linear infinite;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	#map {
+		width: 100%;
+		height: var(--map-height);
+		overflow: hidden;
+	}
+
 	/* -- storage-warning -- */
 	.storage-warning {
 		margin-bottom: var(--space-md);

@@ -24,42 +24,6 @@
  MAP VIEW
 ══════════════════════════════════════════════════════ */
 
-#map-wrap {
-	position: relative;
-}
-
-/* While pre-rendering: hide map + controls, keep only the var select visible */
-#map-scene.rendering #map-wrap,
-#map-scene.rendering #gv-meta,
-#map-scene.rendering #forecast-slider-wrap {
-	visibility: hidden;
-}
-
-#var-spinner {
-	display: none;
-	width: var(--size-spinner);
-	height: var(--size-spinner);
-	border: 2px solid var(--color-border);
-	border-top-color: var(--color-text);
-	border-radius: var(--radius-round);
-	animation: spin 1.2s linear infinite;
-	flex-shrink: 0;
-}
-#map-scene.rendering #var-spinner {
-	display: block;
-}
-@keyframes spin {
-	to {
-		transform: rotate(360deg);
-	}
-}
-
-#map {
-	width: 100%;
-	height: var(--map-height);
-	overflow: hidden;
-}
-
 .map-overlay {
 	background: var(--color-overlay-bg);
 	color: var(--color-overlay-text);
