@@ -20,15 +20,6 @@
  UPLOAD INSPECTOR
 ══════════════════════════════════════════════════════ */
 
-/* ── Shared: uppercase labels ── */
-.meta-label,
-.stat-label,
-.model-section-data .model-packages-label {
-	font-size: var(--font-sm);
-	text-transform: uppercase;
-	color: var(--color-text-muted);
-}
-
 /* ══════════════════════════════════════════════════════
  MODEL LIST
 ══════════════════════════════════════════════════════ */
