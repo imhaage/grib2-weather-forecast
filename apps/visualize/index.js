@@ -62,6 +62,7 @@ import {
 	parseForecastRoute,
 } from "./src/ui/forecast-route.js";
 import { setGridToolbarMode } from "./src/ui/grid-toolbar-controller.js";
+import { prepareFileInputForPick, setHomeTab } from "./src/ui/home-tabs.js";
 import { renderModelList } from "./src/ui/model-list-view.js";
 import { formatStorageEstimate } from "./src/ui/storage-warning.js";
 import { renderUploadedMessageCard } from "./src/ui/upload-inspector-view.js";
@@ -1865,19 +1866,7 @@ function mountStorageWarning(viewId) {
 }
 
 function showTab(name) {
-	for (const panel of ["model", "upload"]) {
-		document
-			.getElementById(`tab-panel-${panel}`)
-			.classList.toggle("active", panel === name);
-	}
-	for (const btn of document.querySelectorAll(".tab-btn")) {
-		btn.classList.toggle("active", btn.dataset.tab === name);
-		btn.setAttribute(
-			"aria-selected",
-			btn.dataset.tab === name ? "true" : "false",
-		);
-	}
-	if (name === "model") resetUploadState();
+	setHomeTab(document, name);
 }
 
 function resetUploadState() {
@@ -1952,9 +1941,15 @@ route();
 const dropZone = document.getElementById("drop-zone");
 const fileInput = document.getElementById("file-input");
 
-dropZone.addEventListener("click", () => fileInput.click());
+dropZone.addEventListener("click", () => {
+	prepareFileInputForPick(fileInput);
+	fileInput.click();
+});
 dropZone.addEventListener("keydown", (e) => {
-	if (e.key === "Enter" || e.key === " ") fileInput.click();
+	if (e.key === "Enter" || e.key === " ") {
+		prepareFileInputForPick(fileInput);
+		fileInput.click();
+	}
 });
 fileInput.addEventListener("change", () => {
 	if (fileInput.files[0]) processFile(fileInput.files[0]);
