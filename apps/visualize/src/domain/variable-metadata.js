@@ -105,16 +105,20 @@ export const VARIABLE_METADATA = Object.freeze({
     staticScale: { min: 0, max: 200 },
   },
   wspd_10: {
-    defaultPalette: "Plasma",
+    defaultPalette: "Viridis",
+    staticScale: { min: 0, max: 200 },
   },
   wspd_20: {
-    defaultPalette: "Plasma",
+    defaultPalette: "Viridis",
+    staticScale: { min: 0, max: 200 },
   },
   wspd_50: {
-    defaultPalette: "Plasma",
+    defaultPalette: "Viridis",
+    staticScale: { min: 0, max: 200 },
   },
   wspd_100: {
-    defaultPalette: "Plasma",
+    defaultPalette: "Viridis",
+    staticScale: { min: 0, max: 200 },
   },
   wdir: {
     defaultPalette: "Plasma",
