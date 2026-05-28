@@ -32,6 +32,45 @@ function createModelMetaElement(info) {
   return meta;
 }
 
+const HOME_GROUP_ORDER = ["Weather maps", "Component fields"];
+
+function homeVariableGroupsForPackage(pkg) {
+  if (pkg.homeVariableGroups) return pkg.homeVariableGroups;
+
+  const byGroup = new Map();
+  for (const variable of pkg.variables) {
+    const group = variable.group ?? "Component fields";
+    if (!byGroup.has(group)) byGroup.set(group, []);
+    byGroup.get(group).push(variable.name);
+  }
+
+  return HOME_GROUP_ORDER.filter((group) => byGroup.has(group)).map((group) => ({
+    group,
+    names: byGroup.get(group),
+  }));
+}
+
+function createVariableGroupElement(group) {
+  const groupEl = document.createElement("li");
+  groupEl.className = "model-package-var-group";
+
+  const title = document.createElement("span");
+  title.className = "model-package-var-group-title";
+  title.textContent = group.group;
+  groupEl.appendChild(title);
+
+  const vars = document.createElement("ul");
+  vars.className = "model-package-var-list";
+  for (const name of group.names) {
+    const li = document.createElement("li");
+    li.textContent = name;
+    vars.appendChild(li);
+  }
+  groupEl.appendChild(vars);
+
+  return groupEl;
+}
+
 function createModelPackageElement(key, pkg, onPackageSelect) {
   const pkgEl = document.createElement("div");
   pkgEl.className = "model-package";
@@ -44,11 +83,8 @@ function createModelPackageElement(key, pkg, onPackageSelect) {
 
   const vars = document.createElement("ul");
   vars.className = "model-package-vars";
-  const variableNames = pkg.homeVariables ?? pkg.variables.map((variable) => variable.name);
-  for (const name of variableNames) {
-    const li = document.createElement("li");
-    li.textContent = name;
-    vars.appendChild(li);
+  for (const group of homeVariableGroupsForPackage(pkg)) {
+    vars.appendChild(createVariableGroupElement(group));
   }
   pkgEl.appendChild(vars);
 

@@ -42,4 +42,58 @@ describe("model list view", () => {
     button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(onPackageSelect).toHaveBeenCalledWith("AROME_SP1");
   });
+
+  test("groups home parameters by weather maps then component fields", () => {
+    const container = document.createElement("div");
+
+    renderModelList({
+      container,
+      modelInfo: {
+        AROME: {
+          title: "AROME 0.01",
+          description: "High-resolution forecast model.",
+          resolution: "0.01°",
+          horizon: "H+01 to H+51",
+          filesInfo: "51 files",
+          boundingBox: "12°W – 16°E · 37.5°N – 55.4°N",
+          coverage: "Mainland France and Corsica",
+        },
+      },
+      packages: {
+        AROME_SP1: {
+          model: "AROME",
+          variables: [
+            { name: "U (wind, 10m)", group: "Component fields" },
+            { name: "Temperature (2m)", group: "Weather maps" },
+            { name: "V (wind, 10m)", group: "Component fields" },
+          ],
+        },
+        AROME_HP1: {
+          model: "AROME",
+          homeVariableGroups: [
+            {
+              group: "Weather maps",
+              names: ["Wind speed (10m, 20m, 50m, 100m)"],
+            },
+            {
+              group: "Component fields",
+              names: ["U (wind, 10m, 20m, 50m, 100m)"],
+            },
+          ],
+          variables: [],
+        },
+      },
+      onPackageSelect: vi.fn(),
+    });
+
+    const [sp1, hp1] = container.querySelectorAll(".model-package");
+    expect(
+      [...sp1.querySelectorAll(".model-package-var-group-title")].map((el) => el.textContent),
+    ).toEqual(["Weather maps", "Component fields"]);
+    expect(sp1.textContent.indexOf("Temperature (2m)")).toBeLessThan(
+      sp1.textContent.indexOf("U (wind, 10m)"),
+    );
+    expect(hp1.textContent).toContain("Wind speed (10m, 20m, 50m, 100m)");
+    expect(hp1.textContent).toContain("U (wind, 10m, 20m, 50m, 100m)");
+  });
 });
