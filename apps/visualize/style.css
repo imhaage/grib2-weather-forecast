@@ -1,4 +1,4 @@
-@layer reset, theme, global, layout, modules, legacy, overrides;
+@layer reset, theme, global, layout, modules, overrides;
 
 @import "./style/reset.css" layer(reset);
 @import "./style/theme.css" layer(theme);
@@ -6,35 +6,3 @@
 @import "./style/layout.css" layer(layout);
 @import "./style/modules.css" layer(modules);
 @import "./style/overrides.css" layer(overrides);
-
-@layer legacy {
-	/* ══════════════════════════════════════════════════════
- MAP VIEW
-══════════════════════════════════════════════════════ */
-
-	/* ══════════════════════════════════════════════════════
- RUNTIME DIAGNOSTICS
-══════════════════════════════════════════════════════ */
-
-	#perf-debug {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--space-sm);
-		align-items: center;
-		padding: var(--space-xs) var(--space-sm);
-		border-top: var(--border-light);
-		color: var(--color-text-2);
-		font-family: var(--font-family-mono);
-		font-size: var(--font-sm);
-		font-variant-numeric: tabular-nums;
-
-		&[hidden] {
-			display: none;
-		}
-
-		& > span:first-child {
-			color: var(--color-text);
-			font-weight: 700;
-		}
-	}
-}
