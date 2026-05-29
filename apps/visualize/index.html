@@ -240,11 +240,11 @@
 					</button>
 				</div>
 
-				<details id="data-status-panel" hidden>
+				<details id="data-status-panel" class="data-status-panel" hidden>
 					<summary class="disclosure-summary">
 						<svg
 							id="data-status-chevron"
-							class="disclosure-chevron"
+							class="data-status-panel__chevron disclosure-chevron"
 							xmlns="http://www.w3.org/2000/svg"
 							width="24"
 							height="24"
@@ -257,17 +257,20 @@
 							/>
 						</svg>
 
-						<span id="data-status-summary">Data status</span>
+						<span id="data-status-summary" class="data-status-summary">Data status</span>
 					</summary>
 
-					<p id="forecast-dl-status"></p>
+					<p id="forecast-dl-status" class="forecast-download-status"></p>
 
-					<div id="forecast-dl-bars"></div>
+					<div id="forecast-dl-bars" class="forecast-download-bars"></div>
 
-					<details id="forecast-dl-details">
+					<details id="forecast-dl-details" class="forecast-download-details">
 						<summary class="disclosure-summary">
 							Files
-							<span id="forecast-dl-chevron" class="disclosure-chevron">
+							<span
+								id="forecast-dl-chevron"
+								class="forecast-download-details__chevron disclosure-chevron"
+							>
 								<svg
 									xmlns="http://www.w3.org/2000/svg"
 									width="32"
@@ -282,7 +285,7 @@
 								</svg>
 							</span>
 						</summary>
-						<ul id="forecast-dl-file-list"></ul>
+						<ul id="forecast-dl-file-list" class="forecast-download-file-list"></ul>
 					</details>
 				</details>
 

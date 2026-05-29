@@ -1439,7 +1439,7 @@ function setBlockStatus(block, status) {
 		fileItem.classList.remove(...BLOCK_STATUS_CLASSES);
 		fileItem.classList.add(status);
 		if (status === BLOCK_STATUS.READY) fileItem.classList.add("done");
-		fileItem.querySelector(".forecast-dl-file-status").textContent =
+		fileItem.querySelector(".forecast-download-file__status").textContent =
 			BLOCK_STATUS_LABELS[status] ?? status;
 	}
 	updateDataStatusSummary();
@@ -1553,7 +1553,7 @@ function renderDownloadItems(resources) {
 	for (const r of resources) {
 		setBlockStatus(r, BLOCK_STATUS.MISSING);
 		const item = document.createElement("div");
-		item.className = `forecast-dl-item ${BLOCK_STATUS.MISSING}`;
+		item.className = `forecast-download-bar ${BLOCK_STATUS.MISSING}`;
 		item.id = `dl-${r.key}`;
 		item.textContent = r.key;
 		item.title = formatRunSummary([r]);
@@ -1561,11 +1561,11 @@ function renderDownloadItems(resources) {
 
 		const li = document.createElement("li");
 		li.id = `dl-file-${r.key}`;
-		li.className = `forecast-dl-file-item ${BLOCK_STATUS.MISSING}`;
+		li.className = `forecast-download-file ${BLOCK_STATUS.MISSING}`;
 		const fileLabel = document.createElement("span");
 		fileLabel.textContent = `${r.url.split("/").pop()} · ${fmtSize(r.filesize)}`;
 		const statusLabel = document.createElement("span");
-		statusLabel.className = "forecast-dl-file-status";
+		statusLabel.className = "forecast-download-file__status";
 		statusLabel.textContent = BLOCK_STATUS_LABELS[BLOCK_STATUS.MISSING];
 		li.append(fileLabel, statusLabel);
 		fileListEl.appendChild(li);

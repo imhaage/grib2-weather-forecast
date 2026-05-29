@@ -738,7 +738,7 @@
 	}
 
 	/* -- data-status-panel -- */
-	#data-status-panel {
+	.data-status-panel {
 		padding: var(--space-sm);
 		background: var(--color-bg-200);
 
@@ -747,12 +747,12 @@
 			font-size: var(--font-sm);
 		}
 
-		&[open] #data-status-chevron {
+		&[open] .data-status-panel__chevron {
 			transform: rotate(180deg);
 		}
 	}
 
-	#data-status-summary {
+	.data-status-summary {
 		display: inline-flex;
 		flex-wrap: wrap;
 		gap: var(--space-sm) var(--space-md);
@@ -774,13 +774,13 @@
 		color: var(--color-error);
 	}
 
-	#forecast-dl-status {
+	.forecast-download-status {
 		margin-block: var(--space-md);
 		color: var(--color-text-2);
 		font-size: var(--font-md);
 	}
 
-	#forecast-dl-details {
+	.forecast-download-details {
 		margin-top: var(--space-sm);
 
 		& > summary {
@@ -788,12 +788,12 @@
 			font-size: var(--font-sm);
 		}
 
-		&[open] #forecast-dl-chevron {
+		&[open] .forecast-download-details__chevron {
 			transform: rotate(180deg);
 		}
 	}
 
-	#forecast-dl-file-list {
+	.forecast-download-file-list {
 		display: flex;
 		flex-direction: column;
 		gap: var(--space-xxs);
@@ -805,7 +805,7 @@
 		list-style: none;
 	}
 
-	.forecast-dl-file-item {
+	.forecast-download-file {
 		display: flex;
 		justify-content: space-between;
 		gap: var(--space-sm);
@@ -827,11 +827,11 @@
 		}
 	}
 
-	.forecast-dl-file-status {
+	.forecast-download-file__status {
 		flex: 0 0 auto;
 	}
 
-	#forecast-dl-bars {
+	.forecast-download-bars {
 		display: grid;
 		box-sizing: border-box;
 		grid-template-columns: repeat(24, minmax(max-content, 1fr));
@@ -842,7 +842,7 @@
 		font-size: var(--font-sm);
 	}
 
-	.forecast-dl-item {
+	.forecast-download-bar {
 		display: flex;
 		align-items: center;
 		justify-content: center;
