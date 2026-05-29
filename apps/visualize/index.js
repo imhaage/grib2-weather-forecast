@@ -614,7 +614,7 @@ function processFile(file) {
 function setStatus(msg, isError = false) {
 	const el = document.getElementById("status");
 	el.textContent = msg;
-	el.className = isError ? "error" : "";
+	el.classList.toggle("error", isError);
 }
 
 function clearMapLayer() {
@@ -1875,7 +1875,7 @@ function resetUploadState() {
 	byId("cards").innerHTML = "";
 	const status = byId("status");
 	status.textContent = "";
-	status.className = "";
+	status.classList.remove("error");
 }
 
 function setToolbarMode(mode) {

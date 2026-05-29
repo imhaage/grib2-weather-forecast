@@ -144,7 +144,7 @@
 	}
 
 	/* -- upload-inspector -- */
-	#drop-zone {
+	.drop-zone {
 		padding: var(--space-md) var(--space-xl);
 		color: var(--color-text-2);
 		background: var(--color-bg-0);
@@ -181,11 +181,11 @@
 		}
 	}
 
-	#file-input {
+	.file-input {
 		display: none;
 	}
 
-	#status {
+	.upload-status {
 		min-height: 1.4em;
 		margin-top: var(--space-md);
 		color: var(--color-text-2);
@@ -207,7 +207,7 @@
 	}
 
 	/* -- upload-results -- */
-	#results {
+	.upload-results {
 		margin-top: var(--space-xl);
 
 		& h2 {

@@ -163,6 +163,7 @@
 
 					<div
 						id="drop-zone"
+						class="drop-zone"
 						role="button"
 						tabindex="0"
 						aria-label="Upload a GRIB2 file"
@@ -170,9 +171,14 @@
 						<div class="icon">🌐</div>
 						<p><strong>Drop a GRIB2 file here</strong><br>or click to select</p>
 						<br>
-						<input type="file" id="file-input" accept=".grib2,.grib">
+						<input
+							type="file"
+							id="file-input"
+							class="file-input"
+							accept=".grib2,.grib"
+						>
 					</div>
-					<div id="status"></div>
+					<div id="status" class="upload-status"></div>
 
 					<div id="file-summary" class="file-summary surface" hidden>
 						<div class="meta-item">
@@ -197,7 +203,7 @@
 						</div>
 					</div>
 
-					<div id="results" hidden>
+					<div id="results" class="upload-results" hidden>
 						<h2>Variables</h2>
 						<div class="cards" id="cards"></div>
 					</div>
