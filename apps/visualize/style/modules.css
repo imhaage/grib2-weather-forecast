@@ -564,6 +564,86 @@
 		overflow: hidden;
 	}
 
+	.map-overlay {
+		color: var(--color-overlay-text);
+		background: var(--color-overlay-bg);
+		pointer-events: none;
+	}
+
+	#map-unavailable {
+		position: absolute;
+		top: var(--space-md);
+		left: 50%;
+		z-index: var(--z-map-overlay);
+		padding: var(--space-sm) var(--space-md);
+		font-size: var(--font-sm);
+		font-weight: 600;
+		transform: translateX(-50%);
+	}
+
+	#map-unavailable[hidden] {
+		display: none;
+	}
+
+	#map-scene:is(:fullscreen, :-webkit-full-screen) {
+		display: flex;
+		flex-direction: column;
+		background: var(--color-bg-100);
+
+		& #map-wrap {
+			display: flex;
+			flex: 1;
+			flex-direction: column;
+			min-height: 0;
+		}
+
+		& #map {
+			flex: 1;
+			min-height: 0;
+			height: auto;
+			border-radius: 0;
+		}
+
+		& #gv-meta {
+			display: none;
+		}
+	}
+
+	#map-tooltip {
+		position: absolute;
+		z-index: var(--z-map-tooltip);
+		padding: var(--space-xs) var(--space-sm);
+		font-size: var(--font-sm);
+		white-space: nowrap;
+	}
+
+	.map-click-marker {
+		width: var(--size-icon-md);
+		height: var(--size-icon-md);
+		pointer-events: none;
+
+		&::before,
+		&::after {
+			content: "";
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			background: var(--color-overlay-text);
+			box-shadow: var(--shadow-marker);
+			transform: translate(-50%, -50%);
+		}
+
+		&::before {
+			width: var(--size-icon-md);
+			height: 1px;
+		}
+
+		&::after {
+			width: 1px;
+			height: var(--size-icon-md);
+		}
+	}
+
 	/* -- storage-warning -- */
 	.storage-warning {
 		margin-bottom: var(--space-md);
