@@ -87,6 +87,9 @@
 		--font-lg: 1rem;
 
 		/* Effects */
+		--focus-ring:
+			0 0 0 2px var(--color-bg-300),
+			0 0 0 4px color-mix(in srgb, var(--color-accent) 70%, transparent);
 		--shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.08);
 		--shadow-marker: 0 0 2px var(--color-marker-shadow);
 

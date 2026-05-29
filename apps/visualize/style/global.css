@@ -6,13 +6,17 @@
 		background: var(--color-bg-300);
 	}
 
-	/* @TODO : set a style for a11y */
 	:where(button, summary, [role="button"], .icon-button, .tab-btn, .disclosure-summary) {
 		-webkit-tap-highlight-color: transparent;
 
-		&:is(:focus, :focus-visible) {
+		&:focus:not(:focus-visible) {
 			outline: none;
 			box-shadow: none;
+		}
+
+		&:focus-visible {
+			outline: none;
+			box-shadow: var(--focus-ring);
 		}
 	}
 
