@@ -865,6 +865,135 @@
 		cursor: pointer;
 	}
 
+	/* -- forecast-player -- */
+	#forecast-player-toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-sm);
+		padding: var(--space-sm) 0;
+		border-top: var(--border-light);
+
+		& #forecast-var-row {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			justify-content: start;
+			gap: var(--space-sm);
+			width: 100%;
+		}
+
+		& #forecast-var-select {
+			max-width: 100%;
+		}
+
+		& #forecast-slider-wrap {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			gap: var(--space-sm);
+			width: 100%;
+		}
+
+		& #forecast-slider {
+			flex: 1;
+			cursor: pointer;
+		}
+	}
+
+	#cache-warmup {
+		display: grid;
+		grid-template-columns: minmax(120px, max-content) minmax(140px, 1fr) max-content;
+		align-items: center;
+		gap: var(--space-sm);
+		padding: var(--space-xs) var(--space-sm);
+		color: var(--color-text-2);
+		border-top: var(--border-light);
+		font-size: var(--font-sm);
+
+		&[hidden] {
+			display: none;
+		}
+
+		&.waiting {
+			grid-template-columns: 1fr;
+		}
+
+		&.waiting #cache-warmup-track,
+		&.waiting #cache-warmup-count {
+			display: none;
+		}
+
+		&.ready #cache-warmup-bar {
+			background: var(--color-success);
+		}
+
+		& #cache-warmup-track {
+			height: 6px;
+			overflow: hidden;
+			background: var(--color-border);
+			border-radius: var(--radius-pill);
+		}
+
+		& #cache-warmup-bar {
+			width: 0%;
+			height: 100%;
+			background: var(--color-progress);
+			border-radius: inherit;
+			transition: width var(--transition);
+		}
+
+		& #cache-warmup-count {
+			font-variant-numeric: tabular-nums;
+		}
+	}
+
+	#player-reset,
+	#player-play {
+		flex-shrink: 0;
+		color: var(--color-text);
+		transition: background var(--transition);
+
+		&:hover {
+			background: var(--color-border);
+		}
+
+		& svg {
+			width: var(--size-icon-sm);
+			height: var(--size-icon-sm);
+		}
+	}
+
+	#player-play {
+		&:disabled {
+			color: var(--color-text-muted);
+			background: var(--color-border);
+			cursor: default;
+		}
+	}
+
+	#forecast-hour-label {
+		min-width: var(--size-hour-label);
+		font-family: var(--font-family-mono);
+		font-size: var(--font-md);
+		font-weight: 700;
+		white-space: nowrap;
+	}
+
+	#forecast-valid-time {
+		position: absolute;
+		top: var(--space-sm);
+		left: var(--space-sm);
+		z-index: var(--z-map-overlay);
+		padding: var(--space-xs);
+		color: var(--color-text);
+		background: var(--color-bg-300);
+		font-size: var(--font-sm);
+		white-space: nowrap;
+		font-variant-numeric: tabular-nums;
+		pointer-events: none;
+	}
+
 	/* -- storage-warning -- */
 	.storage-warning {
 		margin-bottom: var(--space-md);
