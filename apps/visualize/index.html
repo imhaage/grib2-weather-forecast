@@ -217,7 +217,7 @@
 		<div id="view-grid" hidden>
 			<main class="container">
 				<div class="subtitle-wrapper">
-					<div id="gv-sub"></div>
+					<div id="gv-sub" class="grid-subtitle"></div>
 					<button
 						id="grid-back-btn"
 						class="btn-back"
@@ -286,8 +286,8 @@
 					</details>
 				</details>
 
-				<div id="grid-toolbar">
-					<div id="grid-stats">
+				<div id="grid-toolbar" class="grid-toolbar">
+					<div id="grid-stats" class="grid-stats">
 						<div class="stat-item">
 							<span class="stat-label">Min</span>
 							<span class="stat-value" id="gv-min">—</span>
@@ -309,7 +309,7 @@
 						</div>
 					</div>
 
-					<div id="palette-ctrl">
+					<div id="palette-ctrl" class="palette-control">
 						<label for="palette-select">Color scale</label>
 						<select id="palette-select" class="toolbar-select"></select>
 					</div>
@@ -338,14 +338,14 @@
 							</div>
 						</div>
 
-						<div id="gv-meta">
+						<div id="gv-meta" class="grid-meta">
 							<div>
-								<div id="gv-meta-param">
-									<div id="gv-name"></div>
-									<div id="gv-level"></div>
+								<div id="gv-meta-param" class="grid-meta__param">
+									<div id="gv-name" class="grid-meta__name"></div>
+									<div id="gv-level" class="grid-meta__level"></div>
 								</div>
 
-								<div id="gv-desc"></div>
+								<div id="gv-desc" class="grid-meta__desc"></div>
 							</div>
 						</div>
 

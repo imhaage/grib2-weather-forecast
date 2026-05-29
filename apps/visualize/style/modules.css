@@ -471,7 +471,7 @@
 	}
 
 	/* -- grid-toolbar -- */
-	#grid-toolbar {
+	.grid-toolbar {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
@@ -480,7 +480,7 @@
 	}
 
 	/* -- grid-meta -- */
-	#gv-meta {
+	.grid-meta {
 		display: flex;
 		align-items: center;
 		gap: var(--space-sm);
@@ -489,19 +489,19 @@
 		border-top: var(--border-strong);
 	}
 
-	#gv-meta-param {
+	.grid-meta__param {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: baseline;
 		gap: var(--space-sm);
 	}
 
-	#gv-name {
+	.grid-meta__name {
 		font-size: var(--font-lg);
 		font-weight: 600;
 	}
 
-	#gv-level {
+	.grid-meta__level {
 		display: inline-block;
 		padding: var(--space-xs) var(--space-sm);
 		color: var(--color-text-1);
@@ -512,13 +512,13 @@
 		white-space: nowrap;
 	}
 
-	#gv-desc {
+	.grid-meta__desc {
 		margin-top: var(--space-xs);
 		font-size: var(--font-sm);
 		line-height: 1.45;
 	}
 
-	#gv-sub {
+	.grid-subtitle {
 		max-width: calc(100% - 72px);
 		margin-bottom: 0;
 		font-size: var(--font-md);
@@ -526,7 +526,7 @@
 		text-align: center;
 	}
 
-	#grid-stats {
+	.grid-stats {
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-xl);
@@ -551,7 +551,7 @@
 
 	#map-scene.rendering {
 		& #map-wrap,
-		& #gv-meta,
+		& .grid-meta,
 		& #forecast-slider-wrap {
 			visibility: hidden;
 		}
@@ -624,7 +624,7 @@
 			border-radius: 0;
 		}
 
-		& #gv-meta {
+		& .grid-meta {
 			display: none;
 		}
 	}
@@ -718,14 +718,14 @@
 		}
 	}
 
-	#palette-ctrl,
+	.palette-control,
 	.toolbar-ctrl {
 		display: flex;
 		color: var(--color-text-2);
 		font-size: var(--font-sm);
 	}
 
-	#palette-ctrl {
+	.palette-control {
 		align-items: center;
 		gap: var(--space-sm);
 		margin-left: auto;
