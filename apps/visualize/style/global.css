@@ -47,8 +47,7 @@
 		height: var(--size-icon-md);
 	}
 
-	.btn-primary,
-	.btn-grid {
+	.btn-primary {
 		border: var(--border-strong);
 		background: var(--color-bg-700);
 		color: var(--color-text-3);
@@ -58,22 +57,6 @@
 		&:hover {
 			background: var(--color-text-hover);
 		}
-	}
-
-	.btn-back,
-	#player-reset,
-	#player-play {
-		border: var(--border-strong);
-		background: var(--color-bg-0);
-		cursor: pointer;
-	}
-
-	.btn-grid {
-		margin-top: var(--space-md);
-		width: 100%;
-		padding: var(--space-sm) 0;
-		font-size: var(--font-sm);
-		font-weight: 500;
 	}
 
 	.toolbar-select {

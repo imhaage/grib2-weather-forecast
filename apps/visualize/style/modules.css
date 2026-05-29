@@ -128,8 +128,11 @@
 		margin-bottom: var(--space-md);
 		padding: var(--space-sm);
 		color: var(--color-text-2);
+		background: var(--color-bg-0);
+		border: var(--border-strong);
 		border-radius: var(--radius-round);
 		font-size: var(--font-sm);
+		cursor: pointer;
 		transition:
 			background var(--transition),
 			border-color var(--transition);
@@ -288,6 +291,23 @@
 		margin: var(--space-sm) 0;
 		border: none;
 		border-top: 1px solid var(--color-bg-200);
+	}
+
+	.btn-grid {
+		width: 100%;
+		margin-top: var(--space-md);
+		padding: var(--space-sm) 0;
+		color: var(--color-text-3);
+		background: var(--color-bg-700);
+		border: var(--border-strong);
+		font-size: var(--font-sm);
+		font-weight: 500;
+		cursor: pointer;
+		transition: background var(--transition);
+
+		&:hover {
+			background: var(--color-text-hover);
+		}
 	}
 
 	/* -- model-list -- */
@@ -952,6 +972,9 @@
 	#player-play {
 		flex-shrink: 0;
 		color: var(--color-text);
+		background: var(--color-bg-0);
+		border: var(--border-strong);
+		cursor: pointer;
 		transition: background var(--transition);
 
 		&:hover {
