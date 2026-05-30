@@ -318,7 +318,7 @@
 					</div>
 				</div>
 
-				<div id="map-scene">
+				<div id="map-scene" class="map-scene">
 					<!-- Forecast player toolbar (shown instead of #grid-toolbar in forecast mode) -->
 					<div id="forecast-player-toolbar" class="forecast-player" hidden>
 						<div id="forecast-var-row" class="forecast-player__controls">
@@ -423,13 +423,13 @@
 						<span id="perf-debug-gen">gen —</span>
 					</div>
 
-					<div id="map-wrap">
-						<div id="map"></div>
+					<div id="map-wrap" class="map-wrap">
+						<div id="map" class="map-canvas"></div>
 						<span id="forecast-valid-time" class="forecast-valid-time"></span>
-						<div id="map-unavailable" class="map-overlay" hidden>
+						<div id="map-unavailable" class="map-unavailable map-overlay" hidden>
 							Data not available yet
 						</div>
-						<div id="map-tooltip" class="map-overlay" hidden></div>
+						<div id="map-tooltip" class="map-tooltip map-overlay" hidden></div>
 						<div id="colorscale" class="color-scale" hidden>
 							<div id="cs-track" class="color-scale__track">
 								<div id="cs-bar" class="color-scale__bar"></div>

@@ -545,12 +545,12 @@
 	}
 
 	/* -- map-scene -- */
-	#map-wrap {
+	.map-wrap {
 		position: relative;
 	}
 
-	#map-scene.rendering {
-		& #map-wrap,
+	.map-scene.rendering {
+		& .map-wrap,
 		& .grid-meta,
 		& .forecast-player__slider {
 			visibility: hidden;
@@ -578,7 +578,7 @@
 		}
 	}
 
-	#map {
+	.map-canvas {
 		width: 100%;
 		height: var(--map-height);
 		overflow: hidden;
@@ -590,7 +590,7 @@
 		pointer-events: none;
 	}
 
-	#map-unavailable {
+	.map-unavailable {
 		position: absolute;
 		top: var(--space-md);
 		left: 50%;
@@ -601,23 +601,23 @@
 		transform: translateX(-50%);
 	}
 
-	#map-unavailable[hidden] {
+	.map-unavailable[hidden] {
 		display: none;
 	}
 
-	#map-scene:is(:fullscreen, :-webkit-full-screen) {
+	.map-scene:is(:fullscreen, :-webkit-full-screen) {
 		display: flex;
 		flex-direction: column;
 		background: var(--color-bg-100);
 
-		& #map-wrap {
+		& .map-wrap {
 			display: flex;
 			flex: 1;
 			flex-direction: column;
 			min-height: 0;
 		}
 
-		& #map {
+		& .map-canvas {
 			flex: 1;
 			min-height: 0;
 			height: auto;
@@ -629,7 +629,7 @@
 		}
 	}
 
-	#map-tooltip {
+	.map-tooltip {
 		position: absolute;
 		z-index: var(--z-map-tooltip);
 		padding: var(--space-xs) var(--space-sm);
