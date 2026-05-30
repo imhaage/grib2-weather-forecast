@@ -62,8 +62,8 @@ import {
 	createForecastPackageHash,
 	createInspectHomeHash,
 	createInspectVariableHash,
-	parseForecastRoute,
 } from "./src/ui/forecast-route.js";
+import { createAppRouter } from "./src/ui/app-router.js";
 import { setMapToolbarMode } from "./src/ui/map-toolbar-controller.js";
 import { resolveMapBackHash } from "./src/ui/map-back-action.js";
 import { prepareFileInputForPick, setHomeTab } from "./src/ui/home-tabs.js";
@@ -1902,34 +1902,26 @@ function setToolbarMode(mode) {
 	setMapToolbarMode(document, mode);
 }
 
-function route() {
-	const currentRoute = parseForecastRoute(location.hash);
-	if (currentRoute.canonicalHash) {
-		location.replace(currentRoute.canonicalHash);
-		return;
-	}
-	if (currentRoute.type === "inspect") {
-		showView("view-map");
-		setToolbarMode("field");
-		showMapView(currentRoute.variableShortName);
-	} else if (currentRoute.type === "forecast") {
-		const { packageKey } = currentRoute;
-		if (!PACKAGES[packageKey]) {
-			location.hash = "";
-			return;
-		}
-		showView("view-map");
-		setToolbarMode("run");
+const router = createAppRouter({
+	getHash: () => location.hash,
+	replaceHash: (hash) => location.replace(hash),
+	setHash: (hash) => {
+		location.hash = hash;
+	},
+	addEventListener: (...args) => window.addEventListener(...args),
+	removeEventListener: (...args) => window.removeEventListener(...args),
+	isValidPackage: (packageKey) => Boolean(PACKAGES[packageKey]),
+	getCurrentPackageKey: () => modelState?.packageKey ?? null,
+	showView,
+	showTab,
+	setToolbarMode,
+	showMapView,
+	showDataStatusPanel: () => {
 		dom.dataStatusPanel.hidden = false;
-		if (modelState?.packageKey !== packageKey) {
-			resetModelState();
-			startDownload(packageKey);
-		}
-	} else {
-		showView("view-home");
-		showTab(currentRoute.tab);
-	}
-}
+	},
+	resetModelState,
+	startDownload,
+});
 
 renderModelList({
 	container: document.getElementById("model-list"),
@@ -1962,8 +1954,7 @@ const animationPlayer = createAnimationPlayer({
 	showHour,
 });
 
-window.addEventListener("hashchange", route);
-route();
+router.start();
 
 // ── Event wiring ──────────────────────────────────────────────────────────────
 
