@@ -65,6 +65,7 @@ import {
 	parseForecastRoute,
 } from "./src/ui/forecast-route.js";
 import { setMapToolbarMode } from "./src/ui/map-toolbar-controller.js";
+import { resolveMapBackHash } from "./src/ui/map-back-action.js";
 import { prepareFileInputForPick, setHomeTab } from "./src/ui/home-tabs.js";
 import { renderModelList } from "./src/ui/model-list-view.js";
 import { formatStorageEstimate } from "./src/ui/storage-warning.js";
@@ -858,7 +859,7 @@ function resetModelState() {
 	dom.forecastDownloadFileList.innerHTML = "";
 }
 
-function resetApp() {
+function resetApp(targetHash = "") {
 	fileState = null;
 	resetModelState();
 	clearMapLayer();
@@ -867,7 +868,23 @@ function resetApp() {
 	document.getElementById("results").hidden = true;
 	document.getElementById("cards").innerHTML = "";
 	dom.dataStatusPanel.hidden = true;
-	location.hash = "";
+	location.hash = targetHash;
+}
+
+function closeInspectMapView(targetHash) {
+	clearMapLayer();
+	clearStats();
+	setRendering(false);
+	location.hash = targetHash;
+}
+
+function handleMapBack() {
+	const targetHash = resolveMapBackHash({ hasModelState: Boolean(modelState) });
+	if (!modelState) {
+		closeInspectMapView(targetHash);
+		return;
+	}
+	resetApp(targetHash);
 }
 
 // ── Map view: decode one field + render on map ───────────────────────────────
@@ -2060,7 +2077,7 @@ document
 
 // ── Model player events ───────────────────────────────────────────────────────
 
-document.getElementById("map-back-btn").addEventListener("click", resetApp);
+document.getElementById("map-back-btn").addEventListener("click", handleMapBack);
 
 dom.forecastVarSelect.addEventListener("change", async (e) => {
 	if (!modelState) return;
