@@ -59,9 +59,10 @@ import {
 } from "./src/ui/data-status-summary.js";
 import {
 	createForecastPackageHash,
+	createInspectVariableHash,
 	parseForecastRoute,
 } from "./src/ui/forecast-route.js";
-import { setGridToolbarMode } from "./src/ui/grid-toolbar-controller.js";
+import { setMapToolbarMode } from "./src/ui/map-toolbar-controller.js";
 import { prepareFileInputForPick, setHomeTab } from "./src/ui/home-tabs.js";
 import { renderModelList } from "./src/ui/model-list-view.js";
 import { formatStorageEstimate } from "./src/ui/storage-warning.js";
@@ -867,9 +868,9 @@ function resetApp() {
 	location.hash = "";
 }
 
-// ── Grid view: decode + render on map ────────────────────────────────────────
+// ── Map view: decode one field + render on map ───────────────────────────────
 
-async function showGridView(shortName) {
+async function showMapView(shortName) {
 	if (!fileState) {
 		location.hash = "";
 		return;
@@ -895,7 +896,7 @@ async function showGridView(shortName) {
 	hideColorScale();
 
 	// Switch view
-	showView("view-grid");
+	showView("view-map");
 	setMapSceneVisible(true);
 
 	// Decode (WASM)
@@ -1852,7 +1853,7 @@ async function startDownload(packageKey) {
 // ── Router (hash-based) ───────────────────────────────────────────────────────
 
 function showView(name) {
-	for (const id of ["view-home", "view-grid"])
+	for (const id of ["view-home", "view-map"])
 		document.getElementById(id).hidden = id !== name;
 	mountStorageWarning(name);
 }
@@ -1879,23 +1880,27 @@ function resetUploadState() {
 }
 
 function setToolbarMode(mode) {
-	setGridToolbarMode(document, mode);
+	setMapToolbarMode(document, mode);
 }
 
 function route() {
 	const currentRoute = parseForecastRoute(location.hash);
-	if (currentRoute.type === "grid") {
-		showView("view-grid");
-		setToolbarMode("grid");
-		showGridView(currentRoute.variableShortName);
+	if (currentRoute.canonicalHash) {
+		location.replace(currentRoute.canonicalHash);
+		return;
+	}
+	if (currentRoute.type === "inspect") {
+		showView("view-map");
+		setToolbarMode("field");
+		showMapView(currentRoute.variableShortName);
 	} else if (currentRoute.type === "forecast") {
 		const { packageKey } = currentRoute;
 		if (!PACKAGES[packageKey]) {
 			location.hash = "";
 			return;
 		}
-		showView("view-grid");
-		setToolbarMode("forecast");
+		showView("view-map");
+		setToolbarMode("run");
 		dom.dataStatusPanel.hidden = false;
 		if (modelState?.packageKey !== packageKey) {
 			resetModelState();
@@ -1967,7 +1972,7 @@ dropZone.addEventListener("drop", (e) => {
 
 document.getElementById("cards").addEventListener("click", (e) => {
 	const btn = e.target.closest(".btn-grid");
-	if (btn) location.hash = "#grid/" + encodeURIComponent(btn.dataset.var);
+	if (btn) location.hash = createInspectVariableHash(btn.dataset.var);
 });
 
 async function refreshCurrentModelVisuals({ clearDecoded = false } = {}) {
@@ -2048,7 +2053,7 @@ document
 
 // ── Model player events ───────────────────────────────────────────────────────
 
-document.getElementById("grid-back-btn").addEventListener("click", resetApp);
+document.getElementById("map-back-btn").addEventListener("click", resetApp);
 
 dom.forecastVarSelect.addEventListener("change", async (e) => {
 	if (!modelState) return;

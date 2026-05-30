@@ -30,7 +30,7 @@ Use exact values for explicit domain decisions, such as CAPE thresholds, pressur
 | `src/ui/app-shell.test.js` | 2 | Rewrite/remove parts | Some checks protect product copy; others freeze incidental header details. |
 | `src/ui/data-status-summary.test.js` | 2 | Rewrite | Good intent, but class-name and exact punctuation checks are too brittle. |
 | `src/ui/forecast-route.test.js` | 4 | Keep | Small stable routing contract. Low cost. |
-| `src/ui/grid-toolbar-controller.test.js` | 3 | Rewrite | Toolbar mode behavior is useful. Markup/id assertions are too structural. |
+| `src/ui/map-toolbar-controller.test.js` | 2 | Rewrite | Toolbar mode behavior is useful. Markup/id assertions are too structural. |
 | `src/ui/model-list-view.test.js` | 1 | Keep with looser assertions | Protects the package-card use case. It should assert meaning and action, not exact classes. |
 | `src/ui/style-contracts.test.js` | 2 | Remove or heavily rewrite | This is the most fragile suite. It tests CSS selectors and variables, not user behavior. |
 
@@ -50,7 +50,7 @@ Use exact values for explicit domain decisions, such as CAPE thresholds, pressur
 
 - `forecast-route.test.js`
   - All current tests.
-  - Rationale: hash routing is a stable public UI contract, including legacy `#arome/` support.
+  - Rationale: hash routing is a stable public UI contract, including legacy `#grid/` and `#arome/` support.
 
 - `forecast-block-refresh-service.test.js`
   - `loads cache first, downloads missing blocks before refreshing stale blocks`
@@ -96,8 +96,8 @@ Use exact values for explicit domain decisions, such as CAPE thresholds, pressur
   - Avoid asserting exact separator punctuation or full class strings.
   - Prefer assertions like “contains four status items in cache/network/updating/missing order” and “unknown status defaults to missing”.
 
-- `grid-toolbar-controller.test.js`
-  - Keep mode behavior: grid mode shows upload controls; forecast mode shows player controls.
+- `map-toolbar-controller.test.js`
+  - Keep mode behavior: field mode shows uploaded-field controls; run mode shows player controls.
   - Remove or rewrite the markup test that asserts exact IDs in `index.html`. IDs are an implementation detail unless a specific id is used as a stable integration point.
 
 - `model-list-view.test.js`
@@ -168,7 +168,7 @@ Use exact values for explicit domain decisions, such as CAPE thresholds, pressur
 
 - `style-contracts.test.js` and `data-status-summary.test.js` both protect status coloring/class details. Keep only the semantic status summary behavior unless color semantics become a documented accessibility/product contract.
 - `app-shell.test.js` overlaps with manual/product copy review. Keep only copy that is intentionally stable.
-- `grid-toolbar-controller.test.js` and `app-shell.test.js` both inspect raw `index.html`. This should be minimized because the app is moving toward adapters and modules.
+- `map-toolbar-controller.test.js` and `app-shell.test.js` both inspect raw `index.html`. This should be minimized because the app is moving toward adapters and modules.
 - `model-packages.test.js` and `model-list-view.test.js` overlap on variable labels. This is acceptable if `model-packages` protects data configuration and `model-list-view` only checks that provided variables render.
 
 ## Recommended Cleanup Order
@@ -187,4 +187,3 @@ Use exact values for explicit domain decisions, such as CAPE thresholds, pressur
 - Service tests: scenario-based, with injected dependencies and observable event order.
 - UI tests: user intent and visible states, not selector structure.
 - CSS tests: rare. Prefer avoiding them unless the variable or color is a documented semantic contract.
-

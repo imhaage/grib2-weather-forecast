@@ -220,14 +220,14 @@
 		</div>
 
 		<!-- ══════════════════════════════════════════════════════
-		GRID VIEW
+		MAP VIEW
 		══════════════════════════════════════════════════════ -->
-		<div id="view-grid" hidden>
+		<div id="view-map" hidden>
 			<main class="container">
 				<div class="subtitle-wrapper">
-					<div id="gv-sub" class="grid-subtitle"></div>
+					<div id="gv-sub" class="map-subtitle"></div>
 					<button
-						id="grid-back-btn"
+						id="map-back-btn"
 						class="btn-back"
 						type="button"
 						hidden
@@ -297,8 +297,8 @@
 					</details>
 				</details>
 
-				<div id="grid-toolbar" class="grid-toolbar">
-					<div id="grid-stats" class="grid-stats">
+				<div id="map-toolbar" class="map-toolbar">
+					<div id="map-stats" class="map-stats">
 						<div class="stat-item">
 							<span class="stat-label">Min</span>
 							<span class="stat-value" id="gv-min">—</span>
@@ -327,7 +327,7 @@
 				</div>
 
 				<div id="map-scene" class="map-scene">
-					<!-- Forecast player toolbar (shown instead of #grid-toolbar in forecast mode) -->
+					<!-- Forecast player toolbar (shown instead of #map-toolbar in run mode) -->
 					<div id="forecast-player-toolbar" class="forecast-player" hidden>
 						<div id="forecast-var-row" class="forecast-player__controls">
 							<div id="forecast-var-wrap" class="toolbar-ctrl">
@@ -349,14 +349,14 @@
 							</div>
 						</div>
 
-						<div id="gv-meta" class="grid-meta">
+						<div id="gv-meta" class="map-meta">
 							<div>
-								<div id="gv-meta-param" class="grid-meta__param">
-									<div id="gv-name" class="grid-meta__name"></div>
-									<div id="gv-level" class="grid-meta__level"></div>
+								<div id="gv-meta-param" class="map-meta__param">
+									<div id="gv-name" class="map-meta__name"></div>
+									<div id="gv-level" class="map-meta__level"></div>
 								</div>
 
-								<div id="gv-desc" class="grid-meta__desc"></div>
+								<div id="gv-desc" class="map-meta__desc"></div>
 							</div>
 						</div>
 

@@ -2,10 +2,18 @@ import { describe, expect, test } from "vitest";
 import { createForecastPackageHash, parseForecastRoute } from "./forecast-route.js";
 
 describe("forecast route", () => {
-  test("parses uploaded grid routes", () => {
-    expect(parseForecastRoute("#grid/Temperature%20(2m)")).toEqual({
-      type: "grid",
+  test("parses uploaded file inspection routes", () => {
+    expect(parseForecastRoute("#inspect/Temperature%20(2m)")).toEqual({
+      type: "inspect",
       variableShortName: "Temperature (2m)",
+    });
+  });
+
+  test("parses legacy uploaded grid routes as inspections", () => {
+    expect(parseForecastRoute("#grid/Temperature%20(2m)")).toEqual({
+      type: "inspect",
+      variableShortName: "Temperature (2m)",
+      canonicalHash: "#inspect/Temperature%20(2m)",
     });
   });
 
@@ -17,6 +25,7 @@ describe("forecast route", () => {
     expect(parseForecastRoute("#arome/ARPEGE_SP1")).toEqual({
       type: "forecast",
       packageKey: "ARPEGE_SP1",
+      canonicalHash: "#forecast/ARPEGE_SP1",
     });
   });
 

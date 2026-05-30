@@ -15,8 +15,8 @@
 		text-transform: uppercase;
 	}
 
-	/* -- grid-toolbar -- */
-	.grid-toolbar {
+	/* -- map-toolbar -- */
+	.map-toolbar {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
@@ -24,8 +24,8 @@
 		margin-bottom: var(--space-lg);
 	}
 
-	/* -- grid-meta -- */
-	.grid-meta {
+	/* -- map-meta -- */
+	.map-meta {
 		display: flex;
 		align-items: center;
 		gap: var(--space-sm);
@@ -34,19 +34,19 @@
 		border-top: var(--border-strong);
 	}
 
-	.grid-meta__param {
+	.map-meta__param {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: baseline;
 		gap: var(--space-sm);
 	}
 
-	.grid-meta__name {
+	.map-meta__name {
 		font-size: var(--font-lg);
 		font-weight: 600;
 	}
 
-	.grid-meta__level {
+	.map-meta__level {
 		display: inline-block;
 		padding: var(--space-xs) var(--space-sm);
 		color: var(--color-text-1);
@@ -57,13 +57,13 @@
 		white-space: nowrap;
 	}
 
-	.grid-meta__desc {
+	.map-meta__desc {
 		margin-top: var(--space-xs);
 		font-size: var(--font-sm);
 		line-height: 1.45;
 	}
 
-	.grid-subtitle {
+	.map-subtitle {
 		max-width: calc(100% - 72px);
 		margin-bottom: 0;
 		font-size: var(--font-md);
@@ -71,7 +71,7 @@
 		text-align: center;
 	}
 
-	.grid-stats {
+	.map-stats {
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--space-xl);
@@ -96,7 +96,7 @@
 
 	.map-scene.rendering {
 		& .map-wrap,
-		& .grid-meta,
+		& .map-meta,
 		& .forecast-player__slider {
 			visibility: hidden;
 		}
@@ -169,7 +169,7 @@
 			border-radius: 0;
 		}
 
-		& .grid-meta {
+		& .map-meta {
 			display: none;
 		}
 	}

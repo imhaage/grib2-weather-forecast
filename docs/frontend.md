@@ -11,8 +11,8 @@ Served through Vite during development (`npm run dev:visualize`) and built to
 
 ```
 #             → home view  (#view-home)
-#grid/<name>  → grid view  (#view-grid)
-#arome/<key>  → player     (#view-grid in arome toolbar mode)
+#inspect/<name>  → single uploaded field on the map  (#view-map)
+#forecast/<key>  → complete forecast run player      (#view-map)
 ```
 
 ### In-memory state
@@ -83,7 +83,7 @@ multi-level variables and grouped selects.
 
 The home page model sections are generated dynamically by `renderModelList()`, which groups
 `PACKAGES` entries by `model` and appends model metadata plus package buttons into `#model-list`.
-No button IDs are used; click handlers set `location.hash = #arome/${key}`.
+No button IDs are used; click handlers set `location.hash = #forecast/${key}`.
 
 ### File naming conventions
 
@@ -181,10 +181,10 @@ for ARPEGE).
 
 ---
 
-## Grid view
+## Map view — uploaded field inspection
 
 ### Decoding
-`showGridView(shortName)` → `decodeGRIB2(msg.buffer)` (WASM CCSDS/JPEG2000).
+`showMapView(shortName)` → `decodeGRIB2(msg.buffer)` (WASM CCSDS/JPEG2000).
 Result stored in `gridState`.
 
 ### Canvas rendering
