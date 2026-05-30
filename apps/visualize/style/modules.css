@@ -99,7 +99,7 @@
 		text-align: center;
 	}
 
-	#tab-panel-upload .section-desc {
+	.upload-panel__description {
 		margin-bottom: var(--space-md);
 	}
 
@@ -311,7 +311,7 @@
 	}
 
 	/* -- model-list -- */
-	#model-list {
+	.model-list {
 		display: grid;
 		gap: var(--space-md);
 	}
@@ -874,7 +874,7 @@
 		}
 	}
 
-	#clear-grib-cache {
+	.storage-warning__clear {
 		flex: 0 0 auto;
 		padding: var(--space-xs) var(--space-sm);
 		color: var(--color-error);

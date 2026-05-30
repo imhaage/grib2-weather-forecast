@@ -132,7 +132,13 @@
 							<strong id="storage-warning-size">Checking…</strong>
 						</p>
 
-						<button type="button" id="clear-grib-cache">Clear cache</button>
+						<button
+							type="button"
+							id="clear-grib-cache"
+							class="storage-warning__clear"
+						>
+							Clear cache
+						</button>
 					</div>
 
 					<p class="storage-warning__message">
@@ -146,18 +152,20 @@
 
 				<div
 					id="tab-panel-model"
+					class="tab-panel"
 					role="tabpanel"
 					aria-labelledby="tab-btn-model"
 				>
-					<div id="model-list"></div>
+					<div id="model-list" class="model-list"></div>
 				</div>
 
 				<div
 					id="tab-panel-upload"
+					class="tab-panel upload-panel"
 					role="tabpanel"
 					aria-labelledby="tab-btn-upload"
 				>
-					<p class="section-desc">
+					<p class="upload-panel__description section-desc">
 						Inspect variables and metadata from GRIB2 files.
 					</p>
 

@@ -9,13 +9,11 @@
 		display: none !important;
 	}
 
-	#tab-panel-model,
-	#tab-panel-upload {
+	.tab-panel {
 		display: none;
 	}
 
-	#tab-panel-model.active,
-	#tab-panel-upload.active {
+	.tab-panel.active {
 		display: block;
 	}
 }
