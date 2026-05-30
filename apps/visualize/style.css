@@ -4,5 +4,6 @@
 @import "./style/theme.css" layer(theme);
 @import "./style/global.css" layer(global);
 @import "./style/layout.css" layer(layout);
+@import "./style/modules/navigation.css" layer(modules);
 @import "./style/modules.css" layer(modules);
 @import "./style/overrides.css" layer(overrides);
