@@ -552,16 +552,16 @@
 	#map-scene.rendering {
 		& #map-wrap,
 		& .grid-meta,
-		& #forecast-slider-wrap {
+		& .forecast-player__slider {
 			visibility: hidden;
 		}
 
-		& #var-spinner {
+		& .variable-spinner {
 			display: block;
 		}
 	}
 
-	#var-spinner {
+	.variable-spinner {
 		display: none;
 		flex-shrink: 0;
 		width: var(--size-spinner);
@@ -886,42 +886,42 @@
 	}
 
 	/* -- forecast-player -- */
-	#forecast-player-toolbar {
+	.forecast-player {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		gap: var(--space-sm);
 		padding: var(--space-sm) 0;
 		border-top: var(--border-light);
-
-		& #forecast-var-row {
-			display: flex;
-			flex-wrap: wrap;
-			align-items: center;
-			justify-content: start;
-			gap: var(--space-sm);
-			width: 100%;
-		}
-
-		& #forecast-var-select {
-			max-width: 100%;
-		}
-
-		& #forecast-slider-wrap {
-			display: flex;
-			flex-wrap: wrap;
-			align-items: center;
-			gap: var(--space-sm);
-			width: 100%;
-		}
-
-		& #forecast-slider {
-			flex: 1;
-			cursor: pointer;
-		}
 	}
 
-	#cache-warmup {
+	.forecast-player__controls {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: start;
+		gap: var(--space-sm);
+		width: 100%;
+	}
+
+	.forecast-player__select {
+		max-width: 100%;
+	}
+
+	.forecast-player__slider {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-sm);
+		width: 100%;
+	}
+
+	.forecast-player__range {
+		flex: 1;
+		cursor: pointer;
+	}
+
+	.cache-warmup {
 		display: grid;
 		grid-template-columns: minmax(120px, max-content) minmax(140px, 1fr) max-content;
 		align-items: center;
@@ -939,37 +939,36 @@
 			grid-template-columns: 1fr;
 		}
 
-		&.waiting #cache-warmup-track,
-		&.waiting #cache-warmup-count {
+		&.waiting .cache-warmup__track,
+		&.waiting .cache-warmup__count {
 			display: none;
 		}
 
-		&.ready #cache-warmup-bar {
+		&.ready .cache-warmup__bar {
 			background: var(--color-success);
-		}
-
-		& #cache-warmup-track {
-			height: 6px;
-			overflow: hidden;
-			background: var(--color-border);
-			border-radius: var(--radius-pill);
-		}
-
-		& #cache-warmup-bar {
-			width: 0%;
-			height: 100%;
-			background: var(--color-progress);
-			border-radius: inherit;
-			transition: width var(--transition);
-		}
-
-		& #cache-warmup-count {
-			font-variant-numeric: tabular-nums;
 		}
 	}
 
-	#player-reset,
-	#player-play {
+	.cache-warmup__track {
+		height: 6px;
+		overflow: hidden;
+		background: var(--color-border);
+		border-radius: var(--radius-pill);
+	}
+
+	.cache-warmup__bar {
+		width: 0%;
+		height: 100%;
+		background: var(--color-progress);
+		border-radius: inherit;
+		transition: width var(--transition);
+	}
+
+	.cache-warmup__count {
+		font-variant-numeric: tabular-nums;
+	}
+
+	.player-button {
 		flex-shrink: 0;
 		color: var(--color-text);
 		background: var(--color-bg-0);
@@ -987,7 +986,7 @@
 		}
 	}
 
-	#player-play {
+	.player-button--play {
 		&:disabled {
 			color: var(--color-text-muted);
 			background: var(--color-border);
@@ -995,7 +994,7 @@
 		}
 	}
 
-	#forecast-hour-label {
+	.forecast-player__hour {
 		min-width: var(--size-hour-label);
 		font-family: var(--font-family-mono);
 		font-size: var(--font-md);
@@ -1003,7 +1002,7 @@
 		white-space: nowrap;
 	}
 
-	#forecast-valid-time {
+	.forecast-valid-time {
 		position: absolute;
 		top: var(--space-sm);
 		left: var(--space-sm);
@@ -1018,7 +1017,7 @@
 	}
 
 	/* -- runtime-diagnostics -- */
-	#perf-debug {
+	.runtime-diagnostics {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;

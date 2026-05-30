@@ -320,17 +320,17 @@
 
 				<div id="map-scene">
 					<!-- Forecast player toolbar (shown instead of #grid-toolbar in forecast mode) -->
-					<div id="forecast-player-toolbar" hidden>
-						<div id="forecast-var-row">
+					<div id="forecast-player-toolbar" class="forecast-player" hidden>
+						<div id="forecast-var-row" class="forecast-player__controls">
 							<div id="forecast-var-wrap" class="toolbar-ctrl">
 								<label for="forecast-var-select">Parameter</label>
 								<select
 									id="forecast-var-select"
-									class="toolbar-select"
+									class="forecast-player__select toolbar-select"
 								></select>
 							</div>
 
-							<span id="var-spinner"></span>
+							<span id="var-spinner" class="variable-spinner"></span>
 
 							<div id="palette-ctrl-forecast" class="toolbar-ctrl">
 								<label for="palette-select-forecast">Color scale</label>
@@ -352,12 +352,13 @@
 							</div>
 						</div>
 
-						<div id="forecast-slider-wrap">
-							<span id="forecast-hour-label">+01H</span>
+						<div id="forecast-slider-wrap" class="forecast-player__slider">
+							<span id="forecast-hour-label" class="forecast-player__hour">+01H</span>
 
 							<input
 								type="range"
 								id="forecast-slider"
+								class="forecast-player__range"
 								min="0"
 								step="1"
 								value="0"
@@ -365,7 +366,7 @@
 
 							<button
 								id="player-reset"
-								class="icon-button"
+								class="player-button icon-button"
 								type="button"
 								title="Reset"
 								aria-label="Reset"
@@ -380,7 +381,7 @@
 
 							<button
 								id="player-play"
-								class="icon-button"
+								class="player-button player-button--play icon-button"
 								type="button"
 								title="Play"
 								aria-label="Play"
@@ -404,15 +405,15 @@
 						</div>
 					</div>
 
-					<div id="cache-warmup" hidden aria-live="polite">
+					<div id="cache-warmup" class="cache-warmup" hidden aria-live="polite">
 						<span id="cache-warmup-label">Animation cache</span>
-						<div id="cache-warmup-track">
-							<div id="cache-warmup-bar"></div>
+						<div id="cache-warmup-track" class="cache-warmup__track">
+							<div id="cache-warmup-bar" class="cache-warmup__bar"></div>
 						</div>
-						<span id="cache-warmup-count">0 / 0</span>
+						<span id="cache-warmup-count" class="cache-warmup__count">0 / 0</span>
 					</div>
 
-					<div id="perf-debug" hidden aria-live="polite">
+					<div id="perf-debug" class="runtime-diagnostics" hidden aria-live="polite">
 						<span>Perf</span>
 						<span id="perf-debug-render">render —</span>
 						<span id="perf-debug-decode">decode —</span>
@@ -424,7 +425,7 @@
 
 					<div id="map-wrap">
 						<div id="map"></div>
-						<span id="forecast-valid-time"></span>
+						<span id="forecast-valid-time" class="forecast-valid-time"></span>
 						<div id="map-unavailable" class="map-overlay" hidden>
 							Data not available yet
 						</div>
