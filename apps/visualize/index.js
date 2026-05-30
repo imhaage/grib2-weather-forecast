@@ -58,7 +58,9 @@ import {
 	createDataStatusSummaryNodes,
 } from "./src/ui/data-status-summary.js";
 import {
+	createForecastHomeHash,
 	createForecastPackageHash,
+	createInspectHomeHash,
 	createInspectVariableHash,
 	parseForecastRoute,
 } from "./src/ui/forecast-route.js";
@@ -1908,7 +1910,7 @@ function route() {
 		}
 	} else {
 		showView("view-home");
-		showTab("model");
+		showTab(currentRoute.tab);
 	}
 }
 
@@ -1922,7 +1924,12 @@ renderModelList({
 });
 
 for (const btn of document.querySelectorAll(".tab-btn")) {
-	btn.addEventListener("click", () => showTab(btn.dataset.tab));
+	btn.addEventListener("click", () => {
+		location.hash =
+			btn.dataset.tab === "upload"
+				? createInspectHomeHash()
+				: createForecastHomeHash();
+	});
 }
 
 const animationPlayer = createAnimationPlayer({

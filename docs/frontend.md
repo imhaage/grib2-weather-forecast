@@ -10,9 +10,11 @@ Served through Vite during development (`npm run dev:visualize`) and built to
 `apps/visualize/dist` for deployment (`npm run build:visualize`).
 
 ```
-#             → home view  (#view-home)
-#inspect/<name>  → single uploaded field on the map  (#view-map)
-#forecast/<key>  → complete forecast run player      (#view-map)
+#                  → redirects to #forecast
+#forecast          → home view, forecast run tab  (#view-home)
+#inspect           → home view, file inspector tab (#view-home)
+#forecast/<key>    → complete forecast run player  (#view-map)
+#inspect/<name>    → single uploaded field on map  (#view-map)
 ```
 
 ### In-memory state

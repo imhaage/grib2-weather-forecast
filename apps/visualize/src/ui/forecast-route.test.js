@@ -1,7 +1,32 @@
 import { describe, expect, test } from "vitest";
-import { createForecastPackageHash, parseForecastRoute } from "./forecast-route.js";
+import {
+  createForecastHomeHash,
+  createForecastPackageHash,
+  createInspectHomeHash,
+  createInspectVariableHash,
+  parseForecastRoute,
+} from "./forecast-route.js";
 
 describe("forecast route", () => {
+  test("parses canonical home tab routes", () => {
+    expect(parseForecastRoute("#forecast")).toEqual({
+      type: "home",
+      tab: "model",
+    });
+    expect(parseForecastRoute("#inspect")).toEqual({
+      type: "home",
+      tab: "upload",
+    });
+  });
+
+  test("redirects empty hash to the forecast home tab", () => {
+    expect(parseForecastRoute("")).toEqual({
+      type: "home",
+      tab: "model",
+      canonicalHash: "#forecast",
+    });
+  });
+
   test("parses uploaded file inspection routes", () => {
     expect(parseForecastRoute("#inspect/Temperature%20(2m)")).toEqual({
       type: "inspect",
@@ -30,11 +55,20 @@ describe("forecast route", () => {
   });
 
   test("falls back to home for unknown hashes", () => {
-    expect(parseForecastRoute("")).toEqual({ type: "home" });
-    expect(parseForecastRoute("#unknown")).toEqual({ type: "home" });
+    expect(parseForecastRoute("#unknown")).toEqual({
+      type: "home",
+      tab: "model",
+      canonicalHash: "#forecast",
+    });
   });
 
   test("creates canonical forecast package hashes", () => {
+    expect(createForecastHomeHash()).toBe("#forecast");
     expect(createForecastPackageHash("AROME_SP2")).toBe("#forecast/AROME_SP2");
+  });
+
+  test("creates canonical inspect hashes", () => {
+    expect(createInspectHomeHash()).toBe("#inspect");
+    expect(createInspectVariableHash("Temperature (2m)")).toBe("#inspect/Temperature%20(2m)");
   });
 });

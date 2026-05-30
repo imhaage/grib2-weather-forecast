@@ -1,4 +1,26 @@
 export function parseForecastRoute(hash) {
+  if (!hash) {
+    return {
+      type: "home",
+      tab: "model",
+      canonicalHash: createForecastHomeHash(),
+    };
+  }
+
+  if (hash === "#forecast") {
+    return {
+      type: "home",
+      tab: "model",
+    };
+  }
+
+  if (hash === "#inspect") {
+    return {
+      type: "home",
+      tab: "upload",
+    };
+  }
+
   if (hash.startsWith("#inspect/")) {
     return {
       type: "inspect",
@@ -31,7 +53,19 @@ export function parseForecastRoute(hash) {
     };
   }
 
-  return { type: "home" };
+  return {
+    type: "home",
+    tab: "model",
+    canonicalHash: createForecastHomeHash(),
+  };
+}
+
+export function createForecastHomeHash() {
+  return "#forecast";
+}
+
+export function createInspectHomeHash() {
+  return "#inspect";
 }
 
 export function createInspectVariableHash(variableShortName) {
