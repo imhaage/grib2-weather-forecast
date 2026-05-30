@@ -61,6 +61,8 @@
 		/* Borders */
 		--border-light: 1px solid var(--color-border);
 		--border-strong: 1px solid var(--color-border-2);
+		--border-warning: 1px solid var(--color-warning);
+		--border-error: 1px solid var(--color-error);
 		--radius: 0.4rem;
 		--radius-round: 50%;
 		--radius-pill: 999px;

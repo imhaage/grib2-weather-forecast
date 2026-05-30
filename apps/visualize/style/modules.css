@@ -30,19 +30,19 @@
 		.storage-warning-button {
 			color: var(--color-warning);
 			background: none;
-			border: 1px solid var(--color-warning);
+			border: var(--border-warning);
 
 			&:hover {
 				color: var(--color-warning);
 				background: var(--color-bg-500);
-				border: 1px solid var(--color-warning);
+				border: var(--border-warning);
 			}
 
 			&:active,
 			&[aria-expanded="true"] {
 				color: var(--color-text-3);
 				background-color: var(--color-warning);
-				border: 1px solid var(--color-warning);
+				border: var(--border-warning);
 			}
 		}
 
@@ -221,9 +221,9 @@
 	.cards {
 		display: grid;
 		grid-template-columns: repeat(
-			auto-fill,
-			minmax(var(--upload-card-min-width), 1fr)
-		);
+				auto-fill,
+				minmax(var(--upload-card-min-width), 1fr)
+			);
 		gap: var(--space-md);
 	}
 
@@ -879,7 +879,7 @@
 		padding: var(--space-xs) var(--space-sm);
 		color: var(--color-error);
 		background: none;
-		border: 1px solid var(--color-error);
+		border: var(--border-error);
 		font-size: var(--font-sm);
 		white-space: nowrap;
 		cursor: pointer;
@@ -926,7 +926,7 @@
 		grid-template-columns: minmax(120px, max-content) minmax(140px, 1fr) max-content;
 		align-items: center;
 		gap: var(--space-sm);
-		padding: var(--space-xs) var(--space-sm);
+		padding: var(--space-xs) var(--space-md);
 		color: var(--color-text-2);
 		border-top: var(--border-light);
 		font-size: var(--font-sm);
@@ -1046,7 +1046,7 @@
 		font-size: var(--font-sm);
 		color: var(--color-warning);
 		background-color: var(--color-bg-100);
-		border: 1px solid var(--color-warning);
+		border: var(--border-warning);
 
 		& > svg {
 			flex: 0 0 24px;
