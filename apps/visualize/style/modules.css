@@ -666,6 +666,12 @@
 
 	/* -- color-scale -- */
 	.color-scale {
+		--color-scale-bar-height: 10px;
+		--color-scale-tick-area-height: 1.2rem;
+		--color-scale-tick-font-size: 0.62rem;
+		--color-scale-tick-mark-height: 5px;
+		--color-scale-tick-mark-gap: 3px;
+
 		display: flex;
 		align-items: center;
 		gap: var(--space-sm);
@@ -682,26 +688,26 @@
 		position: relative;
 		flex: 1;
 		min-width: 0;
-		padding-bottom: 1.2rem;
+		padding-bottom: var(--color-scale-tick-area-height);
 	}
 
 	.color-scale__bar {
-		height: 10px;
+		height: var(--color-scale-bar-height);
 	}
 
 	.color-scale__ticks {
 		position: absolute;
-		top: 10px;
+		top: var(--color-scale-bar-height);
 		right: 0;
 		left: 0;
-		height: 1.2rem;
+		height: var(--color-scale-tick-area-height);
 	}
 
 	.cs-tick {
 		position: absolute;
 		top: 0;
 		color: var(--color-text-2);
-		font-size: 0.62rem;
+		font-size: var(--color-scale-tick-font-size);
 		line-height: 1;
 		white-space: nowrap;
 		opacity: 0.9;
@@ -711,8 +717,8 @@
 			content: "";
 			display: block;
 			width: 1px;
-			height: 5px;
-			margin: 0 auto 3px;
+			height: var(--color-scale-tick-mark-height);
+			margin: 0 auto var(--color-scale-tick-mark-gap);
 			background: currentColor;
 			opacity: 0.85;
 		}
