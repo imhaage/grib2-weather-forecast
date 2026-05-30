@@ -27,6 +27,6 @@ export function renderUploadedMessageCard(
   ${renderCardRow("Resolution", `${grid.di}° × ${grid.dj}°`)}
   ${renderCardRow("Message #", index)}
 </div>
-<button class="btn-grid" data-var="${product.shortName}">View grid</button>
+<button class="btn-grid" data-var="${product.shortName}">Show on map</button>
     </div>`;
 }

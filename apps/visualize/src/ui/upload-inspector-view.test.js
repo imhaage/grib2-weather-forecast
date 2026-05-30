@@ -38,6 +38,6 @@ describe("upload inspector view", () => {
     expect(wrapper.textContent).toContain("2026-05-22 12:00 UTC");
     expect(wrapper.textContent).toContain("100 x 80");
     expect(wrapper.querySelector("button")?.dataset.var).toBe("t");
-    expect(wrapper.querySelector("button")?.textContent).toBe("View grid");
+    expect(wrapper.querySelector("button")?.textContent).toBe("Show on map");
   });
 });
