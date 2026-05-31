@@ -1,13 +1,11 @@
 // @vitest-environment jsdom
 
-import { describe, expect, test, vi } from "vitest";
+import { describe, expect, test } from "vitest";
 import { renderModelList } from "./model-list-view.js";
 
 describe("model list view", () => {
   test("renders package labels, variables, and map action buttons", () => {
     const container = document.createElement("div");
-    const onPackageSelect = vi.fn();
-
     renderModelList({
       container,
       modelInfo: {
@@ -27,7 +25,6 @@ describe("model list view", () => {
           variables: [{ name: "Temperature (2m)" }, { name: "Relative humidity (2m)" }],
         },
       },
-      onPackageSelect,
     });
 
     expect(container.textContent).toContain("AROME 0.01");
@@ -39,8 +36,8 @@ describe("model list view", () => {
       (button) => button.textContent === "Show on map",
     );
     expect(button?.textContent).toBe("Show on map");
-    button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    expect(onPackageSelect).toHaveBeenCalledWith("AROME_SP1");
+    expect(button?.dataset.action).toBe("show-package");
+    expect(button?.dataset.packageKey).toBe("AROME_SP1");
   });
 
   test("groups home parameters by weather maps then component fields", () => {
@@ -83,7 +80,6 @@ describe("model list view", () => {
           variables: [],
         },
       },
-      onPackageSelect: vi.fn(),
     });
 
     const [sp1, hp1] = container.querySelectorAll(".model-package");

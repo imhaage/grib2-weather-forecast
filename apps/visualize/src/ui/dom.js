@@ -8,6 +8,10 @@ export function mustFind(document, selector) {
 
 export function createDom(document) {
   return {
+    home: {
+      modelList: mustFind(document, "#model-list"),
+      tabButtons: [...document.querySelectorAll(".tab-btn")],
+    },
     forecastDownload: {
       bars: mustFind(document, "#forecast-dl-bars"),
       fileList: mustFind(document, "#forecast-dl-file-list"),

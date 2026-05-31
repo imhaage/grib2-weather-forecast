@@ -71,7 +71,7 @@ function createVariableGroupElement(group) {
   return groupEl;
 }
 
-function createModelPackageElement(key, pkg, onPackageSelect) {
+function createModelPackageElement(key, pkg) {
   const pkgEl = document.createElement("div");
   pkgEl.className = "model-package";
 
@@ -90,17 +90,16 @@ function createModelPackageElement(key, pkg, onPackageSelect) {
 
   const btn = document.createElement("button");
   btn.className = "btn-primary";
+  btn.dataset.action = "show-package";
+  btn.dataset.packageKey = key;
   btn.textContent = "Show on map";
-  btn.addEventListener("click", () => {
-    onPackageSelect(key);
-  });
 
   pkgEl.appendChild(btn);
 
   return pkgEl;
 }
 
-function createModelSectionElement(modelName, entries, modelInfo, onPackageSelect) {
+function createModelSectionElement(modelName, entries, modelInfo) {
   const info = modelInfo[modelName];
 
   const section = document.createElement("section");
@@ -134,7 +133,7 @@ function createModelSectionElement(modelName, entries, modelInfo, onPackageSelec
   const pkgsEl = document.createElement("div");
   pkgsEl.className = "model-packages";
   for (const { key, pkg } of entries) {
-    pkgsEl.appendChild(createModelPackageElement(key, pkg, onPackageSelect));
+    pkgsEl.appendChild(createModelPackageElement(key, pkg));
   }
   data.appendChild(pkgsEl);
 
@@ -143,11 +142,9 @@ function createModelSectionElement(modelName, entries, modelInfo, onPackageSelec
   return section;
 }
 
-export function renderModelList({ container, packages, modelInfo, onPackageSelect }) {
+export function renderModelList({ container, packages, modelInfo }) {
   const groups = groupPackagesByModel(packages);
   for (const [modelName, entries] of Object.entries(groups)) {
-    container.appendChild(
-      createModelSectionElement(modelName, entries, modelInfo, onPackageSelect),
-    );
+    container.appendChild(createModelSectionElement(modelName, entries, modelInfo));
   }
 }

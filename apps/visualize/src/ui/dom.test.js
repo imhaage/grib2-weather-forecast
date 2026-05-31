@@ -5,6 +5,9 @@ import { createDom, mustFind } from "./dom.js";
 
 function renderAppDom() {
   document.body.innerHTML = `
+    <button class="tab-btn" data-tab="model"></button>
+    <button class="tab-btn" data-tab="upload"></button>
+    <div id="model-list"></div>
     <div id="forecast-dl-bars"></div>
     <ul id="forecast-dl-file-list"></ul>
     <p id="forecast-dl-status"></p>
@@ -35,6 +38,8 @@ describe("dom registry", () => {
 
     const dom = createDom(document);
 
+    expect(dom.home.modelList.id).toBe("model-list");
+    expect(dom.home.tabButtons).toHaveLength(2);
     expect(dom.forecastDownload.bars.id).toBe("forecast-dl-bars");
     expect(dom.forecastDownload.fileList.id).toBe("forecast-dl-file-list");
     expect(dom.forecastDownload.status.id).toBe("forecast-dl-status");

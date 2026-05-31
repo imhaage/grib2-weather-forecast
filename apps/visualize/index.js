@@ -69,6 +69,7 @@ import { createAppRouter } from "./src/ui/app-router.js";
 import { setMapToolbarMode } from "./src/ui/map-toolbar-controller.js";
 import { resolveMapBackHash } from "./src/ui/map-back-action.js";
 import { prepareFileInputForPick, setHomeTab } from "./src/ui/home-tabs.js";
+import { bindHomeEvents } from "./src/ui/home-events.js";
 import { renderModelList } from "./src/ui/model-list-view.js";
 import { formatStorageEstimate } from "./src/ui/storage-warning.js";
 import { renderUploadedMessageCard } from "./src/ui/upload-inspector-view.js";
@@ -1910,22 +1911,23 @@ const router = createAppRouter({
 });
 
 renderModelList({
-	container: document.getElementById("model-list"),
+	container: domRefs.home.modelList,
 	packages: PACKAGES,
 	modelInfo: MODEL_INFO,
-	onPackageSelect: (key) => {
-		location.hash = createForecastPackageHash(key);
-	},
 });
 
-for (const btn of document.querySelectorAll(".tab-btn")) {
-	btn.addEventListener("click", () => {
-		location.hash =
-			btn.dataset.tab === "upload"
-				? createInspectHomeHash()
-				: createForecastHomeHash();
-	});
-}
+bindHomeEvents({
+	dom: domRefs,
+	handlers: {
+		onHomeTabSelect: (tabName) => {
+			location.hash =
+				tabName === "upload" ? createInspectHomeHash() : createForecastHomeHash();
+		},
+		onPackageSelect: (key) => {
+			location.hash = createForecastPackageHash(key);
+		},
+	},
+});
 
 const animationPlayer = createAnimationPlayer({
 	playButton: document.getElementById("player-play"),
