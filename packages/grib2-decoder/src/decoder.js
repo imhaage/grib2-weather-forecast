@@ -506,24 +506,50 @@ export function parseGRIB2Header(buffer) {
  *   grid:    object,     - Section 3 grid definition fields
  * }}
  */
+function hasGribSignature(data, offset) {
+    return (
+        data[offset]     === 0x47 &&
+        data[offset + 1] === 0x52 &&
+        data[offset + 2] === 0x49 &&
+        data[offset + 3] === 0x42
+    );
+}
+
+function gribMessageLength(data, offset) {
+    const msgLenHi = u32(data, offset + 8);
+    const msgLenLo = u32(data, offset + 12);
+    return msgLenHi * 0x100000000 + msgLenLo;
+}
+
+function findNextGribMessageOffset(data, startOffset) {
+    for (let offset = startOffset; offset + 16 <= data.length; offset++) {
+        if (!hasGribSignature(data, offset)) continue;
+        const msgLen = gribMessageLength(data, offset);
+        if (msgLen >= 16 && offset + msgLen <= data.length) return offset;
+    }
+    return -1;
+}
+
 export function* iterateGRIB2Messages(buffer) {
     const data   = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
     let offset   = 0;
     let index    = 0;
 
     while (offset + 16 <= data.length) {
-        // Verify "GRIB" signature
-        if (data[offset]     !== 0x47 || data[offset + 1] !== 0x52 ||
-            data[offset + 2] !== 0x49 || data[offset + 3] !== 0x42) {
-            break;
+        if (!hasGribSignature(data, offset)) {
+            const nextOffset = findNextGribMessageOffset(data, offset + 1);
+            if (nextOffset === -1) break;
+            offset = nextOffset;
         }
 
         // 8-byte message length at bytes 8-15 (big-endian)
-        const msgLenHi = u32(data, offset + 8);
-        const msgLenLo = u32(data, offset + 12);
-        const msgLen   = msgLenHi * 0x100000000 + msgLenLo;
-
-        if (msgLen < 16 || offset + msgLen > data.length) break;
+        const msgLen = gribMessageLength(data, offset);
+        if (msgLen < 16 || offset + msgLen > data.length) {
+            const nextOffset = findNextGribMessageOffset(data, offset + 1);
+            if (nextOffset === -1) break;
+            offset = nextOffset;
+            continue;
+        }
 
         const msgData = data.subarray(offset, offset + msgLen);
 

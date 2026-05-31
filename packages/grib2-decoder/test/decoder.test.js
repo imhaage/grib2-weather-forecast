@@ -90,6 +90,21 @@ describe('iterateGRIB2Messages — message views', () => {
         assert.equal(msg.buffer.byteOffset, data.byteOffset);
         assert.equal(msg.buffer.byteLength, msg.length);
     });
+
+    it('continues after padding between GRIB messages', () => {
+        const [first, second] = [...iterateGRIB2Messages(data)].slice(0, 2);
+        const padding = new Uint8Array([0, 1, 2, 3, 4]);
+        const padded = new Uint8Array(first.length + padding.length + second.length);
+        padded.set(first.buffer, 0);
+        padded.set(padding, first.length);
+        padded.set(second.buffer, first.length + padding.length);
+
+        const messages = [...iterateGRIB2Messages(padded)];
+
+        assert.equal(messages.length, 2);
+        assert.equal(messages[0].offset, 0);
+        assert.equal(messages[1].offset, first.length + padding.length);
+    });
 });
 
 // ─── Section 1: Identification ────────────────────────────────────────────────
