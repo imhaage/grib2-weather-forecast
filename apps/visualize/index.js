@@ -57,6 +57,7 @@ import {
 	BLOCK_STATUS_LABELS,
 	createDataStatusSummaryNodes,
 } from "./src/ui/data-status-summary.js";
+import { createDom } from "./src/ui/dom.js";
 import {
 	createForecastHomeHash,
 	createForecastPackageHash,
@@ -77,43 +78,20 @@ const STAT_VALUE_IDS = ["gv-min", "gv-max", "gv-mean", "gv-valid"];
 const VARIABLE_GROUP_ORDER = ["Weather maps", "Component fields"];
 const DECODED_CACHE_SIZE = 2;
 const RASTER_OPACITY = 0.8;
+const domRefs = createDom(document);
 const dom = {
-	get forecastDownloadBars() {
-		return byId("forecast-dl-bars");
-	},
-	get forecastDownloadFileList() {
-		return byId("forecast-dl-file-list");
-	},
-	get forecastDownloadStatus() {
-		return byId("forecast-dl-status");
-	},
-	get forecastSlider() {
-		return byId("forecast-slider");
-	},
-	get forecastVarSelect() {
-		return byId("forecast-var-select");
-	},
-	get cacheWarmup() {
-		return byId("cache-warmup");
-	},
-	get dataStatusPanel() {
-		return byId("data-status-panel");
-	},
-	get dataStatusSummary() {
-		return byId("data-status-summary");
-	},
-	get mapScene() {
-		return byId("map-scene");
-	},
-	get paletteOptions() {
-		return byId("palette-options");
-	},
-	get paletteSelect() {
-		return byId("palette-select");
-	},
-	get paletteSelectForecast() {
-		return byId("palette-select-forecast");
-	},
+	forecastDownloadBars: domRefs.forecastDownload.bars,
+	forecastDownloadFileList: domRefs.forecastDownload.fileList,
+	forecastDownloadStatus: domRefs.forecastDownload.status,
+	forecastSlider: domRefs.forecast.slider,
+	forecastVarSelect: domRefs.forecast.variableSelect,
+	cacheWarmup: domRefs.cacheWarmup.root,
+	dataStatusPanel: domRefs.dataStatus.panel,
+	dataStatusSummary: domRefs.dataStatus.summary,
+	mapScene: domRefs.map.scene,
+	paletteOptions: domRefs.palette.options,
+	paletteSelect: domRefs.palette.uploadSelect,
+	paletteSelectForecast: domRefs.palette.forecastSelect,
 };
 
 function setPaletteSelectValues(palette) {
