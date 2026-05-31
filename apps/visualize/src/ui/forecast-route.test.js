@@ -3,6 +3,7 @@ import {
   createForecastHomeHash,
   createForecastPackageHash,
   createInspectHomeHash,
+  createInspectMessageHash,
   createInspectVariableHash,
   parseForecastRoute,
 } from "./forecast-route.js";
@@ -31,6 +32,10 @@ describe("forecast route", () => {
     expect(parseForecastRoute("#inspect/Temperature%20(2m)")).toEqual({
       type: "inspect",
       variableShortName: "Temperature (2m)",
+    });
+    expect(parseForecastRoute("#inspect/message/3")).toEqual({
+      type: "inspect",
+      messageIndex: 3,
     });
   });
 
@@ -70,5 +75,6 @@ describe("forecast route", () => {
   test("creates canonical inspect hashes", () => {
     expect(createInspectHomeHash()).toBe("#inspect");
     expect(createInspectVariableHash("Temperature (2m)")).toBe("#inspect/Temperature%20(2m)");
+    expect(createInspectMessageHash(3)).toBe("#inspect/message/3");
   });
 });

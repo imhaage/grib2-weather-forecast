@@ -53,7 +53,12 @@ export function bindUploadInspectorEvents({ dom, handlers }) {
     "click",
     (event) => {
       const button = event.target.closest(".btn-grid");
-      if (button) handlers.onUploadedVariableOpen(button.dataset.var);
+      if (!button) return;
+      const messageIndex = Number.parseInt(button.dataset.messageIndex, 10);
+      handlers.onUploadedVariableOpen({
+        messageIndex: Number.isInteger(messageIndex) ? messageIndex : null,
+        variableShortName: button.dataset.var,
+      });
     },
     { signal },
   );

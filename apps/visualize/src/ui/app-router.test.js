@@ -50,7 +50,7 @@ describe("app router", () => {
     expect(calls).toEqual([
       ["showView", "view-map"],
       ["setToolbarMode", "field"],
-      ["showMapView", "t"],
+      ["showMapView", { type: "inspect", variableShortName: "t" }],
     ]);
   });
 

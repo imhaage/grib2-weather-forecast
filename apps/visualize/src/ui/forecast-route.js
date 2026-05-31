@@ -21,6 +21,16 @@ export function parseForecastRoute(hash) {
     };
   }
 
+  if (hash.startsWith("#inspect/message/")) {
+    const messageIndex = Number.parseInt(hash.slice(17), 10);
+    if (Number.isInteger(messageIndex)) {
+      return {
+        type: "inspect",
+        messageIndex,
+      };
+    }
+  }
+
   if (hash.startsWith("#inspect/")) {
     return {
       type: "inspect",
@@ -70,6 +80,10 @@ export function createInspectHomeHash() {
 
 export function createInspectVariableHash(variableShortName) {
   return `#inspect/${encodeURIComponent(variableShortName)}`;
+}
+
+export function createInspectMessageHash(messageIndex) {
+  return `#inspect/message/${encodeURIComponent(messageIndex)}`;
 }
 
 export function createForecastPackageHash(packageKey) {

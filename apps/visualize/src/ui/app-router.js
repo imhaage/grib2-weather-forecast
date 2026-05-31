@@ -26,7 +26,7 @@ export function createAppRouter({
     if (currentRoute.type === "inspect") {
       showView("view-map");
       setToolbarMode("field");
-      showMapView(currentRoute.variableShortName);
+      showMapView(currentRoute);
       return;
     }
 

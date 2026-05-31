@@ -63,6 +63,7 @@ import {
 	createForecastHomeHash,
 	createForecastPackageHash,
 	createInspectHomeHash,
+	createInspectMessageHash,
 	createInspectVariableHash,
 } from "./src/ui/forecast-route.js";
 import { createAppRouter } from "./src/ui/app-router.js";
@@ -876,13 +877,24 @@ function handleMapBack() {
 
 // ── Map view: decode one field + render on map ───────────────────────────────
 
-async function showMapView(shortName) {
+function findUploadedMessage(route) {
+	if (route.messageIndex != null) {
+		return fileState.messages.find((message) => message.index === route.messageIndex);
+	}
+	return fileState.messages.find(
+		(message) => message.product.shortName === route.variableShortName,
+	);
+}
+
+async function showMapView(route) {
 	if (!fileState) {
 		location.hash = "";
 		return;
 	}
 
-	const msg = fileState.messages.find((m) => m.product.shortName === shortName);
+	const msg = findUploadedMessage(
+		typeof route === "string" ? { variableShortName: route } : route,
+	);
 	if (!msg) {
 		location.hash = "";
 		return;
@@ -1954,8 +1966,11 @@ bindUploadInspectorEvents({
 			domRefs.upload.fileInput.click();
 		},
 		onFileSelected: processFile,
-		onUploadedVariableOpen: (variableName) => {
-			location.hash = createInspectVariableHash(variableName);
+		onUploadedVariableOpen: ({ messageIndex, variableShortName }) => {
+			location.hash =
+				messageIndex == null
+					? createInspectVariableHash(variableShortName)
+					: createInspectMessageHash(messageIndex);
 		},
 	},
 });

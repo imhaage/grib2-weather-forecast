@@ -8,7 +8,7 @@ function renderUploadDom() {
     <div id="drop-zone" tabindex="0"></div>
     <input id="file-input" type="file">
     <div id="cards">
-      <button class="btn-grid" data-var="t">Show on map</button>
+      <button class="btn-grid" data-var="t" data-message-index="3">Show on map</button>
     </div>
   `;
 }
@@ -63,7 +63,10 @@ describe("upload inspector events", () => {
     expect(handlers.onFilePickRequest).toHaveBeenCalledTimes(2);
     expect(handlers.onFileSelected).toHaveBeenCalledTimes(2);
     expect(handlers.onFileSelected).toHaveBeenCalledWith(file);
-    expect(handlers.onUploadedVariableOpen).toHaveBeenCalledWith("t");
+    expect(handlers.onUploadedVariableOpen).toHaveBeenCalledWith({
+      messageIndex: 3,
+      variableShortName: "t",
+    });
 
     unbind();
     document.getElementById("drop-zone").click();
