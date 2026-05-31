@@ -72,6 +72,7 @@ import { prepareFileInputForPick, setHomeTab } from "./src/ui/home-tabs.js";
 import { renderModelList } from "./src/ui/model-list-view.js";
 import { formatStorageEstimate } from "./src/ui/storage-warning.js";
 import { renderUploadedMessageCard } from "./src/ui/upload-inspector-view.js";
+import { bindUploadInspectorEvents } from "./src/ui/upload-inspector-events.js";
 import { createDownloadWorker } from "./src/workers/download-worker-client.js";
 
 const byId = (id) => document.getElementById(id);
@@ -1943,36 +1944,18 @@ router.start();
 
 // ── Event wiring ──────────────────────────────────────────────────────────────
 
-const dropZone = document.getElementById("drop-zone");
-const fileInput = document.getElementById("file-input");
-
-dropZone.addEventListener("click", () => {
-	prepareFileInputForPick(fileInput);
-	fileInput.click();
-});
-dropZone.addEventListener("keydown", (e) => {
-	if (e.key === "Enter" || e.key === " ") {
-		prepareFileInputForPick(fileInput);
-		fileInput.click();
-	}
-});
-fileInput.addEventListener("change", () => {
-	if (fileInput.files[0]) processFile(fileInput.files[0]);
-});
-dropZone.addEventListener("dragover", (e) => {
-	e.preventDefault();
-	dropZone.classList.add("over");
-});
-dropZone.addEventListener("dragleave", () => dropZone.classList.remove("over"));
-dropZone.addEventListener("drop", (e) => {
-	e.preventDefault();
-	dropZone.classList.remove("over");
-	if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
-});
-
-document.getElementById("cards").addEventListener("click", (e) => {
-	const btn = e.target.closest(".btn-grid");
-	if (btn) location.hash = createInspectVariableHash(btn.dataset.var);
+bindUploadInspectorEvents({
+	dom: domRefs,
+	handlers: {
+		onFilePickRequest: () => {
+			prepareFileInputForPick(domRefs.upload.fileInput);
+			domRefs.upload.fileInput.click();
+		},
+		onFileSelected: processFile,
+		onUploadedVariableOpen: (variableName) => {
+			location.hash = createInspectVariableHash(variableName);
+		},
+	},
 });
 
 async function refreshCurrentModelVisuals({ clearDecoded = false } = {}) {

@@ -36,6 +36,11 @@ export function createDom(document) {
       uploadSelect: mustFind(document, "#palette-select"),
       forecastSelect: mustFind(document, "#palette-select-forecast"),
     },
+    upload: {
+      dropZone: mustFind(document, "#drop-zone"),
+      fileInput: mustFind(document, "#file-input"),
+      cards: mustFind(document, "#cards"),
+    },
     storage: {
       clearCacheButton: mustFind(document, "#clear-grib-cache"),
       warning: mustFind(document, "#storage-warning"),

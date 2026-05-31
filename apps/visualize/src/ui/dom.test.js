@@ -19,6 +19,9 @@ function renderAppDom() {
     <datalist id="palette-options"></datalist>
     <select id="palette-select"></select>
     <select id="palette-select-forecast"></select>
+    <div id="drop-zone"></div>
+    <input id="file-input">
+    <div id="cards"></div>
     <button id="clear-grib-cache"></button>
     <div id="storage-warning"></div>
     <button id="storage-warning-button"></button>
@@ -46,6 +49,9 @@ describe("dom registry", () => {
     expect(dom.palette.options.id).toBe("palette-options");
     expect(dom.palette.uploadSelect.id).toBe("palette-select");
     expect(dom.palette.forecastSelect.id).toBe("palette-select-forecast");
+    expect(dom.upload.dropZone.id).toBe("drop-zone");
+    expect(dom.upload.fileInput.id).toBe("file-input");
+    expect(dom.upload.cards.id).toBe("cards");
     expect(dom.storage.clearCacheButton.id).toBe("clear-grib-cache");
     expect(dom.storage.warning.id).toBe("storage-warning");
     expect(dom.storage.warningButton.id).toBe("storage-warning-button");
