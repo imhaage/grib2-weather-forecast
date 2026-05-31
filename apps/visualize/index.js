@@ -57,6 +57,7 @@ import {
 	BLOCK_STATUS_LABELS,
 	createDataStatusSummaryNodes,
 } from "./src/ui/data-status-summary.js";
+import { bindAppEvents } from "./src/ui/app-events.js";
 import { createDom } from "./src/ui/dom.js";
 import {
 	createForecastHomeHash,
@@ -85,13 +86,19 @@ const dom = {
 	forecastDownloadStatus: domRefs.forecastDownload.status,
 	forecastSlider: domRefs.forecast.slider,
 	forecastVarSelect: domRefs.forecast.variableSelect,
+	playerPlayButton: domRefs.player.playButton,
 	cacheWarmup: domRefs.cacheWarmup.root,
 	dataStatusPanel: domRefs.dataStatus.panel,
 	dataStatusSummary: domRefs.dataStatus.summary,
 	mapScene: domRefs.map.scene,
+	mapBackButton: domRefs.map.backButton,
 	paletteOptions: domRefs.palette.options,
 	paletteSelect: domRefs.palette.uploadSelect,
 	paletteSelectForecast: domRefs.palette.forecastSelect,
+	clearGribCacheButton: domRefs.storage.clearCacheButton,
+	storageWarning: domRefs.storage.warning,
+	storageWarningButton: domRefs.storage.warningButton,
+	storageWarningSize: domRefs.storage.warningSize,
 };
 
 function setPaletteSelectValues(palette) {
@@ -2037,18 +2044,8 @@ async function onPaletteChange(e) {
 		await rerenderUploadedGridView();
 	}
 }
-document
-	.getElementById("palette-select")
-	.addEventListener("change", onPaletteChange);
-document
-	.getElementById("palette-select-forecast")
-	.addEventListener("change", onPaletteChange);
 
-// ── Model player events ───────────────────────────────────────────────────────
-
-document.getElementById("map-back-btn").addEventListener("click", handleMapBack);
-
-dom.forecastVarSelect.addEventListener("change", async (e) => {
+async function onForecastVariableChange(e) {
 	if (!modelState) return;
 	const varKey = e.target.value;
 	modelState.variable = varKey;
@@ -2067,13 +2064,12 @@ dom.forecastVarSelect.addEventListener("change", async (e) => {
 	}
 
 	await refreshCurrentModelVisuals({ clearDecoded: true });
-});
+}
 
-const forecastSlider = dom.forecastSlider;
-forecastSlider.addEventListener("input", () => {
+function onForecastSliderInput() {
 	if (!modelState) return;
-	showHour(parseInt(forecastSlider.value, 10));
-});
+	showHour(parseInt(dom.forecastSlider.value, 10));
+}
 
 // ── Mini-player ───────────────────────────────────────────────────────────────
 
@@ -2085,40 +2081,35 @@ function syncPlayButtonAvailability() {
 	animationPlayer.syncPlayButtonAvailability();
 }
 
-document
-	.getElementById("clear-grib-cache")
-	.addEventListener("click", async () => {
-		await clearGribCache();
-		dom.forecastDownloadStatus.textContent = "Download cache cleared.";
-		await updateStorageWarningSize();
-	});
-
-const storageWarningButton = document.getElementById("storage-warning-button");
-const storageWarning = document.getElementById("storage-warning");
-const storageWarningSize = document.getElementById("storage-warning-size");
 async function updateStorageWarningSize() {
 	try {
 		const estimate = await navigator.storage?.estimate?.();
-		storageWarningSize.textContent = formatStorageEstimate(estimate);
+		dom.storageWarningSize.textContent = formatStorageEstimate(estimate);
 	} catch {
-		storageWarningSize.textContent = formatStorageEstimate(null);
+		dom.storageWarningSize.textContent = formatStorageEstimate(null);
 	}
 }
 
 function updateStorageWarningSizeIfOpen() {
-	if (storageWarningButton.getAttribute("aria-expanded") !== "true") return;
+	if (dom.storageWarningButton.getAttribute("aria-expanded") !== "true") return;
 	void updateStorageWarningSize();
 }
 
-storageWarningButton.addEventListener("click", () => {
-	const isExpanded =
-		storageWarningButton.getAttribute("aria-expanded") === "true";
-	storageWarning.hidden = isExpanded;
-	storageWarningButton.setAttribute("aria-expanded", String(!isExpanded));
-	if (!isExpanded) updateStorageWarningSize();
-});
+async function onClearCache() {
+	await clearGribCache();
+	dom.forecastDownloadStatus.textContent = "Download cache cleared.";
+	await updateStorageWarningSize();
+}
 
-document.addEventListener("keydown", (e) => {
+function onStorageWarningToggle() {
+	const isExpanded =
+		dom.storageWarningButton.getAttribute("aria-expanded") === "true";
+	dom.storageWarning.hidden = isExpanded;
+	dom.storageWarningButton.setAttribute("aria-expanded", String(!isExpanded));
+	if (!isExpanded) updateStorageWarningSize();
+}
+
+function onDocumentKeydown(e) {
 	if (e.code !== "Space" || !modelState) return;
 	if (
 		e.target.tagName === "INPUT" ||
@@ -2127,7 +2118,21 @@ document.addEventListener("keydown", (e) => {
 	)
 		return;
 	e.preventDefault();
-	document.getElementById("player-play").click();
+	dom.playerPlayButton.click();
+}
+
+bindAppEvents({
+	document,
+	dom: domRefs,
+	handlers: {
+		handleMapBack,
+		onPaletteChange,
+		onForecastVariableChange,
+		onForecastSliderInput,
+		onClearCache,
+		onStorageWarningToggle,
+		onDocumentKeydown,
+	},
 });
 
 updatePerfDiagnostics();

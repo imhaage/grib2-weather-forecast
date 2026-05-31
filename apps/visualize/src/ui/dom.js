@@ -17,6 +17,9 @@ export function createDom(document) {
       slider: mustFind(document, "#forecast-slider"),
       variableSelect: mustFind(document, "#forecast-var-select"),
     },
+    player: {
+      playButton: mustFind(document, "#player-play"),
+    },
     cacheWarmup: {
       root: mustFind(document, "#cache-warmup"),
     },
@@ -26,11 +29,18 @@ export function createDom(document) {
     },
     map: {
       scene: mustFind(document, "#map-scene"),
+      backButton: mustFind(document, "#map-back-btn"),
     },
     palette: {
       options: mustFind(document, "#palette-options"),
       uploadSelect: mustFind(document, "#palette-select"),
       forecastSelect: mustFind(document, "#palette-select-forecast"),
+    },
+    storage: {
+      clearCacheButton: mustFind(document, "#clear-grib-cache"),
+      warning: mustFind(document, "#storage-warning"),
+      warningButton: mustFind(document, "#storage-warning-button"),
+      warningSize: mustFind(document, "#storage-warning-size"),
     },
   };
 }
