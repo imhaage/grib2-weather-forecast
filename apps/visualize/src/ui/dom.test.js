@@ -14,6 +14,9 @@ function renderAppDom() {
     <input id="forecast-slider">
     <select id="forecast-var-select"></select>
     <button id="player-play"></button>
+    <button id="player-reset"></button>
+    <span id="icon-play"></span>
+    <span id="icon-pause"></span>
     <div id="cache-warmup"></div>
     <details id="data-status-panel"></details>
     <span id="data-status-summary"></span>
@@ -46,6 +49,9 @@ describe("dom registry", () => {
     expect(dom.forecast.slider.id).toBe("forecast-slider");
     expect(dom.forecast.variableSelect.id).toBe("forecast-var-select");
     expect(dom.player.playButton.id).toBe("player-play");
+    expect(dom.player.resetButton.id).toBe("player-reset");
+    expect(dom.player.iconPlay.id).toBe("icon-play");
+    expect(dom.player.iconPause.id).toBe("icon-pause");
     expect(dom.cacheWarmup.root.id).toBe("cache-warmup");
     expect(dom.dataStatus.panel.id).toBe("data-status-panel");
     expect(dom.dataStatus.summary.id).toBe("data-status-summary");

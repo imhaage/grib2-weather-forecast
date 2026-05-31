@@ -1930,11 +1930,11 @@ bindHomeEvents({
 });
 
 const animationPlayer = createAnimationPlayer({
-	playButton: document.getElementById("player-play"),
-	resetButton: document.getElementById("player-reset"),
+	playButton: domRefs.player.playButton,
+	resetButton: domRefs.player.resetButton,
 	slider: dom.forecastSlider,
-	iconPlay: document.getElementById("icon-play"),
-	iconPause: document.getElementById("icon-pause"),
+	iconPlay: domRefs.player.iconPlay,
+	iconPause: domRefs.player.iconPause,
 	getModelState: () => modelState,
 	isBitmapCacheComplete,
 	isAnimationCacheReadyForPlayback,

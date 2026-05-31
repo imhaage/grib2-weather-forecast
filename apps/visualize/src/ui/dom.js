@@ -23,6 +23,9 @@ export function createDom(document) {
     },
     player: {
       playButton: mustFind(document, "#player-play"),
+      resetButton: mustFind(document, "#player-reset"),
+      iconPlay: mustFind(document, "#icon-play"),
+      iconPause: mustFind(document, "#icon-pause"),
     },
     cacheWarmup: {
       root: mustFind(document, "#cache-warmup"),
