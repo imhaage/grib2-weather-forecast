@@ -73,6 +73,7 @@ import { prepareFileInputForPick, setHomeTab } from "./src/ui/home-tabs.js";
 import { bindHomeEvents } from "./src/ui/home-events.js";
 import { renderModelList } from "./src/ui/model-list-view.js";
 import { formatStorageEstimate } from "./src/ui/storage-warning.js";
+import { createMapPresentationController } from "./src/controllers/map-presentation-controller.js";
 import { createUploadInspectorController } from "./src/controllers/upload-inspector-controller.js";
 import { renderUploadedMessageCard } from "./src/ui/upload-inspector-view.js";
 import { bindUploadInspectorEvents } from "./src/ui/upload-inspector-events.js";
@@ -90,7 +91,6 @@ const dom = {
 	forecastDownloadStatus: domRefs.forecastDownload.status,
 	forecastHourLabel: domRefs.forecast.hourLabel,
 	forecastSlider: domRefs.forecast.slider,
-	forecastValidTime: domRefs.forecast.validTime,
 	forecastVarSelect: domRefs.forecast.variableSelect,
 	playerPlayButton: domRefs.player.playButton,
 	cacheWarmup: domRefs.cacheWarmup.root,
@@ -102,20 +102,8 @@ const dom = {
 	mapScene: domRefs.map.scene,
 	mapCanvas: domRefs.map.canvas,
 	mapTooltip: domRefs.map.tooltip,
-	mapUnavailable: domRefs.map.unavailable,
 	mapWrap: domRefs.map.wrap,
 	mapBackButton: domRefs.map.backButton,
-	mapSubtitle: domRefs.mapInfo.subtitle,
-	mapName: domRefs.mapInfo.name,
-	mapDescription: domRefs.mapInfo.description,
-	mapLevel: domRefs.mapInfo.level,
-	statMin: domRefs.stats.min,
-	statMax: domRefs.stats.max,
-	statMean: domRefs.stats.mean,
-	statValid: domRefs.stats.valid,
-	colorScale: domRefs.colorScale.root,
-	colorScaleBar: domRefs.colorScale.bar,
-	colorScaleTicks: domRefs.colorScale.ticks,
 	paletteOptions: domRefs.palette.options,
 	paletteSelect: domRefs.palette.uploadSelect,
 	paletteSelectForecast: domRefs.palette.forecastSelect,
@@ -190,6 +178,12 @@ const uploadInspector = createUploadInspectorController({
 	formatSize: fmtSize,
 	iterateMessages: iterateGRIB2Messages,
 	renderCard: buildCard,
+});
+const mapPresentation = createMapPresentationController({
+	dom: domRefs,
+	formatValueForUnits,
+	getCurrentPalette: () => currentPalette,
+	legendTicksFor,
 });
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -611,27 +605,23 @@ function clearMapLayer() {
 }
 
 function clearStats() {
-	dom.statMin.textContent = "—";
-	dom.statMax.textContent = "—";
-	dom.statMean.textContent = "—";
-	dom.statValid.textContent = "—";
+	mapPresentation.clearStats();
 }
 
 function showUnavailableHour(hour) {
 	clearMapLayer();
 	clearStats();
-	dom.forecastValidTime.textContent = formatForecastValidTimeLabel(
-		fmtUnavailableValidTime(hour),
-	);
+	const validTimeLabel = formatForecastValidTimeLabel(fmtUnavailableValidTime(hour));
+	mapPresentation.setForecastValidTime(validTimeLabel);
 	showMapUnavailable();
 }
 
 function showMapUnavailable() {
-	dom.mapUnavailable.hidden = false;
+	mapPresentation.showUnavailable();
 }
 
 function hideMapUnavailable() {
-	dom.mapUnavailable.hidden = true;
+	mapPresentation.hideUnavailable();
 }
 
 function fmtUnavailableValidTime(hour) {
@@ -645,42 +635,21 @@ function fmtUnavailableValidTime(hour) {
 	return fmtHourLabel(hour);
 }
 
-function renderColorScaleTicks({ min, max, units, isLog }) {
-	const ticksEl = dom.colorScaleTicks;
-	ticksEl.replaceChildren();
-	for (const tick of legendTicksFor({
-		paletteName: currentPalette,
-		min,
-		max,
-		isLog,
-	})) {
-		const el = document.createElement("span");
-		el.className = "cs-tick";
-		el.style.left = `${tick.position}%`;
-		el.textContent = formatValueForUnits(tick.value, units, 1);
-		ticksEl.appendChild(el);
-	}
-}
-
 // Populate and show the color scale legend bar.
 function showColorScale(min, max, units, { isLog = false } = {}) {
-	renderColorScaleTicks({ min, max, units, isLog });
-	dom.colorScale.hidden = false;
+	mapPresentation.showColorScale(min, max, units, { isLog });
 }
 
 function hideColorScale() {
-	dom.colorScale.hidden = true;
+	mapPresentation.hideColorScale();
 }
 
 function updateLevelInfo(varDef) {
-	const parts = [varDef?.level, varDef?.units].filter(Boolean);
-	dom.mapLevel.textContent = parts.join(" · ");
+	mapPresentation.updateLevelInfo(varDef);
 }
 
 function updateParamInfo(name, desc, sub) {
-	dom.mapName.textContent = name;
-	dom.mapDescription.textContent = desc;
-	dom.mapSubtitle.textContent = sub;
+	mapPresentation.updateParamInfo(name, desc, sub);
 }
 
 function formatModelPackageSubtitle(packageKey) {
@@ -705,10 +674,7 @@ function formatForecastValidTimeLabel(timeLabel) {
 }
 
 function updateStats(min, max, mean, count, units) {
-	dom.statMin.textContent = formatValueForUnits(min, units, 3) + " " + units;
-	dom.statMax.textContent = formatValueForUnits(max, units, 3) + " " + units;
-	dom.statMean.textContent = formatValueForUnits(mean, units, 3) + " " + units;
-	dom.statValid.textContent = count.toLocaleString();
+	mapPresentation.updateStats(min, max, mean, count, units);
 }
 
 function toDisplayValues(values) {
@@ -1202,9 +1168,8 @@ async function presentBitmapEntry(hour, entry, { values } = {}) {
 		max: entry.renderMin + entry.range,
 	};
 	const stops = gradientStopsFor(currentPalette, scaleRange)
-		.map((stop) => `${stop.color} ${stop.position}%`)
-		.join(", ");
-	dom.colorScaleBar.style.background = `linear-gradient(to right, ${stops})`;
+		.map((stop) => ({ color: stop.color, position: stop.position }));
+	mapPresentation.setColorScaleGradient(stops);
 
 	await initMap();
 	const isFirstLayer = !mapRenderer.hasLayer();
@@ -1234,9 +1199,10 @@ async function presentBitmapEntry(hour, entry, { values } = {}) {
 		product.pdtNumber === 8
 			? { ...product, forecastTime: hour, timeUnit: 1 }
 			: product;
-	dom.forecastValidTime.textContent = formatForecastValidTimeLabel(
+	const validTimeLabel = formatForecastValidTimeLabel(
 		fmtValidTime(header, validTimeProduct),
 	);
+	mapPresentation.setForecastValidTime(validTimeLabel);
 }
 
 async function hydrateTooltipValues(

@@ -64,13 +64,13 @@
 - Modify: `apps/visualize/index.js`
 - Test: `apps/visualize/src/controllers/map-presentation-controller.test.js`
 
-- [ ] Move map metadata updates: parameter title, description, subtitle, level info, valid time.
-- [ ] Move color scale updates and stats rendering.
-- [ ] Move unavailable-map state rendering.
-- [ ] Keep `map-renderer-service` focused on MapLibre/canvas operations.
-- [ ] Add tests around legend/static scale labels and unavailable state.
-- [ ] Run `npm run test:visualize`.
-- [ ] Commit: `refactor: extract map presentation controller`.
+- [x] Move map metadata updates: parameter title, description, subtitle, level info, valid time.
+- [x] Move color scale updates and stats rendering.
+- [x] Move unavailable-map state rendering.
+- [x] Keep `map-renderer-service` focused on MapLibre/canvas operations.
+- [x] Add tests around legend/static scale labels and unavailable state.
+- [x] Run `npm run test:visualize`.
+- [x] Commit: `refactor: extract map presentation controller`.
 
 ### Task 4: Extract Shared Forecast Field Domain Logic
 
