@@ -1734,21 +1734,31 @@ function waitForPresentationIdle(session) {
 const forecastBlockRefreshService = createForecastBlockRefreshService({
 	statuses: BLOCK_STATUS,
 	maxParallelDownloads: MAX_PARALLEL_DOWNLOADS,
-	runWithConcurrency,
-	isRefreshActive: isModelResourceRefreshActive,
-	isBlockInMemoryCurrent: isModelBlockInMemoryCurrent,
-	isBlockInMemoryStale: isModelBlockInMemoryStale,
-	markInMemoryBlockAvailable: markInMemoryModelBlockAvailable,
-	readCachedBlock: readCachedGribBlock,
-	readLatestCachedBlock: readLatestCachedGribBlock,
-	setBlockStatus,
-	resetBlockDownloadProgress,
-	setBlockDownloadProgress,
-	downloadFile: downloadFileProg,
-	writeCachedBlock: writeCachedModelBlock,
-	deleteObsoleteCachedBlocks: deleteObsoleteCachedGribBlocks,
-	enqueueAvailableBlock: enqueueAvailableModelBlockPresentation,
-	waitForPresentationIdle,
+	cache: {
+		readCachedBlock: readCachedGribBlock,
+		readLatestCachedBlock: readLatestCachedGribBlock,
+		writeCachedBlock: writeCachedModelBlock,
+		deleteObsoleteCachedBlocks: deleteObsoleteCachedGribBlocks,
+	},
+	lifecycle: {
+		runWithConcurrency,
+		isRefreshActive: isModelResourceRefreshActive,
+		isBlockInMemoryCurrent: isModelBlockInMemoryCurrent,
+		isBlockInMemoryStale: isModelBlockInMemoryStale,
+	},
+	network: {
+		downloadFile: downloadFileProg,
+	},
+	presentation: {
+		enqueueAvailableBlock: enqueueAvailableModelBlockPresentation,
+		waitForPresentationIdle,
+	},
+	status: {
+		markInMemoryBlockAvailable: markInMemoryModelBlockAvailable,
+		setBlockStatus,
+		resetBlockDownloadProgress,
+		setBlockDownloadProgress,
+	},
 });
 
 async function writeCachedModelBlock(packageKey, block, buffer) {

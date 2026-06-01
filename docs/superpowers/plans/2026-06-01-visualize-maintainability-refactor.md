@@ -145,11 +145,11 @@ Note: `index.js` still contains legacy forecast helpers after the wiring moved t
 - Modify: `apps/visualize/src/services/forecast-block-refresh-service.test.js`
 - Modify: `apps/visualize/src/controllers/forecast-run-controller.js`
 
-- [ ] Replace the long callback list with grouped ports: `cache`, `network`, `status`, `presentation`, `lifecycle`.
-- [ ] Keep refresh ordering unchanged: cache first, missing network fetch second, stale updates third.
-- [ ] Preserve all existing tests and add one test that verifies stale updates still happen after missing files.
-- [ ] Run `npm run test:visualize`.
-- [ ] Commit: `refactor: simplify forecast refresh ports`.
+- [x] Replace the long callback list with grouped ports: `cache`, `network`, `status`, `presentation`, `lifecycle`.
+- [x] Keep refresh ordering unchanged: cache first, missing network fetch second, stale updates third.
+- [x] Preserve all existing tests and add one test that verifies stale updates still happen after missing files.
+- [x] Run `npm run test:visualize`.
+- [x] Commit: `refactor: simplify forecast refresh ports`.
 
 ### Task 8: Type The Main Contracts
 
