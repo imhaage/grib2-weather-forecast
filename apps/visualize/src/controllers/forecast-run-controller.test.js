@@ -279,7 +279,7 @@ describe("forecast run controller", () => {
     expect(dom.forecastDownloadFileList.children).toHaveLength(0);
   });
 
-  test("loads cached blocks, downloads missing blocks, then refreshes stale blocks", async () => {
+  test("shows cache and network status while loading a forecast run", async () => {
     const events = [];
     vi.mocked(readCachedGribBlock).mockImplementation(async (_packageKey, block) =>
       block.key === "01H" ? new Uint8Array([101]) : null,
@@ -305,6 +305,22 @@ describe("forecast run controller", () => {
       events.indexOf("store:03H:network:3"),
     );
     expect(dom.forecastDownloadStatus.textContent).toBe("3 / 3 files");
+    expect(
+      [...dom.forecastDownloadFileList.querySelectorAll(".forecast-download-file")].map((item) => [
+        item.id,
+        item.querySelector(".forecast-download-file__status").textContent,
+      ]),
+    ).toEqual([
+      ["dl-file-01H", "loaded from cache"],
+      ["dl-file-02H", "loaded from network"],
+      ["dl-file-03H", "loaded from network"],
+    ]);
+    expect([...dom.dataStatusSummary.children].map((item) => item.textContent)).toEqual([
+      "1 loaded from cache",
+      "0 missing",
+      "2 loaded from network",
+      "0 updating",
+    ]);
   });
 
   test("changing variable clears decoded values and applies the new default palette", async () => {
