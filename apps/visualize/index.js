@@ -17,6 +17,7 @@ import {
 import { MODEL_INFO, PACKAGES } from "./src/domain/model-packages.js";
 import {
 	buildLUT,
+	gradientStopsFor,
 	LOG_SCALE_FLOOR,
 	legendTicksFor,
 } from "./src/domain/palettes.js";
@@ -27,6 +28,7 @@ import {
 	unitTransformFor,
 } from "./src/domain/unit-transforms.js";
 import {
+	defaultPaletteFor,
 	parameterDescriptionFor,
 	staticScaleFor,
 } from "./src/domain/variable-metadata.js";
@@ -412,6 +414,22 @@ function updateParamInfo(name, description, subtitle) {
 	mapPresentation.updateParamInfo(name, description, subtitle);
 }
 
+function updateLevelInfo(varDef) {
+	mapPresentation.updateLevelInfo(varDef);
+}
+
+function setForecastValidTime(label) {
+	mapPresentation.setForecastValidTime(label);
+}
+
+function setColorScaleGradient(renderMin, range) {
+	const stops = gradientStopsFor(currentPalette, {
+		min: renderMin,
+		max: renderMin + range,
+	}).map(({ color, position }) => ({ color, position }));
+	mapPresentation.setColorScaleGradient(stops);
+}
+
 function updateStats(min, max, mean, count, units) {
 	mapPresentation.updateStats(min, max, mean, count, units);
 }
@@ -503,6 +521,7 @@ function updateStatsAndColorScale(entry) {
 	showColorScale(legendMin, legendMax, entry.displayUnits, {
 		isLog: entry.isLog,
 	});
+	setColorScaleGradient(entry.renderMin, entry.range);
 }
 
 // Create the MapLibre map once. fitBoundsArgs is optional [bounds, options].
@@ -554,12 +573,20 @@ async function showMapView(route) {
 
 	const product = msg.product;
 
+	const defaultPalette = defaultPaletteFor(product.shortName);
+	if (defaultPalette) {
+		currentPalette = defaultPalette;
+		setPaletteSelectValues(defaultPalette);
+	}
+
 	// Populate toolbar
 	updateParamInfo(
 		product.name,
 		parameterDescriptionFor(product.shortName),
 		fmtValidTime(msg.header, product),
 	);
+	updateLevelInfo({ level: fmtLevel(product), units: displayUnitsFor(product.shortName, product.units) });
+	setForecastValidTime(fmtValidTime(msg.header, product));
 
 	// Reset stats
 	clearStats();
