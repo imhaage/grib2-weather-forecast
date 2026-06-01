@@ -404,6 +404,14 @@ function hideColorScale() {
 	mapPresentation.hideColorScale();
 }
 
+function hideMapUnavailable() {
+	mapPresentation.hideUnavailable();
+}
+
+function updateParamInfo(name, description, subtitle) {
+	mapPresentation.updateParamInfo(name, description, subtitle);
+}
+
 function updateStats(min, max, mean, count, units) {
 	mapPresentation.updateStats(min, max, mean, count, units);
 }
