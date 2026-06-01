@@ -160,13 +160,13 @@ Note: `index.js` still contains legacy forecast helpers after the wiring moved t
 - Add JSDoc typedef imports or convert small modules to `.ts`
 - Modify: `apps/visualize/tsconfig.json`
 
-- [ ] Add types for render worker requests/results.
-- [ ] Add types for forecast run state and download session.
-- [ ] Add types for uploaded file state and selected message route.
-- [ ] Enable `checkJs: true` only for selected modules if the whole app is not ready.
-- [ ] Run `npm run typecheck:visualize`.
-- [ ] Run `npm run test:visualize`.
-- [ ] Commit: `refactor: type visualize contracts`.
+- [x] Add types for render worker requests/results.
+- [x] Add types for forecast run state and download session.
+- [x] Add types for uploaded file state and selected message route.
+- [x] Enable `checkJs: true` only for selected modules if the whole app is not ready.
+- [x] Run `npm run typecheck:visualize`.
+- [x] Run `npm run test:visualize`.
+- [x] Commit: `refactor: type visualize contracts`.
 
 ### Task 9: Shrink `index.js` To App Composition
 
