@@ -32,12 +32,12 @@
 - Modify: `apps/visualize/index.js`
 - Test: `apps/visualize/src/ui/dom.test.js`
 
-- [ ] Add missing DOM groups to `createDom()`: performance diagnostics, cache warmup internals, color scale, map info, upload summary, map unavailable, view containers.
-- [ ] Replace direct `document.getElementById()` calls in `index.js` with `domRefs` / `dom`.
-- [ ] Keep dynamic ID lookups for download block rows if needed, or isolate them behind helper functions.
-- [ ] Run `npm run check:visualize`.
-- [ ] Run `npm run test:visualize`.
-- [ ] Commit: `refactor: complete visualize dom registry`.
+- [x] Add missing DOM groups to `createDom()`: performance diagnostics, cache warmup internals, color scale, map info, upload summary, map unavailable, view containers.
+- [x] Replace direct `document.getElementById()` calls in `index.js` with `domRefs` / `dom`.
+- [x] Keep dynamic ID lookups for download block rows if needed, or isolate them behind helper functions.
+- [x] Run `npm run check:visualize`.
+- [x] Run `npm run test:visualize`.
+- [x] Commit: `refactor: complete visualize dom registry`.
 
 ### Task 2: Extract Upload Inspector Controller
 

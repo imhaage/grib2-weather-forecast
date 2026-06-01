@@ -77,31 +77,67 @@ import { renderUploadedMessageCard } from "./src/ui/upload-inspector-view.js";
 import { bindUploadInspectorEvents } from "./src/ui/upload-inspector-events.js";
 import { createDownloadWorker } from "./src/workers/download-worker-client.js";
 
-const byId = (id) => document.getElementById(id);
-const STAT_VALUE_IDS = ["gv-min", "gv-max", "gv-mean", "gv-valid"];
 const VARIABLE_GROUP_ORDER = ["Weather maps", "Component fields"];
 const DECODED_CACHE_SIZE = 2;
 const RASTER_OPACITY = 0.8;
 const domRefs = createDom(document);
 const dom = {
+	viewsHome: domRefs.views.home,
+	viewsMap: domRefs.views.map,
 	forecastDownloadBars: domRefs.forecastDownload.bars,
 	forecastDownloadFileList: domRefs.forecastDownload.fileList,
 	forecastDownloadStatus: domRefs.forecastDownload.status,
+	forecastHourLabel: domRefs.forecast.hourLabel,
 	forecastSlider: domRefs.forecast.slider,
+	forecastValidTime: domRefs.forecast.validTime,
 	forecastVarSelect: domRefs.forecast.variableSelect,
 	playerPlayButton: domRefs.player.playButton,
 	cacheWarmup: domRefs.cacheWarmup.root,
+	cacheWarmupBar: domRefs.cacheWarmup.bar,
+	cacheWarmupCount: domRefs.cacheWarmup.count,
+	cacheWarmupLabel: domRefs.cacheWarmup.label,
 	dataStatusPanel: domRefs.dataStatus.panel,
 	dataStatusSummary: domRefs.dataStatus.summary,
 	mapScene: domRefs.map.scene,
+	mapCanvas: domRefs.map.canvas,
+	mapTooltip: domRefs.map.tooltip,
+	mapUnavailable: domRefs.map.unavailable,
+	mapWrap: domRefs.map.wrap,
 	mapBackButton: domRefs.map.backButton,
+	mapSubtitle: domRefs.mapInfo.subtitle,
+	mapName: domRefs.mapInfo.name,
+	mapDescription: domRefs.mapInfo.description,
+	mapLevel: domRefs.mapInfo.level,
+	statMin: domRefs.stats.min,
+	statMax: domRefs.stats.max,
+	statMean: domRefs.stats.mean,
+	statValid: domRefs.stats.valid,
+	colorScale: domRefs.colorScale.root,
+	colorScaleBar: domRefs.colorScale.bar,
+	colorScaleTicks: domRefs.colorScale.ticks,
 	paletteOptions: domRefs.palette.options,
 	paletteSelect: domRefs.palette.uploadSelect,
 	paletteSelectForecast: domRefs.palette.forecastSelect,
+	uploadSummary: domRefs.upload.summary,
+	uploadName: domRefs.upload.name,
+	uploadSize: domRefs.upload.size,
+	uploadCount: domRefs.upload.count,
+	uploadCentre: domRefs.upload.centre,
+	uploadReferenceTime: domRefs.upload.referenceTime,
+	uploadResults: domRefs.upload.results,
+	uploadCards: domRefs.upload.cards,
+	uploadStatus: domRefs.upload.status,
 	clearGribCacheButton: domRefs.storage.clearCacheButton,
 	storageWarning: domRefs.storage.warning,
 	storageWarningButton: domRefs.storage.warningButton,
 	storageWarningSize: domRefs.storage.warningSize,
+	perfDebugPanel: domRefs.perfDebug.panel,
+	perfDebugRender: domRefs.perfDebug.render,
+	perfDebugDecode: domRefs.perfDebug.decode,
+	perfDebugQueue: domRefs.perfDebug.queue,
+	perfDebugCache: domRefs.perfDebug.cache,
+	perfDebugDecoded: domRefs.perfDebug.decoded,
+	perfDebugGen: domRefs.perfDebug.gen,
 };
 
 function setPaletteSelectValues(palette) {
@@ -144,8 +180,8 @@ const mapRenderer = createMapRendererService({
 	getMapScene: () => dom.mapScene,
 	missingValue: MISSING_VALUE,
 	rasterOpacity: RASTER_OPACITY,
-	tooltipEl: document.getElementById("map-tooltip"),
-	wrapEl: document.getElementById("map-wrap"),
+	tooltipEl: dom.mapTooltip,
+	wrapEl: dom.mapWrap,
 });
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -180,7 +216,7 @@ function scheduleLowPriorityWork() {
 
 function updatePerfDiagnostics() {
 	if (!PERF_DEBUG) return;
-	const panel = document.getElementById("perf-debug");
+	const panel = dom.perfDebugPanel;
 	if (!panel) return;
 
 	const totalBitmaps = modelState?.hourList.length ?? 0;
@@ -190,17 +226,14 @@ function updatePerfDiagnostics() {
 	const decodedSize = modelState?.decoded?.size ?? 0;
 
 	panel.hidden = false;
-	document.getElementById("perf-debug-render").textContent =
-		`render ${fmtPerfMs(perfStats.lastRenderMs)}`;
-	document.getElementById("perf-debug-decode").textContent =
-		`decode ${fmtPerfMs(perfStats.lastDecodeMs)}`;
-	document.getElementById("perf-debug-queue").textContent =
+	dom.perfDebugRender.textContent = `render ${fmtPerfMs(perfStats.lastRenderMs)}`;
+	dom.perfDebugDecode.textContent = `decode ${fmtPerfMs(perfStats.lastDecodeMs)}`;
+	dom.perfDebugQueue.textContent =
 		`queue ${animationCache.queueLength}${animationCache.isPrerendering ? " + active" : ""}`;
-	document.getElementById("perf-debug-cache").textContent =
+	dom.perfDebugCache.textContent =
 		`cache ${readyBitmaps} / ${totalBitmaps || animationCache.size}`;
-	document.getElementById("perf-debug-decoded").textContent =
-		`decoded ${decodedSize}`;
-	document.getElementById("perf-debug-gen").textContent = `gen ${renderGen}`;
+	dom.perfDebugDecoded.textContent = `decoded ${decodedSize}`;
+	dom.perfDebugGen.textContent = `gen ${renderGen}`;
 }
 
 function setRendering(on) {
@@ -446,10 +479,9 @@ function updateWarmupProgress() {
 	container.hidden = isReady;
 	container.classList.toggle("waiting", isWaiting);
 	container.classList.toggle("ready", isReady);
-	document.getElementById("cache-warmup-bar").style.width = `${pct}%`;
-	document.getElementById("cache-warmup-count").textContent =
-		`${ready} / ${total}`;
-	document.getElementById("cache-warmup-label").textContent = isWaiting
+	dom.cacheWarmupBar.style.width = `${pct}%`;
+	dom.cacheWarmupCount.textContent = `${ready} / ${total}`;
+	dom.cacheWarmupLabel.textContent = isWaiting
 		? "Preparing animation cache"
 		: isReady
 			? "Animation ready"
@@ -580,20 +612,16 @@ function processFile(file) {
 			fileState = { messages };
 
 			const first = messages[0];
-			document.getElementById("s-name").textContent = file.name;
-			document.getElementById("s-size").textContent = fmtSize(file.size);
-			document.getElementById("s-count").textContent = messages.length;
-			document.getElementById("s-centre").textContent =
+			dom.uploadName.textContent = file.name;
+			dom.uploadSize.textContent = fmtSize(file.size);
+			dom.uploadCount.textContent = messages.length;
+			dom.uploadCentre.textContent =
 				CENTRES[first.header.centre] ?? `Centre ${first.header.centre}`;
-			document.getElementById("s-reftime").textContent = fmtRefTime(
-				first.header,
-			);
-			document.getElementById("file-summary").hidden = false;
+			dom.uploadReferenceTime.textContent = fmtRefTime(first.header);
+			dom.uploadSummary.hidden = false;
 
-			document.getElementById("cards").innerHTML = messages
-				.map(buildCard)
-				.join("");
-			document.getElementById("results").hidden = false;
+			dom.uploadCards.innerHTML = messages.map(buildCard).join("");
+			dom.uploadResults.hidden = false;
 			setStatus("");
 		} catch (err) {
 			setStatus("Error: " + err.message, true);
@@ -604,7 +632,7 @@ function processFile(file) {
 }
 
 function setStatus(msg, isError = false) {
-	const el = document.getElementById("status");
+	const el = dom.uploadStatus;
 	el.textContent = msg;
 	el.classList.toggle("error", isError);
 }
@@ -617,27 +645,27 @@ function clearMapLayer() {
 }
 
 function clearStats() {
-	for (const id of STAT_VALUE_IDS) {
-		byId(id).textContent = "—";
-	}
+	dom.statMin.textContent = "—";
+	dom.statMax.textContent = "—";
+	dom.statMean.textContent = "—";
+	dom.statValid.textContent = "—";
 }
 
 function showUnavailableHour(hour) {
 	clearMapLayer();
 	clearStats();
-	document.getElementById("forecast-valid-time").textContent =
-		formatForecastValidTimeLabel(fmtUnavailableValidTime(hour));
+	dom.forecastValidTime.textContent = formatForecastValidTimeLabel(
+		fmtUnavailableValidTime(hour),
+	);
 	showMapUnavailable();
 }
 
 function showMapUnavailable() {
-	const el = document.getElementById("map-unavailable");
-	el.hidden = false;
+	dom.mapUnavailable.hidden = false;
 }
 
 function hideMapUnavailable() {
-	const el = document.getElementById("map-unavailable");
-	if (el) el.hidden = true;
+	dom.mapUnavailable.hidden = true;
 }
 
 function fmtUnavailableValidTime(hour) {
@@ -652,7 +680,7 @@ function fmtUnavailableValidTime(hour) {
 }
 
 function renderColorScaleTicks({ min, max, units, isLog }) {
-	const ticksEl = document.getElementById("cs-ticks");
+	const ticksEl = dom.colorScaleTicks;
 	ticksEl.replaceChildren();
 	for (const tick of legendTicksFor({
 		paletteName: currentPalette,
@@ -671,22 +699,22 @@ function renderColorScaleTicks({ min, max, units, isLog }) {
 // Populate and show the color scale legend bar.
 function showColorScale(min, max, units, { isLog = false } = {}) {
 	renderColorScaleTicks({ min, max, units, isLog });
-	document.getElementById("colorscale").hidden = false;
+	dom.colorScale.hidden = false;
 }
 
 function hideColorScale() {
-	document.getElementById("colorscale").hidden = true;
+	dom.colorScale.hidden = true;
 }
 
 function updateLevelInfo(varDef) {
 	const parts = [varDef?.level, varDef?.units].filter(Boolean);
-	document.getElementById("gv-level").textContent = parts.join(" · ");
+	dom.mapLevel.textContent = parts.join(" · ");
 }
 
 function updateParamInfo(name, desc, sub) {
-	document.getElementById("gv-name").textContent = name;
-	document.getElementById("gv-desc").textContent = desc;
-	document.getElementById("gv-sub").textContent = sub;
+	dom.mapName.textContent = name;
+	dom.mapDescription.textContent = desc;
+	dom.mapSubtitle.textContent = sub;
 }
 
 function formatModelPackageSubtitle(packageKey) {
@@ -711,13 +739,10 @@ function formatForecastValidTimeLabel(timeLabel) {
 }
 
 function updateStats(min, max, mean, count, units) {
-	document.getElementById("gv-min").textContent =
-		formatValueForUnits(min, units, 3) + " " + units;
-	document.getElementById("gv-max").textContent =
-		formatValueForUnits(max, units, 3) + " " + units;
-	document.getElementById("gv-mean").textContent =
-		formatValueForUnits(mean, units, 3) + " " + units;
-	document.getElementById("gv-valid").textContent = count.toLocaleString();
+	dom.statMin.textContent = formatValueForUnits(min, units, 3) + " " + units;
+	dom.statMax.textContent = formatValueForUnits(max, units, 3) + " " + units;
+	dom.statMean.textContent = formatValueForUnits(mean, units, 3) + " " + units;
+	dom.statValid.textContent = count.toLocaleString();
 }
 
 function toDisplayValues(values) {
@@ -852,9 +877,9 @@ function resetApp(targetHash = "") {
 	resetModelState();
 	clearMapLayer();
 	setStatus("");
-	document.getElementById("file-summary").hidden = true;
-	document.getElementById("results").hidden = true;
-	document.getElementById("cards").innerHTML = "";
+	dom.uploadSummary.hidden = true;
+	dom.uploadResults.hidden = true;
+	dom.uploadCards.innerHTML = "";
 	dom.dataStatusPanel.hidden = true;
 	location.hash = targetHash;
 }
@@ -922,7 +947,7 @@ async function showMapView(route) {
 	try {
 		decoded = await timedDecodeGRIB2(msg.buffer);
 	} catch (err) {
-		document.getElementById("map").textContent = "Decode error: " + err.message;
+		dom.mapCanvas.textContent = "Decode error: " + err.message;
 		return;
 	}
 
@@ -1226,8 +1251,7 @@ async function presentBitmapEntry(hour, entry, { values } = {}) {
 	const stops = gradientStopsFor(currentPalette, scaleRange)
 		.map((stop) => `${stop.color} ${stop.position}%`)
 		.join(", ");
-	document.getElementById("cs-bar").style.background =
-		`linear-gradient(to right, ${stops})`;
+	dom.colorScaleBar.style.background = `linear-gradient(to right, ${stops})`;
 
 	await initMap();
 	const isFirstLayer = !mapRenderer.hasLayer();
@@ -1257,8 +1281,9 @@ async function presentBitmapEntry(hour, entry, { values } = {}) {
 		product.pdtNumber === 8
 			? { ...product, forecastTime: hour, timeUnit: 1 }
 			: product;
-	document.getElementById("forecast-valid-time").textContent =
-		formatForecastValidTimeLabel(fmtValidTime(header, validTimeProduct));
+	dom.forecastValidTime.textContent = formatForecastValidTimeLabel(
+		fmtValidTime(header, validTimeProduct),
+	);
 }
 
 async function hydrateTooltipValues(
@@ -1328,8 +1353,7 @@ async function showHour(idx) {
 	pendingHourIdx = null;
 	try {
 		const hour = modelState.hourList[idx];
-		document.getElementById("forecast-hour-label").textContent =
-			fmtHourLabel(hour);
+		dom.forecastHourLabel.textContent = fmtHourLabel(hour);
 
 		const cachedEntry = animationCache.getHour(hour);
 		if (cachedEntry) {
@@ -1443,17 +1467,29 @@ async function drainPrerenderQueue() {
 	}
 }
 
+function downloadBarForBlock(block) {
+	return [...dom.forecastDownloadBars.children].find(
+		(item) => item.id === `dl-${block.key}`,
+	);
+}
+
+function downloadFileItemForBlock(block) {
+	return [...dom.forecastDownloadFileList.children].find(
+		(item) => item.id === `dl-file-${block.key}`,
+	);
+}
+
 function setBlockStatus(block, status) {
 	block.status = status;
 	modelState?.blockStatus?.set(block.key, status);
-	const item = document.getElementById(`dl-${block.key}`);
+	const item = downloadBarForBlock(block);
 	if (item) {
 		item.classList.remove(...BLOCK_STATUS_CLASSES);
 		item.classList.add(status);
 		if (status === BLOCK_STATUS.READY) item.classList.add("done");
 		item.title = `${formatRunSummary([block])} · ${status}`;
 	}
-	const fileItem = document.getElementById(`dl-file-${block.key}`);
+	const fileItem = downloadFileItemForBlock(block);
 	if (fileItem) {
 		fileItem.classList.remove(...BLOCK_STATUS_CLASSES);
 		fileItem.classList.add(status);
@@ -1465,7 +1501,7 @@ function setBlockStatus(block, status) {
 }
 
 function setBlockDownloadProgress(block, pct) {
-	document.getElementById(`dl-${block.key}`)?.style.setProperty("--pct", pct);
+	downloadBarForBlock(block)?.style.setProperty("--pct", pct);
 }
 
 function resetBlockDownloadProgress(block) {
@@ -1871,13 +1907,13 @@ async function startDownload(packageKey) {
 // ── Router (hash-based) ───────────────────────────────────────────────────────
 
 function showView(name) {
-	for (const id of ["view-home", "view-map"])
-		document.getElementById(id).hidden = id !== name;
+	dom.viewsHome.hidden = name !== "view-home";
+	dom.viewsMap.hidden = name !== "view-map";
 	mountStorageWarning(name);
 }
 
 function mountStorageWarning(viewId) {
-	const warning = document.getElementById("storage-warning");
+	const warning = dom.storageWarning;
 	const main = document.querySelector(`#${viewId} main`);
 	if (!warning || !main) return;
 	if (warning.parentElement === main && warning === main.firstElementChild) return;
@@ -1889,12 +1925,11 @@ function showTab(name) {
 }
 
 function resetUploadState() {
-	byId("file-summary").hidden = true;
-	byId("results").hidden = true;
-	byId("cards").innerHTML = "";
-	const status = byId("status");
-	status.textContent = "";
-	status.classList.remove("error");
+	dom.uploadSummary.hidden = true;
+	dom.uploadResults.hidden = true;
+	dom.uploadCards.innerHTML = "";
+	dom.uploadStatus.textContent = "";
+	dom.uploadStatus.classList.remove("error");
 }
 
 function setToolbarMode(mode) {
