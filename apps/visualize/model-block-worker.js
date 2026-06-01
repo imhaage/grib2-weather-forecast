@@ -2,6 +2,11 @@ import {
   iterateGRIB2Messages,
   decodeGRIB2,
 } from "/packages/grib2-decoder/dist/grib2-decoder.js";
+import {
+  computeAccumulationDiff,
+  effectiveForecastTime,
+  productMatchesVariable,
+} from "./src/domain/forecast-field.js";
 import { generateIsobars, supportsIsobars } from "./src/domain/isobars.js";
 import { applyUnitTransform } from "./src/domain/unit-transforms.js";
 
@@ -21,20 +26,13 @@ function mercatorCanvasHeight(grid) {
   return Math.round((grid.ni * spanY) / spanX);
 }
 
-function effectiveForecastTime(product, block) {
-  return product.pdtNumber === 8 && block.startHour === block.endHour
-    ? block.endHour
-    : product.forecastTime;
-}
-
 function findMessage(blockKey, block, hour, variable) {
   const buffer = blockBuffers.get(blockKey);
   if (!buffer) return null;
 
   for (const message of iterateGRIB2Messages(buffer)) {
     const { product } = message;
-    if (product.shortName !== variable.shortName) continue;
-    if (variable.levelValue != null && product.levelValue !== variable.levelValue) continue;
+    if (!productMatchesVariable(product, variable)) continue;
     if (effectiveForecastTime(product, block) !== hour) continue;
     return message;
   }
@@ -62,15 +60,11 @@ async function decodeDisplayValues({ blockKey, block, hour, previousBlockKey, pr
     const previousMessage = findMessage(previousBlockKey, previousBlock, previousHour, variable);
     if (previousMessage) {
       const previous = await decodeGRIB2(previousMessage.buffer);
-      const diff = new Float32Array(current.values.length);
-      for (let i = 0; i < current.values.length; i++) {
-        if (current.values[i] <= missingValue || previous.values[i] <= missingValue) {
-          diff[i] = missingValue;
-        } else {
-          diff[i] = Math.max(0, current.values[i] - previous.values[i]);
-        }
-      }
-      values = diff;
+      values = computeAccumulationDiff({
+        currentValues: current.values,
+        previousValues: previous.values,
+        missingValue,
+      });
     } else {
       isFallback = true;
     }

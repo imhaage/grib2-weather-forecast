@@ -82,13 +82,13 @@
 - Modify: `apps/visualize/model-block-worker.js`
 - Test: `apps/visualize/src/domain/forecast-field.test.js`
 
-- [ ] Extract `effectiveForecastTime(product, block)`.
-- [ ] Extract message key construction for `shortName` and optional `levelValue`.
-- [ ] Extract accumulation-diff calculation for PDT 4.8.
-- [ ] Extract render-scale parameter creation where it can be shared safely.
-- [ ] Add tests for single-hour accumulation, level-specific variable lookup, missing previous hour fallback, and regular fields.
-- [ ] Run `npm run test:visualize`.
-- [ ] Commit: `refactor: share forecast field logic`.
+- [x] Extract `effectiveForecastTime(product, block)`.
+- [x] Extract message key construction for `shortName` and optional `levelValue`.
+- [x] Extract accumulation-diff calculation for PDT 4.8.
+- [x] Extract render-scale parameter creation where it can be shared safely.
+- [x] Add tests for single-hour accumulation, level-specific variable lookup, missing previous hour fallback, and regular fields.
+- [x] Run `npm run test:visualize`.
+- [x] Commit: `refactor: share forecast field logic`.
 
 ### Task 5: Deduplicate Raster Rendering Core And Web Mercator Projection
 

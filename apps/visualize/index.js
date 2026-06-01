@@ -13,6 +13,12 @@ import {
 import { createAnimationPlayer } from "./animation-player.js";
 import { generateIsobars, supportsIsobars } from "./src/domain/isobars.js";
 import {
+	computeAccumulationDiff,
+	createRenderScaleParams,
+	effectiveForecastTime,
+	forecastMessageKeys,
+} from "./src/domain/forecast-field.js";
+import {
 	findPackageVariable,
 	MODEL_INFO,
 	PACKAGES,
@@ -691,12 +697,14 @@ function makeRenderParams(
 	const { grid, product, header } = data;
 	const unitTransform = unitTransformFor(product.shortName);
 	const staticScale = staticScaleFor(product.shortName);
-	const renderMin = staticScale ? staticScale.min : 0;
-	const renderMax = staticScale ? staticScale.max : 1;
-	const range = renderMax - renderMin || 1;
-	const isLog = staticScale?.log ?? false;
-	const logDenom = isLog ? Math.log(staticScale.max / LOG_SCALE_FLOOR) : 1;
-	const zeroThreshold = staticScale?.zeroThreshold ?? 0;
+	const {
+		renderMin,
+		renderMax,
+		range,
+		isLog,
+		logDenom,
+		zeroThreshold,
+	} = createRenderScaleParams(staticScale, LOG_SCALE_FLOOR);
 
 	return {
 		values: toDisplayValues(values),
@@ -987,11 +995,12 @@ async function getCachedDecode(hour) {
 	if (!modelState.messageIndex.has(block.key)) indexBlock(block.key);
 
 	const varDef = findPackageVariable(modelState.packageKey, variable);
-	const lookupKey =
-		varDef?.levelValue != null
-			? `${hour}_${varDef.shortName}_${varDef.levelValue}`
-			: `${hour}_${variable}`;
-	const msgRef = modelState.messageIndex.get(block.key)?.get(lookupKey);
+	const lookupKeys = forecastMessageKeys(hour, {
+		shortName: varDef?.shortName ?? variable,
+		levelValue: varDef?.levelValue ?? null,
+	});
+	const blockIndex = modelState.messageIndex.get(block.key);
+	const msgRef = lookupKeys.map((key) => blockIndex?.get(key)).find(Boolean);
 	const msgBuffer = messageViewFromRef(msgRef);
 	if (!msgBuffer) return null;
 
@@ -1030,15 +1039,10 @@ function indexBlock(blockKey) {
 	for (const msg of iterateGRIB2Messages(buffer)) {
 		const { product } = msg;
 		const messageRef = { blockKey, offset: msg.offset, length: msg.length };
-		// PDT 4.8 (accumulation) always has forecastTime=0 (start of interval).
-		// For single-hour blocks, use the block's hour as the effective forecast time.
-		const ft =
-			product.pdtNumber === 8 && block.startHour === block.endHour
-				? block.endHour
-				: product.forecastTime;
-		index.set(`${ft}_${product.shortName}_${product.levelValue}`, messageRef);
-		const simpleKey = `${ft}_${product.shortName}`;
-		if (!index.has(simpleKey)) index.set(simpleKey, messageRef);
+		const ft = effectiveForecastTime(product, block);
+		forecastMessageKeys(ft, product).forEach((key, keyIndex) => {
+			if (keyIndex === 0 || !index.has(key)) index.set(key, messageRef);
+		});
 	}
 	modelState.messageIndex.set(blockKey, index);
 }
@@ -1056,15 +1060,11 @@ async function computeRenderParams(data, idx) {
 		const prevHour = modelState.hourList[idx - 1];
 		const prevData = await getCachedDecode(prevHour);
 		if (prevData !== null) {
-			const diff = new Float32Array(values.length);
-			for (let i = 0; i < values.length; i++) {
-				if (values[i] <= MISSING_VALUE || prevData.values[i] <= MISSING_VALUE) {
-					diff[i] = MISSING_VALUE;
-				} else {
-					diff[i] = Math.max(0, values[i] - prevData.values[i]);
-				}
-			}
-			displayValues = diff;
+			displayValues = computeAccumulationDiff({
+				currentValues: values,
+				previousValues: prevData.values,
+				missingValue: MISSING_VALUE,
+			});
 		} else {
 			isFallback = true;
 		}
@@ -1089,10 +1089,8 @@ function modelWorkerRequestForHour(idx, hour, { includeValues = false } = {}) {
 	);
 	const shortName = varDef?.shortName ?? modelState.variable;
 	const staticScale = staticScaleFor(shortName);
-	const renderMin = staticScale ? staticScale.min : 0;
-	const renderMax = staticScale ? staticScale.max : 1;
-	const range = renderMax - renderMin || 1;
-	const isLog = staticScale?.log ?? false;
+	const { renderMin, renderMax, range, isLog, logDenom, zeroThreshold } =
+		createRenderScaleParams(staticScale, LOG_SCALE_FLOOR);
 	const prevHour = idx > 0 ? modelState.hourList[idx - 1] : null;
 	const previousBlock = prevHour != null ? blockForHour(prevHour) : null;
 
@@ -1115,8 +1113,8 @@ function modelWorkerRequestForHour(idx, hour, { includeValues = false } = {}) {
 		range,
 		isLog,
 		logFloor: LOG_SCALE_FLOOR,
-		logDenom: isLog ? Math.log(staticScale.max / LOG_SCALE_FLOOR) : 1,
-		zeroThreshold: staticScale?.zeroThreshold ?? 0,
+		logDenom,
+		zeroThreshold,
 		displayUnits: displayUnitsFor(shortName, varDef?.units),
 		lut: buildLUT(currentPalette, { min: renderMin, max: renderMax }),
 		missingValue: MISSING_VALUE,
