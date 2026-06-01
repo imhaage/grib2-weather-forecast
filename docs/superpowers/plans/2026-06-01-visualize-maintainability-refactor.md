@@ -48,12 +48,12 @@
 - Modify: `apps/visualize/index.js`
 - Test: `apps/visualize/src/controllers/upload-inspector-controller.test.js`
 
-- [ ] Move `fileState`, `processFile`, `setStatus`, `buildCard`, `findUploadedMessage`, and uploaded-file map lookup behavior into the controller.
-- [ ] Expose a small API: `processFile(file)`, `getSelectedMessage(route)`, `reset()`, `hasFile()`.
-- [ ] Keep route decisions in the router/app shell, not inside the controller.
-- [ ] Add tests for multi-message rendering count, reset behavior, and message-index lookup.
-- [ ] Run `npm run test:visualize`.
-- [ ] Commit: `refactor: extract upload inspector controller`.
+- [x] Move `fileState`, `processFile`, `setStatus`, `buildCard`, `findUploadedMessage`, and uploaded-file map lookup behavior into the controller.
+- [x] Expose a small API: `processFile(file)`, `getSelectedMessage(route)`, `reset()`, `hasFile()`.
+- [x] Keep route decisions in the router/app shell, not inside the controller.
+- [x] Add tests for multi-message rendering count, reset behavior, and message-index lookup.
+- [x] Run `npm run test:visualize`.
+- [x] Commit: `refactor: extract upload inspector controller`.
 
 ### Task 3: Extract Map Presentation Helpers
 

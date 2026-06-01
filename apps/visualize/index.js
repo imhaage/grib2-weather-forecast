@@ -73,6 +73,7 @@ import { prepareFileInputForPick, setHomeTab } from "./src/ui/home-tabs.js";
 import { bindHomeEvents } from "./src/ui/home-events.js";
 import { renderModelList } from "./src/ui/model-list-view.js";
 import { formatStorageEstimate } from "./src/ui/storage-warning.js";
+import { createUploadInspectorController } from "./src/controllers/upload-inspector-controller.js";
 import { renderUploadedMessageCard } from "./src/ui/upload-inspector-view.js";
 import { bindUploadInspectorEvents } from "./src/ui/upload-inspector-events.js";
 import { createDownloadWorker } from "./src/workers/download-worker-client.js";
@@ -153,7 +154,6 @@ for (const sel of [dom.paletteSelect, dom.paletteSelectForecast]) {
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let fileState = null; // { messages: Array }
 let gridState = null; // { values, min, range, grid, product }
 let currentPalette = "Plasma";
 let modelState = null; // { packageKey, resources, buffers, messageIndex, hourList, decoded, decodedOrder, variable, currentHour, lastRunInfo }
@@ -182,6 +182,14 @@ const mapRenderer = createMapRendererService({
 	rasterOpacity: RASTER_OPACITY,
 	tooltipEl: dom.mapTooltip,
 	wrapEl: dom.mapWrap,
+});
+const uploadInspector = createUploadInspectorController({
+	centres: CENTRES,
+	dom: domRefs.upload,
+	formatRefTime: fmtRefTime,
+	formatSize: fmtSize,
+	iterateMessages: iterateGRIB2Messages,
+	renderCard: buildCard,
 });
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -595,48 +603,6 @@ function buildCard(message) {
 	});
 }
 
-// ── Home view: process uploaded file ─────────────────────────────────────────
-
-function processFile(file) {
-	setStatus("Reading file…");
-	const reader = new FileReader();
-	reader.onload = (e) => {
-		try {
-			const buffer = e.target.result;
-			const messages = [...iterateGRIB2Messages(buffer)];
-			if (messages.length === 0) {
-				setStatus("No GRIB2 messages found.", true);
-				return;
-			}
-
-			fileState = { messages };
-
-			const first = messages[0];
-			dom.uploadName.textContent = file.name;
-			dom.uploadSize.textContent = fmtSize(file.size);
-			dom.uploadCount.textContent = messages.length;
-			dom.uploadCentre.textContent =
-				CENTRES[first.header.centre] ?? `Centre ${first.header.centre}`;
-			dom.uploadReferenceTime.textContent = fmtRefTime(first.header);
-			dom.uploadSummary.hidden = false;
-
-			dom.uploadCards.innerHTML = messages.map(buildCard).join("");
-			dom.uploadResults.hidden = false;
-			setStatus("");
-		} catch (err) {
-			setStatus("Error: " + err.message, true);
-		}
-	};
-	reader.onerror = () => setStatus("Could not read file.", true);
-	reader.readAsArrayBuffer(file);
-}
-
-function setStatus(msg, isError = false) {
-	const el = dom.uploadStatus;
-	el.textContent = msg;
-	el.classList.toggle("error", isError);
-}
-
 function clearMapLayer() {
 	mapRenderer.clearLayer();
 	gridState = null;
@@ -873,13 +839,9 @@ function resetModelState() {
 }
 
 function resetApp(targetHash = "") {
-	fileState = null;
+	uploadInspector.reset();
 	resetModelState();
 	clearMapLayer();
-	setStatus("");
-	dom.uploadSummary.hidden = true;
-	dom.uploadResults.hidden = true;
-	dom.uploadCards.innerHTML = "";
 	dom.dataStatusPanel.hidden = true;
 	location.hash = targetHash;
 }
@@ -902,22 +864,13 @@ function handleMapBack() {
 
 // ── Map view: decode one field + render on map ───────────────────────────────
 
-function findUploadedMessage(route) {
-	if (route.messageIndex != null) {
-		return fileState.messages.find((message) => message.index === route.messageIndex);
-	}
-	return fileState.messages.find(
-		(message) => message.product.shortName === route.variableShortName,
-	);
-}
-
 async function showMapView(route) {
-	if (!fileState) {
+	if (!uploadInspector.hasFile()) {
 		location.hash = "";
 		return;
 	}
 
-	const msg = findUploadedMessage(
+	const msg = uploadInspector.getSelectedMessage(
 		typeof route === "string" ? { variableShortName: route } : route,
 	);
 	if (!msg) {
@@ -1925,11 +1878,7 @@ function showTab(name) {
 }
 
 function resetUploadState() {
-	dom.uploadSummary.hidden = true;
-	dom.uploadResults.hidden = true;
-	dom.uploadCards.innerHTML = "";
-	dom.uploadStatus.textContent = "";
-	dom.uploadStatus.classList.remove("error");
+	uploadInspector.reset();
 }
 
 function setToolbarMode(mode) {
@@ -2000,7 +1949,7 @@ bindUploadInspectorEvents({
 			prepareFileInputForPick(domRefs.upload.fileInput);
 			domRefs.upload.fileInput.click();
 		},
-		onFileSelected: processFile,
+		onFileSelected: uploadInspector.processFile,
 		onUploadedVariableOpen: ({ messageIndex, variableShortName }) => {
 			location.hash =
 				messageIndex == null
