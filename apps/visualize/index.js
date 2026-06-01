@@ -85,6 +85,7 @@ import { renderModelList } from "./src/ui/model-list-view.js";
 import { formatStorageEstimate } from "./src/ui/storage-warning.js";
 import { createMapPresentationController } from "./src/controllers/map-presentation-controller.js";
 import { createUploadInspectorController } from "./src/controllers/upload-inspector-controller.js";
+import { createForecastRunController } from "./src/controllers/forecast-run-controller.js";
 import { renderUploadedMessageCard } from "./src/ui/upload-inspector-view.js";
 import { bindUploadInspectorEvents } from "./src/ui/upload-inspector-events.js";
 import { createDownloadWorker } from "./src/workers/download-worker-client.js";
@@ -162,6 +163,7 @@ let modelBlockService = null;
 let downloadWorker = null;
 let renderGen = 0;
 let nextCallId = 0;
+let forecastRun = null;
 const animationCache = createAnimationCacheService();
 let tooltipHydrateTimer = null;
 let tooltipHydrateToken = 0;
@@ -194,6 +196,32 @@ const mapPresentation = createMapPresentationController({
 	formatValueForUnits,
 	getCurrentPalette: () => currentPalette,
 	legendTicksFor,
+});
+forecastRun = createForecastRunController({
+	document,
+	window,
+	dom,
+	mapRenderer,
+	mapPresentation,
+	perfDebug: PERF_DEBUG,
+	missingValue: MISSING_VALUE,
+	timedDecode: timedDecodeGRIB2,
+	makeRenderParams,
+	makeGridState,
+	gridCorners,
+	initMap,
+	getCurrentPalette: () => currentPalette,
+	getGridState: () => gridState,
+	setCurrentPalette: (palette) => {
+		currentPalette = palette;
+		setPaletteSelectValues(palette);
+	},
+	setGridState: (state) => {
+		gridState = state;
+	},
+	setRendering,
+	updateDiagnostics: updatePerfDiagnostics,
+	updateStorageWarningSizeIfOpen,
 });
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -231,21 +259,23 @@ function updatePerfDiagnostics() {
 	const panel = dom.perfDebugPanel;
 	if (!panel) return;
 
-	const totalBitmaps = modelState?.hourList.length ?? 0;
-	const readyBitmaps = totalBitmaps
-		? bitmapCacheReadyCount()
-		: animationCache.size;
-	const decodedSize = modelState?.decoded?.size ?? 0;
+	const diagnostics = forecastRun?.getDiagnostics();
+	const totalBitmaps = diagnostics?.totalBitmaps ?? 0;
+	const readyBitmaps = diagnostics?.readyBitmaps ?? animationCache.size;
+	const decodedSize = diagnostics?.decodedSize ?? 0;
+	const queueLength = diagnostics?.queueLength ?? animationCache.queueLength;
+	const isPrerendering =
+		diagnostics?.isPrerendering ?? animationCache.isPrerendering;
 
 	panel.hidden = false;
-	dom.perfDebugRender.textContent = `render ${fmtPerfMs(perfStats.lastRenderMs)}`;
-	dom.perfDebugDecode.textContent = `decode ${fmtPerfMs(perfStats.lastDecodeMs)}`;
+	dom.perfDebugRender.textContent = `render ${fmtPerfMs(diagnostics?.lastRenderMs ?? perfStats.lastRenderMs)}`;
+	dom.perfDebugDecode.textContent = `decode ${fmtPerfMs(diagnostics?.lastDecodeMs ?? perfStats.lastDecodeMs)}`;
 	dom.perfDebugQueue.textContent =
-		`queue ${animationCache.queueLength}${animationCache.isPrerendering ? " + active" : ""}`;
+		`queue ${queueLength}${isPrerendering ? " + active" : ""}`;
 	dom.perfDebugCache.textContent =
 		`cache ${readyBitmaps} / ${totalBitmaps || animationCache.size}`;
 	dom.perfDebugDecoded.textContent = `decoded ${decodedSize}`;
-	dom.perfDebugGen.textContent = `gen ${renderGen}`;
+	dom.perfDebugGen.textContent = `gen ${diagnostics?.renderGen ?? renderGen}`;
 }
 
 function setRendering(on) {
@@ -796,7 +826,7 @@ function resetModelState() {
 
 function resetApp(targetHash = "") {
 	uploadInspector.reset();
-	resetModelState();
+	forecastRun.resetModelState();
 	clearMapLayer();
 	dom.dataStatusPanel.hidden = true;
 	location.hash = targetHash;
@@ -810,8 +840,10 @@ function closeInspectMapView(targetHash) {
 }
 
 function handleMapBack() {
-	const targetHash = resolveMapBackHash({ hasModelState: Boolean(modelState) });
-	if (!modelState) {
+	const targetHash = resolveMapBackHash({
+		hasModelState: forecastRun.hasModelState(),
+	});
+	if (!forecastRun.hasModelState()) {
 		closeInspectMapView(targetHash);
 		return;
 	}
@@ -887,7 +919,7 @@ async function showMapView(route) {
 }
 
 async function rerenderUploadedGridView() {
-	if (!gridState || modelState) return;
+	if (!gridState || forecastRun.hasModelState()) return;
 	const { grid } = gridState;
 	const { outH } = ensureHeatCanvas(grid);
 
@@ -1840,7 +1872,7 @@ const router = createAppRouter({
 	addEventListener: (...args) => window.addEventListener(...args),
 	removeEventListener: (...args) => window.removeEventListener(...args),
 	isValidPackage: (packageKey) => Boolean(PACKAGES[packageKey]),
-	getCurrentPackageKey: () => modelState?.packageKey ?? null,
+	getCurrentPackageKey: forecastRun.getPackageKey,
 	showView,
 	showTab,
 	setToolbarMode,
@@ -1848,8 +1880,8 @@ const router = createAppRouter({
 	showDataStatusPanel: () => {
 		dom.dataStatusPanel.hidden = false;
 	},
-	resetModelState,
-	startDownload,
+	resetModelState: forecastRun.resetModelState,
+	startDownload: forecastRun.startDownload,
 });
 
 renderModelList({
@@ -1877,12 +1909,15 @@ const animationPlayer = createAnimationPlayer({
 	slider: dom.forecastSlider,
 	iconPlay: domRefs.player.iconPlay,
 	iconPause: domRefs.player.iconPause,
-	getModelState: () => modelState,
-	isBitmapCacheComplete,
-	isAnimationCacheReadyForPlayback,
-	queueCurrentTooltipValueHydration,
-	showHour,
+	getModelState: forecastRun.getModelState,
+	isBitmapCacheComplete: forecastRun.isBitmapCacheComplete,
+	isAnimationCacheReadyForPlayback:
+		forecastRun.isAnimationCacheReadyForPlayback,
+	queueCurrentTooltipValueHydration:
+		forecastRun.queueCurrentTooltipValueHydration,
+	showHour: forecastRun.showHour,
 });
+forecastRun.setAnimationPlayer(animationPlayer);
 
 router.start();
 
@@ -1968,37 +2003,19 @@ async function onPaletteChange(e) {
 	currentPalette = e.target.value;
 	setPaletteSelectValues(currentPalette);
 	if (!gridState) return;
-	if (modelState) {
-		await refreshCurrentModelVisuals();
+	if (forecastRun.hasModelState()) {
+		await forecastRun.refreshCurrentModelVisuals();
 	} else {
 		await rerenderUploadedGridView();
 	}
 }
 
 async function onForecastVariableChange(e) {
-	if (!modelState) return;
-	const varKey = e.target.value;
-	modelState.variable = varKey;
-	const varDef = findPackageVariable(modelState.packageKey, varKey);
-	const shortName = varDef?.shortName ?? varKey;
-	applyDefaultPalette(varKey);
-
-	// Immediately sync gv-meta — the async decode may be delayed or queued.
-	if (varDef) {
-		updateParamInfo(
-			varDef.name,
-			parameterDescriptionFor(shortName),
-			formatModelPackageSubtitle(modelState.packageKey),
-		);
-		updateLevelInfo(varDef);
-	}
-
-	await refreshCurrentModelVisuals({ clearDecoded: true });
+	await forecastRun.handleVariableChange(e.target.value);
 }
 
 function onForecastSliderInput() {
-	if (!modelState) return;
-	showHour(parseInt(dom.forecastSlider.value, 10));
+	forecastRun.onForecastSliderInput();
 }
 
 // ── Mini-player ───────────────────────────────────────────────────────────────
@@ -2040,7 +2057,7 @@ function onStorageWarningToggle() {
 }
 
 function onDocumentKeydown(e) {
-	if (e.code !== "Space" || !modelState) return;
+	if (e.code !== "Space" || !forecastRun.hasModelState()) return;
 	if (
 		e.target.tagName === "INPUT" ||
 		e.target.tagName === "SELECT" ||

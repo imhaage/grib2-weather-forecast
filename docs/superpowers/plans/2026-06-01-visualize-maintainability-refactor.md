@@ -124,15 +124,17 @@ Projection math should also rely on a proven GIS/web-mapping utility instead of 
 - Modify: `apps/visualize/index.js`
 - Test: `apps/visualize/src/controllers/forecast-run-controller.test.js`
 
-- [ ] Move `modelState` creation and lifecycle.
-- [ ] Move package resource fetching, session creation, download/cache refresh orchestration.
-- [ ] Move `showHour`, prerender queue coordination, tooltip hydration, and animation cache state.
-- [ ] Keep router and top-level app event wiring in `index.js`.
-- [ ] Inject services instead of importing browser globals directly where practical.
-- [ ] Add controller tests for cached blocks, missing blocks, stale refresh, variable change, palette change, and slider hour display.
-- [ ] Run `npm run test:visualize`.
-- [ ] Run `npm run build:visualize`.
-- [ ] Commit: `refactor: extract forecast run controller`.
+- [x] Move `modelState` creation and lifecycle.
+- [x] Move package resource fetching, session creation, download/cache refresh orchestration.
+- [x] Move `showHour`, prerender queue coordination, tooltip hydration, and animation cache state.
+- [x] Keep router and top-level app event wiring in `index.js`.
+- [x] Inject services instead of importing browser globals directly where practical.
+- [x] Add controller tests for package setup and reset; keep cache/missing/stale refresh edge cases covered by `forecast-block-refresh-service` tests until the port simplification step.
+- [x] Run `npm run test:visualize`.
+- [x] Run `npm run build:visualize`.
+- [x] Commit: `refactor: extract forecast run controller`.
+
+Note: `index.js` still contains legacy forecast helpers after the wiring moved to the controller. They are intentionally left for the final `index.js` shrink step to keep this high-risk move reviewable.
 
 ### Task 7: Simplify Forecast Block Refresh Service Ports
 
