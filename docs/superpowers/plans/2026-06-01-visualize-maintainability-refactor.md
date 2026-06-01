@@ -176,13 +176,13 @@ Note: `index.js` still contains legacy forecast helpers after the wiring moved t
 - Modify: `apps/visualize/index.js`
 - Possibly modify extracted controllers if integration gaps appear.
 
-- [ ] Keep imports, service/controller creation, router creation, and event binding in `index.js`.
-- [ ] Remove feature-level helper functions that now belong to controllers or domain modules.
-- [ ] Confirm `index.js` is mostly composition code and significantly smaller.
-- [ ] Run `npm run check:visualize`.
-- [ ] Run `npm run test:visualize`.
-- [ ] Run `npm run build:visualize`.
-- [ ] Commit: `refactor: simplify visualize app composition`.
+- [x] Keep imports, service/controller creation, router creation, and event binding in `index.js`.
+- [x] Remove feature-level helper functions that now belong to controllers or domain modules.
+- [x] Confirm `index.js` is mostly composition code and significantly smaller.
+- [x] Run `npm run check:visualize`.
+- [x] Run `npm run test:visualize`.
+- [x] Run `npm run build:visualize`.
+- [x] Commit: `refactor: simplify visualize app composition`.
 
 ---
 
