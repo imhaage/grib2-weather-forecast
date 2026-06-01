@@ -104,16 +104,16 @@ Projection math should also rely on a proven GIS/web-mapping utility instead of 
 - Test: `apps/visualize/src/workers/render-field-core.test.js`
 - Test: `apps/visualize/src/domain/web-mercator.test.js`
 
-- [ ] Evaluate `@math.gl/web-mercator` as the preferred shared Web Mercator dependency because it is worker-friendly and aligned with the web mapping ecosystem.
-- [ ] Add the dependency only if bundle/worker compatibility is acceptable; otherwise document why the local fallback remains.
-- [ ] Extract projection and canvas-height calculation behind `src/domain/web-mercator.js`, so main thread and workers use the same API.
-- [ ] Extract the pixel loop into a pure function that returns `ImageData` plus stats.
-- [ ] Use the shared core from both workers.
-- [ ] Preserve transfer behavior for `ImageBitmap` and optional values.
-- [ ] Add tests for projection consistency, stats, missing values, zero threshold, linear scale, and log scale.
-- [ ] Run `npm run test:visualize`.
-- [ ] Run `npm run build:visualize`.
-- [ ] Commit: `refactor: share raster rendering core`.
+- [x] Evaluate `@math.gl/web-mercator` as the preferred shared Web Mercator dependency because it is worker-friendly and aligned with the web mapping ecosystem.
+- [x] Add the dependency only if bundle/worker compatibility is acceptable; otherwise document why the local fallback remains.
+- [x] Extract projection and canvas-height calculation behind `src/domain/web-mercator.js`, so main thread and workers use the same API.
+- [x] Extract the pixel loop into a pure function that returns `ImageData` plus stats.
+- [x] Use the shared core from both workers.
+- [x] Preserve transfer behavior for `ImageBitmap` and optional values.
+- [x] Add tests for projection consistency, stats, missing values, zero threshold, linear scale, and log scale.
+- [x] Run `npm run test:visualize`.
+- [x] Run `npm run build:visualize`.
+- [x] Commit: `refactor: share raster rendering core`.
 
 ### Task 6: Extract Forecast Run Controller
 

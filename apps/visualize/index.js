@@ -19,6 +19,10 @@ import {
 	forecastMessageKeys,
 } from "./src/domain/forecast-field.js";
 import {
+	mercatorCanvasHeight,
+	webMercatorY,
+} from "./src/domain/web-mercator.js";
+import {
 	findPackageVariable,
 	MODEL_INFO,
 	PACKAGES,
@@ -334,8 +338,8 @@ function renderViaWorker(
 		grid.latitudeOfLastPoint,
 	);
 	const isStoN = grid.latitudeOfLastPoint > grid.latitudeOfFirstPoint;
-	const myNorth = mercatorY(northLat);
-	const mySpan = myNorth - mercatorY(southLat);
+	const northY = webMercatorY(northLat);
+	const spanY = northY - webMercatorY(southLat);
 
 	return new Promise((resolve) => {
 		function onMsg({ data }) {
@@ -386,7 +390,7 @@ function renderViaWorker(
 				unitTransform: renderParams.unitTransform,
 				lut,
 				missingValue: MISSING_VALUE,
-				min: renderParams.renderMin,
+				renderMin: renderParams.renderMin,
 				range: renderParams.range,
 				isLog: renderParams.isLog,
 				logFloor: LOG_SCALE_FLOOR,
@@ -400,8 +404,8 @@ function renderViaWorker(
 				isStoN,
 				northLat,
 				southLat,
-				myNorth,
-				mySpan,
+				northY,
+				spanY,
 			},
 			[workerValues.buffer],
 		);
@@ -567,28 +571,6 @@ function applyDefaultPalette(shortName) {
 	if (!pal) return;
 	currentPalette = pal;
 	setPaletteSelectValues(pal);
-}
-
-// Mercator helpers (latitude in degrees)
-const mercatorY = (lat) =>
-	Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
-const invMercatorY = (my) =>
-	((2 * Math.atan(Math.exp(my)) - Math.PI / 2) * 180) / Math.PI;
-
-// Compute the Mercator-proportional canvas height for a given grid.
-// The canvas width equals grid.ni; height is chosen so that one pixel ≈ same
-// arc-length in both x and y when viewed in Web Mercator.
-function mercatorCanvasHeight(grid) {
-	const {
-		ni,
-		latitudeOfFirstPoint: la1,
-		latitudeOfLastPoint: la2,
-		longitudeOfFirstPoint: lo1,
-		longitudeOfLastPoint: lo2,
-	} = grid;
-	const spanY = Math.abs(mercatorY(la1) - mercatorY(la2));
-	const spanX = Math.abs((lo2 - lo1) * Math.PI) / 180;
-	return Math.round((ni * spanY) / spanX);
 }
 
 // ── Card builder ──────────────────────────────────────────────────────────────
