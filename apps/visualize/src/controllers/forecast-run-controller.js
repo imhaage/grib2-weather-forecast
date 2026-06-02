@@ -1,9 +1,15 @@
 import { fmtRefTime, fmtValidTime, iterateGRIB2Messages } from "grib2-decoder";
 import { createRenderScaleParams } from "../domain/forecast-field.js";
+import {
+  buildHourList,
+  createModelState,
+  blockForHour as findBlockForHour,
+  markBlockAvailable,
+} from "../domain/forecast-state.js";
 import { generateIsobars, supportsIsobars } from "../domain/isobars.js";
 import { findPackageVariable, MODEL_INFO, PACKAGES } from "../domain/model-packages.js";
 import { buildLUT, gradientStopsFor, LOG_SCALE_FLOOR } from "../domain/palettes.js";
-import { extractRunId, formatRunSummary, runTimeValue } from "../domain/resources.js";
+import { formatRunSummary, runTimeValue } from "../domain/resources.js";
 import { displayUnitsFor, unitTransformFor } from "../domain/unit-transforms.js";
 import {
   defaultPaletteFor,
@@ -12,6 +18,7 @@ import {
   variableKeyFor,
 } from "../domain/variable-metadata.js";
 import { createAnimationCacheService } from "../services/animation-cache-service.js";
+import { createDataGouvResourceService } from "../services/data-gouv-resource-service.js";
 import { createForecastBlockRefreshService } from "../services/forecast-block-refresh-service.js";
 import {
   deleteObsoleteCachedGribBlocks,
@@ -20,13 +27,9 @@ import {
   writeCachedGribBlock,
 } from "../services/grib-cache-service.js";
 import { createModelBlockService } from "../services/model-block-service.js";
-import {
-  BLOCK_STATUS,
-  BLOCK_STATUS_CLASSES,
-  BLOCK_STATUS_LABELS,
-  createDataStatusSummaryNodes,
-} from "../ui/data-status-summary.js";
-import { createDownloadWorker } from "../workers/download-worker-client.js";
+import { BLOCK_STATUS, createDataStatusSummaryNodes } from "../ui/data-status-summary.js";
+import { createForecastDownloadView } from "../ui/forecast-download-view.js";
+import { createDownloadWorkerClient as createDefaultDownloadWorkerClient } from "../workers/download-worker-client.js";
 
 const PROXY = "https://grib2-cors-proxy.imh.workers.dev";
 const VARIABLE_GROUP_ORDER = ["Weather maps", "Component fields"];
@@ -54,34 +57,6 @@ async function runWithConcurrency(items, limit, worker) {
 
   await Promise.all(Array.from({ length: workerCount }, runNext));
   return results;
-}
-
-function createModelState(packageKey) {
-  return {
-    packageKey,
-    resourceRefreshId: 0,
-    resources: [],
-    buffers: new Map(),
-    messageIndex: new Map(),
-    hourList: [],
-    decoded: new Map(),
-    decodedOrder: [],
-    blockStatus: new Map(),
-    variable: null,
-    currentHour: null,
-    lastRunInfo: null,
-    animationCacheStatus: "waiting",
-  };
-}
-
-function buildHourList(resources) {
-  const hourList = [];
-  for (const resource of resources) {
-    for (let hour = resource.startHour; hour <= resource.endHour; hour++) {
-      hourList.push(hour);
-    }
-  }
-  return hourList;
 }
 
 function createVariableOption(document, varDef) {
@@ -131,7 +106,7 @@ export function createForecastRunController({
   gridCorners,
   initMap,
   fetchImpl = fetch,
-  createDownloadWorkerClient = createDownloadWorker,
+  createDownloadWorkerClient = createDefaultDownloadWorkerClient,
   createModelBlockServiceClient = createModelBlockService,
   getCurrentPalette,
   getGridState,
@@ -145,9 +120,8 @@ export function createForecastRunController({
   let isDecoding = false;
   let pendingHourIdx = null;
   let modelBlockService = null;
-  let downloadWorker = null;
+  let downloadWorkerClient = null;
   let renderGen = 0;
-  let nextCallId = 0;
   let tooltipHydrateTimer = null;
   let tooltipHydrateToken = 0;
   let animationPlayer = null;
@@ -156,6 +130,14 @@ export function createForecastRunController({
     lastRenderMs: null,
     lastDecodeMs: null,
   };
+  const forecastDownloadView = createForecastDownloadView({
+    document,
+    barsEl: dom.forecastDownloadBars,
+    fileListEl: dom.forecastDownloadFileList,
+    statusEl: dom.forecastDownloadStatus,
+    formatRunSummary,
+    formatSize: fmtSize,
+  });
 
   function scheduleLowPriorityWork() {
     if ("requestIdleCallback" in window) {
@@ -183,37 +165,17 @@ export function createForecastRunController({
   }
 
   function initDownloadWorker() {
-    if (downloadWorker) return;
-    downloadWorker = createDownloadWorkerClient();
+    if (downloadWorkerClient) return;
+    downloadWorkerClient = createDownloadWorkerClient();
   }
 
-  function downloadFileInWorker(url, filesize, onProgress) {
+  async function downloadFileInWorker(url, filesize, onProgress) {
     initDownloadWorker();
-    const callId = ++nextCallId;
-    return new Promise((resolve, reject) => {
-      function onMsg({ data }) {
-        if (data.callId !== callId) return;
-        if (data.progress) {
-          onProgress(data.loaded, data.total);
-          return;
-        }
-        downloadWorker.removeEventListener("message", onMsg);
-        downloadWorker.removeEventListener("error", onErr);
-        if (data.error) {
-          reject(new Error(data.error));
-          return;
-        }
-        resolve(new Uint8Array(data.buffer));
-      }
-      function onErr(error) {
-        downloadWorker.removeEventListener("message", onMsg);
-        downloadWorker.removeEventListener("error", onErr);
-        reject(error);
-      }
-      downloadWorker.addEventListener("message", onMsg);
-      downloadWorker.addEventListener("error", onErr);
-      downloadWorker.postMessage({ callId, url, filesize });
+    const result = await downloadWorkerClient.post({ url, filesize }, [], {
+      onProgress: ({ loaded, total }) => onProgress(loaded, total),
     });
+    if (!result?.buffer) throw new Error("Download failed");
+    return new Uint8Array(result.buffer);
   }
 
   function getModelBlockService() {
@@ -331,7 +293,6 @@ export function createForecastRunController({
     if (!block) return;
     for (let hour = block.startHour; hour <= block.endHour; hour++) {
       animationCache.removeHour(hour);
-      evictDecodedHour(hour);
     }
     updateWarmupProgress();
   }
@@ -421,15 +382,9 @@ export function createForecastRunController({
     };
   }
 
-  function evictDecodedHour(hour) {
-    modelState.decoded.delete(hour);
-    modelState.decodedOrder = modelState.decodedOrder.filter((h) => h !== hour);
-    notifyDiagnostics();
-  }
-
   function modelWorkerRequestForHour(idx, hour, { includeValues = false } = {}) {
     const block = blockForHour(hour);
-    if (!block || !modelState.buffers.has(block.key)) return null;
+    if (!block || !modelState.availableBlocks.has(block.key)) return null;
 
     const varDef = findPackageVariable(modelState.packageKey, modelState.variable);
     const shortName = varDef?.shortName ?? modelState.variable;
@@ -691,7 +646,7 @@ export function createForecastRunController({
   }
 
   function queuePrerenderBlock(blockKey) {
-    if (!modelState?.buffers.has(blockKey)) return;
+    if (!modelState?.availableBlocks.has(blockKey)) return;
     const gen = renderGen;
     const state = modelState;
     const queued = animationCache.enqueueBlock(blockKey, gen, state);
@@ -703,7 +658,7 @@ export function createForecastRunController({
   function queuePrerenderForAllBlocks() {
     if (!modelState) return;
     updateWarmupProgress();
-    for (const blockKey of modelState.buffers.keys()) {
+    for (const blockKey of modelState.availableBlocks) {
       queuePrerenderBlock(blockKey);
     }
   }
@@ -735,43 +690,19 @@ export function createForecastRunController({
     }
   }
 
-  function downloadBarForBlock(block) {
-    return [...dom.forecastDownloadBars.children].find((item) => item.id === `dl-${block.key}`);
-  }
-
-  function downloadFileItemForBlock(block) {
-    return [...dom.forecastDownloadFileList.children].find(
-      (item) => item.id === `dl-file-${block.key}`,
-    );
-  }
-
   function setBlockStatus(block, status) {
     block.status = status;
     modelState?.blockStatus?.set(block.key, status);
-    const item = downloadBarForBlock(block);
-    if (item) {
-      item.classList.remove(...BLOCK_STATUS_CLASSES);
-      item.classList.add(status);
-      if (status === BLOCK_STATUS.READY) item.classList.add("done");
-      item.title = `${formatRunSummary([block])} · ${status}`;
-    }
-    const fileItem = downloadFileItemForBlock(block);
-    if (fileItem) {
-      fileItem.classList.remove(...BLOCK_STATUS_CLASSES);
-      fileItem.classList.add(status);
-      if (status === BLOCK_STATUS.READY) fileItem.classList.add("done");
-      fileItem.querySelector(".forecast-download-file__status").textContent =
-        BLOCK_STATUS_LABELS[status] ?? status;
-    }
+    forecastDownloadView.setBlockStatus(block, status);
     updateDataStatusSummary();
   }
 
   function setBlockDownloadProgress(block, pct) {
-    downloadBarForBlock(block)?.style.setProperty("--pct", pct);
+    forecastDownloadView.setBlockDownloadProgress(block, pct);
   }
 
   function resetBlockDownloadProgress(block) {
-    setBlockDownloadProgress(block, "0%");
+    forecastDownloadView.resetBlockDownloadProgress(block);
   }
 
   function updateDataStatusSummary() {
@@ -781,11 +712,7 @@ export function createForecastRunController({
   }
 
   function blockForHour(hour) {
-    return (
-      modelState?.resources.find(
-        (resource) => hour >= resource.startHour && hour <= resource.endHour,
-      ) ?? null
-    );
+    return findBlockForHour(modelState?.resources ?? [], hour);
   }
 
   function configureModelVariableControls(pkg) {
@@ -811,7 +738,7 @@ export function createForecastRunController({
   function isModelBlockInMemoryCurrent(block, previousBlock) {
     return Boolean(
       previousBlock &&
-        modelState.buffers.has(block.key) &&
+        modelState.availableBlocks.has(block.key) &&
         previousBlock.filesize === block.filesize &&
         runTimeValue(previousBlock.runId) >= runTimeValue(block.runId),
     );
@@ -820,13 +747,13 @@ export function createForecastRunController({
   function isModelBlockInMemoryStale(block, previousBlock) {
     return Boolean(
       previousBlock &&
-        modelState.buffers.has(block.key) &&
+        modelState.availableBlocks.has(block.key) &&
         runTimeValue(previousBlock.runId) < runTimeValue(block.runId),
     );
   }
 
   function updateAvailableFileCount(session) {
-    dom.forecastDownloadStatus.textContent = `${session.availableCount} / ${session.resources.length} files`;
+    forecastDownloadView.setStatus(`${session.availableCount} / ${session.resources.length} files`);
   }
 
   function markInMemoryModelBlockAvailable(block, status, session) {
@@ -842,14 +769,13 @@ export function createForecastRunController({
   }
 
   async function storeAvailableModelBlock(block, buffer, status, session) {
-    const hadBuffer = modelState.buffers.has(block.key);
+    const hadBuffer = modelState.availableBlocks.has(block.key);
     if (hadBuffer) {
-      modelState.messageIndex.delete(block.key);
       invalidateBlockRenderCache(block);
     }
     const storedInWorker = await storeModelBlockInWorker(block, buffer);
     if (!storedInWorker) return;
-    modelState.buffers.set(block.key, true);
+    markBlockAvailable(modelState, block);
     setBlockStatus(block, status);
     if (!hadBuffer) session.availableCount++;
 
@@ -1002,48 +928,17 @@ export function createForecastRunController({
       setBlockDownloadProgress,
     },
   });
+  const dataGouvResourceService = createDataGouvResourceService({
+    proxyBaseUrl: PROXY,
+    fetchImpl,
+  });
 
   function proxyUrl(url) {
-    const parsed = new URL(url);
-    return `${PROXY}/${parsed.hostname}${parsed.pathname}${parsed.search}`;
+    return dataGouvResourceService.proxyResourceUrl(url);
   }
 
   async function fetchDataGouvResources(datasetId, titlePattern) {
-    const response = await fetchImpl(`${PROXY}/www.data.gouv.fr/api/1/datasets/${datasetId}/`);
-    if (!response.ok) throw new Error(`API ${response.status}`);
-    const data = await response.json();
-    return data.resources
-      .filter((resource) => resource.format === "grib2" && resource.title?.includes(titlePattern))
-      .map((resource) => {
-        const single = resource.title.match(/__(\d+)H__/);
-        const range = resource.title.match(/__(\d+)H(\d+)H__/);
-        const runId = extractRunId(`${resource.title} ${resource.url}`);
-        if (single) {
-          return {
-            startHour: +single[1],
-            endHour: +single[1],
-            key: single[0].slice(2, -2),
-            runId,
-            title: resource.title,
-            url: resource.url,
-            filesize: resource.filesize,
-          };
-        }
-        if (range) {
-          return {
-            startHour: +range[1],
-            endHour: +range[2],
-            key: range[0].slice(2, -2),
-            runId,
-            title: resource.title,
-            url: resource.url,
-            filesize: resource.filesize,
-          };
-        }
-        return null;
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.startHour - b.startHour);
+    return dataGouvResourceService.fetchResources(datasetId, titlePattern);
   }
 
   async function fetchPackageResources(packageKey, downloadKey) {
@@ -1058,31 +953,12 @@ export function createForecastRunController({
     return downloadFileInWorker(proxyUrl(url), filesize, onProgress);
   }
 
-  function renderDownloadItems(resources) {
-    const barsEl = dom.forecastDownloadBars;
-    const fileListEl = dom.forecastDownloadFileList;
-    barsEl.innerHTML = "";
-    fileListEl.innerHTML = "";
+  function resetResourceStatuses(resources) {
     for (const resource of resources) {
-      setBlockStatus(resource, BLOCK_STATUS.MISSING);
-      const item = document.createElement("div");
-      item.className = `forecast-download-bar ${BLOCK_STATUS.MISSING}`;
-      item.id = `dl-${resource.key}`;
-      item.textContent = resource.key;
-      item.title = formatRunSummary([resource]);
-      barsEl.appendChild(item);
-
-      const li = document.createElement("li");
-      li.id = `dl-file-${resource.key}`;
-      li.className = `forecast-download-file ${BLOCK_STATUS.MISSING}`;
-      const fileLabel = document.createElement("span");
-      fileLabel.textContent = `${resource.url.split("/").pop()} · ${fmtSize(resource.filesize)}`;
-      const statusLabel = document.createElement("span");
-      statusLabel.className = "forecast-download-file__status";
-      statusLabel.textContent = BLOCK_STATUS_LABELS[BLOCK_STATUS.MISSING];
-      li.append(fileLabel, statusLabel);
-      fileListEl.appendChild(li);
+      resource.status = BLOCK_STATUS.MISSING;
+      modelState?.blockStatus?.set(resource.key, BLOCK_STATUS.MISSING);
     }
+    updateDataStatusSummary();
   }
 
   function createModelDownloadSession({ packageKey, pkg, resources, runSummary, downloadKey }) {
@@ -1113,7 +989,7 @@ export function createForecastRunController({
     const slider = dom.forecastSlider;
     slider.value = 0;
 
-    dom.forecastDownloadStatus.textContent = "Fetching file list…";
+    forecastDownloadView.setStatus("Fetching file list…");
 
     let resources;
     try {
@@ -1121,15 +997,18 @@ export function createForecastRunController({
       if (!isModelResourceRefreshActive(downloadKey) || !resources) return;
     } catch (error) {
       if (!isModelResourceRefreshActive(downloadKey)) return;
-      dom.forecastDownloadStatus.textContent = `API error: ${error.message}`;
+      forecastDownloadView.setStatus(`API error: ${error.message}`);
       return;
     }
 
     applyModelResources(resources);
     const runSummary = formatRunSummary(resources);
 
-    dom.forecastDownloadStatus.textContent = `Downloading ${resources.length} ${packageKey} files (${runSummary})…`;
-    renderDownloadItems(resources);
+    forecastDownloadView.setStatus(
+      `Downloading ${resources.length} ${packageKey} files (${runSummary})…`,
+    );
+    forecastDownloadView.renderItems(resources);
+    resetResourceStatuses(resources);
     const session = createModelDownloadSession({
       packageKey,
       pkg,
@@ -1151,13 +1030,13 @@ export function createForecastRunController({
     const pkg = PACKAGES[packageKey];
     const previousResources = downloadKey.state.resources;
 
-    dom.forecastDownloadStatus.textContent = "Checking latest files…";
+    forecastDownloadView.setStatus("Checking latest files…");
     let resources;
     try {
       resources = await fetchPackageResources(packageKey, downloadKey);
     } catch (error) {
       if (isModelResourceRefreshActive(downloadKey)) {
-        dom.forecastDownloadStatus.textContent = `API error: ${error.message}`;
+        forecastDownloadView.setStatus(`API error: ${error.message}`);
       }
       return null;
     }
@@ -1165,8 +1044,11 @@ export function createForecastRunController({
 
     applyModelResources(resources);
     const runSummary = formatRunSummary(resources);
-    dom.forecastDownloadStatus.textContent = `Checking ${resources.length} ${packageKey} files (${runSummary})…`;
-    renderDownloadItems(resources);
+    forecastDownloadView.setStatus(
+      `Checking ${resources.length} ${packageKey} files (${runSummary})…`,
+    );
+    forecastDownloadView.renderItems(resources);
+    resetResourceStatuses(resources);
 
     const session = createModelDownloadSession({
       packageKey,
@@ -1181,15 +1063,11 @@ export function createForecastRunController({
     return latestReady ? session : null;
   }
 
-  async function refreshCurrentModelVisuals({ clearDecoded = false } = {}) {
+  async function refreshCurrentModelVisuals() {
     const downloadKey = beginModelResourceRefresh();
     stopPlayer();
     await new Promise((resolve) => window.requestAnimationFrame(resolve));
     setRendering(false);
-    if (clearDecoded) {
-      modelState.decoded.clear();
-      modelState.decodedOrder = [];
-    }
     invalidateBitmapCache();
     const myGen = renderGen;
     await showHour(Number.parseInt(dom.forecastSlider.value, 10));
@@ -1215,7 +1093,7 @@ export function createForecastRunController({
       updateLevelInfo(varDef);
     }
 
-    await refreshCurrentModelVisuals({ clearDecoded: true });
+    await refreshCurrentModelVisuals();
   }
 
   function onForecastSliderInput() {
@@ -1232,8 +1110,7 @@ export function createForecastRunController({
     pendingHourIdx = null;
     setGridState(null);
     updateWarmupProgress();
-    dom.forecastDownloadBars.innerHTML = "";
-    dom.forecastDownloadFileList.innerHTML = "";
+    forecastDownloadView.clear();
   }
 
   return {
@@ -1247,7 +1124,6 @@ export function createForecastRunController({
         isPrerendering: animationCache.isPrerendering,
         readyBitmaps,
         totalBitmaps,
-        decodedSize: modelState?.decoded?.size ?? 0,
         renderGen,
       };
     },

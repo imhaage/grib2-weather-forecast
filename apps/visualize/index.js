@@ -9,10 +9,14 @@ import {
 	MISSING_VALUE,
 } from "grib2-decoder";
 import { createAnimationPlayer } from "./animation-player.js";
-import { createRenderScaleParams } from "./src/domain/forecast-field.js";
 import {
+	createRenderParams,
+	createRenderScaleParams,
+} from "./src/domain/forecast-field.js";
+import {
+	gridCorners,
 	mercatorCanvasHeight,
-	webMercatorY,
+	renderProjectionForGrid,
 } from "./src/domain/web-mercator.js";
 import { MODEL_INFO, PACKAGES } from "./src/domain/model-packages.js";
 import {
@@ -192,7 +196,6 @@ function updatePerfDiagnostics() {
 	const diagnostics = forecastRun?.getDiagnostics();
 	const totalBitmaps = diagnostics?.totalBitmaps ?? 0;
 	const readyBitmaps = diagnostics?.readyBitmaps ?? 0;
-	const decodedSize = diagnostics?.decodedSize ?? 0;
 	const queueLength = diagnostics?.queueLength ?? 0;
 	const isPrerendering = diagnostics?.isPrerendering ?? false;
 
@@ -203,7 +206,7 @@ function updatePerfDiagnostics() {
 		`queue ${queueLength}${isPrerendering ? " + active" : ""}`;
 	dom.perfDebugCache.textContent =
 		`cache ${readyBitmaps} / ${totalBitmaps || readyBitmaps}`;
-	dom.perfDebugDecoded.textContent = `decoded ${decodedSize}`;
+	dom.perfDebugDecoded.textContent = "decoded worker";
 	dom.perfDebugGen.textContent = `gen ${diagnostics?.renderGen ?? renderGen}`;
 }
 
@@ -249,17 +252,7 @@ function renderViaWorker(
 	const startedAt = PERF_DEBUG ? performance.now() : 0;
 
 	const { grid } = renderParams;
-	const northLat = Math.max(
-		grid.latitudeOfFirstPoint,
-		grid.latitudeOfLastPoint,
-	);
-	const southLat = Math.min(
-		grid.latitudeOfFirstPoint,
-		grid.latitudeOfLastPoint,
-	);
-	const isStoN = grid.latitudeOfLastPoint > grid.latitudeOfFirstPoint;
-	const northY = webMercatorY(northLat);
-	const spanY = northY - webMercatorY(southLat);
+	const projection = renderProjectionForGrid(grid);
 
 	return new Promise((resolve) => {
 		function onMsg({ data }) {
@@ -321,11 +314,7 @@ function renderViaWorker(
 				ni: grid.ni,
 				nj: grid.nj,
 				dj: grid.dj,
-				isStoN,
-				northLat,
-				southLat,
-				northY,
-				spanY,
+				...projection,
 			},
 			[workerValues.buffer],
 		);
@@ -434,64 +423,21 @@ function updateStats(min, max, mean, count, units) {
 	mapPresentation.updateStats(min, max, mean, count, units);
 }
 
-function toDisplayValues(values) {
-	if (values instanceof Float32Array) return values;
-	const out = new Float32Array(values.length);
-	out.set(values);
-	return out;
-}
-
 function makeRenderParams(
 	data,
 	{ values = data.values, displayUnits = null, isFallback = false } = {},
 ) {
-	const { grid, product, header } = data;
-	const unitTransform = unitTransformFor(product.shortName);
-	const staticScale = staticScaleFor(product.shortName);
-	const {
-		renderMin,
-		renderMax,
-		range,
-		isLog,
-		logDenom,
-		zeroThreshold,
-	} = createRenderScaleParams(staticScale, LOG_SCALE_FLOOR);
-
-	return {
-		values: toDisplayValues(values),
-		unitTransform,
-		renderMin,
-		renderMax,
-		range,
-		staticScale,
-		isLog,
-		logDenom,
-		zeroThreshold,
-		displayUnits:
-			displayUnits ?? displayUnitsFor(product.shortName, product.units),
+	const { product } = data;
+	const shortName = product.shortName;
+	return createRenderParams({
+		data,
+		values,
+		staticScale: staticScaleFor(shortName),
+		unitTransform: unitTransformFor(shortName),
+		displayUnits: displayUnits ?? displayUnitsFor(shortName, product.units),
+		logFloor: LOG_SCALE_FLOOR,
 		isFallback,
-		grid,
-		product,
-		header,
-	};
-}
-
-function gridCorners({
-	latitudeOfFirstPoint: la1,
-	longitudeOfFirstPoint: lo1,
-	latitudeOfLastPoint: la2,
-	longitudeOfLastPoint: lo2,
-}) {
-	const north = Math.max(la1, la2);
-	const south = Math.min(la1, la2);
-	const west = Math.min(lo1, lo2);
-	const east = Math.max(lo1, lo2);
-	return [
-		[west, north],
-		[east, north],
-		[east, south],
-		[west, south],
-	];
+	});
 }
 
 function setMapLayer(canvas, corners) {

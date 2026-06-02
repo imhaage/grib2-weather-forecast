@@ -97,32 +97,15 @@ function createFakeRenderResult(overrides = {}) {
   };
 }
 
-function createDownloadWorker(events = []) {
-  const listeners = {
-    error: new Set(),
-    message: new Set(),
-  };
+function createDownloadWorkerClient(events = []) {
   return {
-    addEventListener(type, listener) {
-      listeners[type].add(listener);
-    },
-    removeEventListener(type, listener) {
-      listeners[type].delete(listener);
-    },
-    postMessage({ callId, url }) {
+    async post({ url }, _transfer = [], options = {}) {
       const blockKey = url.match(/__(\d+)H__/)?.[1] ?? "unknown";
       events.push(`download:${blockKey}H`);
-      queueMicrotask(() => {
-        for (const listener of listeners.message) {
-          listener({ data: { callId, progress: true, loaded: 1, total: 2 } });
-          listener({
-            data: {
-              callId,
-              buffer: new Uint8Array([Number(blockKey)]).buffer,
-            },
-          });
-        }
-      });
+      options.onProgress?.({ loaded: 1, total: 2 });
+      return {
+        buffer: new Uint8Array([Number(blockKey)]).buffer,
+      };
     },
   };
 }
@@ -193,7 +176,7 @@ function createController(overrides = {}) {
       [0, 1],
     ]),
     initMap: vi.fn(),
-    createDownloadWorkerClient: vi.fn(() => createDownloadWorker(events)),
+    createDownloadWorkerClient: vi.fn(() => createDownloadWorkerClient(events)),
     createModelBlockServiceClient: vi.fn(() => ({
       decodeValues: vi.fn(async () => ({
         values: new Float32Array([1, 2, 3, 4]),
@@ -323,9 +306,9 @@ describe("forecast run controller", () => {
     ]);
   });
 
-  test("changing variable clears decoded values and applies the new default palette", async () => {
+  test("changing variable invalidates render cache and applies the new default palette", async () => {
     vi.mocked(readCachedGribBlock).mockResolvedValue(new Uint8Array([101]));
-    const { controller, state } = createController({
+    const { controller, mapRenderer, state } = createController({
       fetchImpl: vi.fn(async () => ({
         ok: true,
         json: async () => ({ resources: createResources([1]) }),
@@ -333,14 +316,15 @@ describe("forecast run controller", () => {
     });
 
     await controller.startDownload("AROME_SP2");
-    controller.getModelState().decoded.set(1, { values: new Float32Array([1]) });
-    controller.getModelState().decodedOrder.push(1);
+    const drawCountBeforeVariableChange = mapRenderer.drawBitmap.mock.calls.length;
 
     await controller.handleVariableChange("p");
 
     expect(controller.getModelState().variable).toBe("p");
-    expect(controller.getModelState().decoded.size).toBe(0);
-    expect(controller.getModelState().decodedOrder).toEqual([]);
+    expect(controller.getModelState()).not.toHaveProperty("decoded");
+    expect(controller.getModelState()).not.toHaveProperty("decodedOrder");
+    expect(controller.getDiagnostics()).not.toHaveProperty("decodedSize");
+    expect(mapRenderer.drawBitmap.mock.calls.length).toBeGreaterThan(drawCountBeforeVariableChange);
     expect(state.currentPalette).toBe("Plasma");
   });
 

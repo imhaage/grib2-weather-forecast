@@ -235,11 +235,8 @@ export interface ForecastRunState {
   packageKey: PackageKey;
   resourceRefreshId: number;
   resources: RemoteResource[];
-  buffers: Map<string, true | Uint8Array>;
-  messageIndex: Map<string, Map<string, unknown>>;
+  availableBlocks: Set<string>;
   hourList: number[];
-  decoded: Map<number, DecodedField>;
-  decodedOrder: number[];
   blockStatus: Map<string, BlockStatus>;
   variable: string | null;
   currentHour: number | null;

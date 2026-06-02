@@ -1,7 +1,9 @@
 import { describe, expect, test } from "vitest";
 import {
+  gridCorners,
   latitudeFromWebMercatorY,
   mercatorCanvasHeight,
+  renderProjectionForGrid,
   webMercatorX,
   webMercatorY,
 } from "./web-mercator.js";
@@ -23,5 +25,33 @@ describe("web mercator helpers", () => {
     });
 
     expect(height).toBe(2634);
+  });
+
+  test("returns map corners in north/east/south/west order", () => {
+    const grid = {
+      latitudeOfFirstPoint: 40,
+      longitudeOfFirstPoint: 5,
+      latitudeOfLastPoint: 50,
+      longitudeOfLastPoint: -5,
+    };
+
+    expect(gridCorners(grid)).toEqual([
+      [-5, 50],
+      [5, 50],
+      [5, 40],
+      [-5, 40],
+    ]);
+  });
+
+  test("builds render projection values for workers", () => {
+    const projection = renderProjectionForGrid({
+      latitudeOfFirstPoint: 40,
+      latitudeOfLastPoint: 50,
+    });
+
+    expect(projection.northLat).toBe(50);
+    expect(projection.southLat).toBe(40);
+    expect(projection.isStoN).toBe(true);
+    expect(projection.spanY).toBeGreaterThan(0);
   });
 });

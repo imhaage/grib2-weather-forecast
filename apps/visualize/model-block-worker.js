@@ -6,10 +6,11 @@ import {
   computeAccumulationDiff,
   effectiveForecastTime,
   productMatchesVariable,
+  toFloat32Values,
 } from "./src/domain/forecast-field.js";
 import {
   mercatorCanvasHeight,
-  webMercatorY,
+  renderProjectionForGrid,
 } from "./src/domain/web-mercator.js";
 import { generateIsobars, supportsIsobars } from "./src/domain/isobars.js";
 import { renderFieldToImageData } from "./src/workers/render-field-core.js";
@@ -28,13 +29,6 @@ function findMessage(blockKey, block, hour, variable) {
   }
 
   return null;
-}
-
-function toDisplayValues(values) {
-  if (values instanceof Float32Array) return values;
-  const out = new Float32Array(values.length);
-  out.set(values);
-  return out;
 }
 
 async function decodeDisplayValues({ blockKey, block, hour, previousBlockKey, previousBlock, previousHour, variable, missingValue }) {
@@ -60,7 +54,7 @@ async function decodeDisplayValues({ blockKey, block, hour, previousBlockKey, pr
     }
   }
 
-  const displayValues = toDisplayValues(values);
+  const displayValues = toFloat32Values(values);
   const displayUnits = isAccumulation && !isFallback && previousHour != null
     ? "mm/h"
     : null;
@@ -98,11 +92,8 @@ async function renderHour(data) {
   const { values, grid, product, header, isFallback } = decoded;
   const outW = grid.ni;
   const outH = mercatorCanvasHeight(grid);
-  const northLat = Math.max(grid.latitudeOfFirstPoint, grid.latitudeOfLastPoint);
-  const southLat = Math.min(grid.latitudeOfFirstPoint, grid.latitudeOfLastPoint);
-  const isStoN = grid.latitudeOfLastPoint > grid.latitudeOfFirstPoint;
-  const northY = webMercatorY(northLat);
-  const spanY = northY - webMercatorY(southLat);
+  const { northLat, southLat, isStoN, northY, spanY } =
+    renderProjectionForGrid(grid);
   const { image, dataMin, dataMax, dataMean, dataCount } = renderFieldToImageData({
     values,
     unitTransform,

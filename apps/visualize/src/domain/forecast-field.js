@@ -43,3 +43,32 @@ export function createRenderScaleParams(staticScale, logFloor) {
     zeroThreshold: staticScale?.zeroThreshold ?? 0,
   };
 }
+
+export function toFloat32Values(values) {
+  if (values instanceof Float32Array) return values;
+  const out = new Float32Array(values.length);
+  out.set(values);
+  return out;
+}
+
+export function createRenderParams({
+  data,
+  values = data.values,
+  staticScale,
+  unitTransform,
+  displayUnits,
+  logFloor,
+  isFallback = false,
+}) {
+  return {
+    values: toFloat32Values(values),
+    unitTransform,
+    staticScale,
+    ...createRenderScaleParams(staticScale, logFloor),
+    displayUnits,
+    isFallback,
+    grid: data.grid,
+    product: data.product,
+    header: data.header,
+  };
+}
