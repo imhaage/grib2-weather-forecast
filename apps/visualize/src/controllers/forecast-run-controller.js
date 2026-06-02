@@ -1,5 +1,4 @@
 import { fmtRefTime, fmtValidTime, iterateGRIB2Messages } from "grib2-decoder";
-import { createRenderScaleParams } from "../domain/forecast-field.js";
 import {
   buildHourList,
   createModelState,
@@ -8,9 +7,9 @@ import {
 } from "../domain/forecast-state.js";
 import { generateIsobars, supportsIsobars } from "../domain/isobars.js";
 import { findPackageVariable, MODEL_INFO, PACKAGES } from "../domain/model-packages.js";
-import { buildLUT, gradientStopsFor, LOG_SCALE_FLOOR } from "../domain/palettes.js";
+import { gradientStopsFor } from "../domain/palettes.js";
 import { formatRunSummary, runTimeValue } from "../domain/resources.js";
-import { displayUnitsFor, unitTransformFor } from "../domain/unit-transforms.js";
+import { displayUnitsFor } from "../domain/unit-transforms.js";
 import {
   defaultPaletteFor,
   parameterDescriptionFor,
@@ -20,6 +19,7 @@ import {
 import { createAnimationCacheService } from "../services/animation-cache-service.js";
 import { createDataGouvResourceService } from "../services/data-gouv-resource-service.js";
 import { createForecastBlockRefreshService } from "../services/forecast-block-refresh-service.js";
+import { createForecastRenderRequest } from "../services/forecast-render-request-service.js";
 import {
   deleteObsoleteCachedGribBlocks,
   readCachedGribBlock,
@@ -383,45 +383,15 @@ export function createForecastRunController({
   }
 
   function modelWorkerRequestForHour(idx, hour, { includeValues = false } = {}) {
-    const block = blockForHour(hour);
-    if (!block || !modelState.availableBlocks.has(block.key)) return null;
-
-    const varDef = findPackageVariable(modelState.packageKey, modelState.variable);
-    const shortName = varDef?.shortName ?? modelState.variable;
-    const staticScale = staticScaleFor(shortName);
-    const { renderMin, renderMax, range, isLog, logDenom, zeroThreshold } = createRenderScaleParams(
-      staticScale,
-      LOG_SCALE_FLOOR,
-    );
-    const prevHour = idx > 0 ? modelState.hourList[idx - 1] : null;
-    const previousBlock = prevHour != null ? blockForHour(prevHour) : null;
-
-    return {
-      type: "renderHour",
-      gen: renderGen,
-      blockKey: block.key,
-      block,
+    return createForecastRenderRequest({
+      state: modelState,
+      hourIndex: idx,
       hour,
-      previousBlockKey: previousBlock?.key ?? null,
-      previousBlock,
-      previousHour: prevHour,
-      variable: {
-        shortName,
-        levelValue: varDef?.levelValue ?? null,
-      },
-      unitTransform: unitTransformFor(shortName),
-      staticScale,
-      renderMin,
-      range,
-      isLog,
-      logFloor: LOG_SCALE_FLOOR,
-      logDenom,
-      zeroThreshold,
-      displayUnits: displayUnitsFor(shortName, varDef?.units),
-      lut: buildLUT(getCurrentPalette(), { min: renderMin, max: renderMax }),
+      renderGen,
+      paletteName: getCurrentPalette(),
       missingValue,
       includeValues,
-    };
+    });
   }
 
   async function renderModelHourViaWorker(idx, { includeValues = false } = {}) {
