@@ -1,13 +1,11 @@
-import { fmtRefTime, fmtValidTime, iterateGRIB2Messages } from "grib2-decoder";
+import { fmtRefTime, iterateGRIB2Messages } from "grib2-decoder";
 import {
   buildHourList,
   createModelState,
   blockForHour as findBlockForHour,
   markBlockAvailable,
 } from "../domain/forecast-state.js";
-import { generateIsobars, supportsIsobars } from "../domain/isobars.js";
 import { findPackageVariable, MODEL_INFO, PACKAGES } from "../domain/model-packages.js";
-import { gradientStopsFor } from "../domain/palettes.js";
 import { formatRunSummary, runTimeValue } from "../domain/resources.js";
 import { displayUnitsFor } from "../domain/unit-transforms.js";
 import {
@@ -16,11 +14,11 @@ import {
   staticScaleFor,
   variableKeyFor,
 } from "../domain/variable-metadata.js";
-import { createAnimationCacheService } from "../services/animation-cache-service.js";
 import { runWithConcurrency } from "../services/concurrency-service.js";
 import { createDataGouvResourceService } from "../services/data-gouv-resource-service.js";
+import { createForecastAnimationService } from "../services/forecast-animation-service.js";
 import { createForecastBlockRefreshService } from "../services/forecast-block-refresh-service.js";
-import { createForecastRenderRequest } from "../services/forecast-render-request-service.js";
+import { createForecastMapPresentationService } from "../services/forecast-map-presentation-service.js";
 import {
   deleteObsoleteCachedGribBlocks,
   readCachedGribBlock,
@@ -31,17 +29,13 @@ import { createModelBlockService } from "../services/model-block-service.js";
 import { BLOCK_STATUS, createDataStatusSummaryNodes } from "../ui/data-status-summary.js";
 import { createForecastDownloadView } from "../ui/forecast-download-view.js";
 import {
-  appendGroupedVariableOptions,
   defaultVariableForPackage,
+  replaceGroupedVariableOptions,
 } from "../ui/forecast-variable-select.js";
 import { createDownloadWorkerClient as createDefaultDownloadWorkerClient } from "../workers/download-worker-client.js";
 
 const PROXY = "https://grib2-cors-proxy.imh.workers.dev";
 const MAX_PARALLEL_DOWNLOADS = 6;
-
-function fmtHourLabel(hour) {
-  return `+${String(hour).padStart(2, "0")}H`;
-}
 
 function fmtSize(bytes) {
   return bytes >= 1e6 ? `${(bytes / 1e6).toFixed(1)} MB` : `${(bytes / 1e3).toFixed(0)} KB`;
@@ -70,19 +64,9 @@ export function createForecastRunController({
   updateStorageWarningSizeIfOpen,
 }) {
   let modelState = null;
-  let isDecoding = false;
-  let pendingHourIdx = null;
   let modelBlockService = null;
   let downloadWorkerClient = null;
-  let renderGen = 0;
-  let tooltipHydrateTimer = null;
-  let tooltipHydrateToken = 0;
   let animationPlayer = null;
-  const animationCache = createAnimationCacheService();
-  const perfStats = {
-    lastRenderMs: null,
-    lastDecodeMs: null,
-  };
   const forecastDownloadView = createForecastDownloadView({
     document,
     barsEl: dom.forecastDownloadBars,
@@ -91,6 +75,54 @@ export function createForecastRunController({
     formatRunSummary,
     formatSize: fmtSize,
   });
+  const mapPresenter = createForecastMapPresentationService({
+    formatForecastValidTimeLabel,
+    formatModelPackageSubtitle,
+    getCurrentPalette,
+    getModelState: () => modelState,
+    gridCorners,
+    initMap,
+    makeGridState,
+    mapPresentation,
+    mapRenderer,
+    missingValue,
+    setGridState,
+  });
+  const {
+    presentBitmapEntry,
+    showUnavailableHour,
+    updateIsobarOverlay,
+    updateLevelInfo,
+    updateParamInfo,
+  } = mapPresenter;
+  const animationService = createForecastAnimationService({
+    dom,
+    getCurrentPalette,
+    getGridState,
+    getModelBlockService,
+    getModelState: () => modelState,
+    isPlayerPlaying,
+    makeGridState,
+    missingValue,
+    notifyDiagnostics,
+    perfDebug,
+    presentBitmapEntry,
+    setGridState,
+    showUnavailableHour,
+    syncPlayButtonAvailability,
+    updateIsobarOverlay,
+  });
+  const {
+    invalidateBitmapCache,
+    invalidateBlockRenderCache,
+    isAnimationCacheReadyForPlayback,
+    isBitmapCacheComplete,
+    queueCurrentTooltipValueHydration,
+    queuePrerenderForAllBlocks,
+    showHour,
+    updateWarmupProgress,
+    waitForPrerenderIdle,
+  } = animationService;
 
   function scheduleLowPriorityWork() {
     if ("requestIdleCallback" in window) {
@@ -165,91 +197,6 @@ export function createForecastRunController({
     return `${parts.modelTitle} - ${parts.packageName} : ${timeLabel}`;
   }
 
-  function updateParamInfo(name, description, subtitle) {
-    mapPresentation.updateParamInfo(name, description, subtitle);
-  }
-
-  function updateLevelInfo(varDef) {
-    mapPresentation.updateLevelInfo(varDef);
-  }
-
-  function updateStatsAndColorScale(entry) {
-    mapPresentation.updateStats(
-      entry.dataMin,
-      entry.dataMax,
-      entry.mean,
-      entry.count,
-      entry.displayUnits,
-    );
-    const legendMin = entry.staticScale ? entry.renderMin : entry.dataMin;
-    const legendMax = entry.staticScale ? entry.renderMin + entry.range : entry.dataMax;
-    mapPresentation.showColorScale(legendMin, legendMax, entry.displayUnits, {
-      isLog: entry.isLog,
-    });
-  }
-
-  function clearStats() {
-    mapPresentation.clearStats();
-  }
-
-  function hideColorScale() {
-    mapPresentation.hideColorScale();
-  }
-
-  function showMapUnavailable() {
-    mapPresentation.showUnavailable();
-  }
-
-  function hideMapUnavailable() {
-    mapPresentation.hideUnavailable();
-  }
-
-  function clearMapLayer() {
-    mapRenderer.clearLayer();
-    setGridState(null);
-    hideColorScale();
-    hideMapUnavailable();
-  }
-
-  function showUnavailableHour(hour) {
-    clearMapLayer();
-    clearStats();
-    mapPresentation.setForecastValidTime(
-      formatForecastValidTimeLabel(fmtUnavailableValidTime(hour)),
-    );
-    showMapUnavailable();
-  }
-
-  function fmtUnavailableValidTime(hour) {
-    const block = blockForHour(hour);
-    const runId = block?.runId;
-    const runTime = runId ? Date.parse(runId) : NaN;
-    if (!Number.isNaN(runTime)) {
-      const valid = new Date(runTime + hour * 60 * 60 * 1000);
-      return `${valid.toISOString().slice(0, 16).replace("T", " ")} UTC`;
-    }
-    return fmtHourLabel(hour);
-  }
-
-  function invalidateBitmapCache() {
-    if (modelState) modelState.animationCacheStatus = "waiting";
-    animationCache.clear();
-    tooltipHydrateToken++;
-    if (tooltipHydrateTimer !== null) clearTimeout(tooltipHydrateTimer);
-    tooltipHydrateTimer = null;
-    renderGen++;
-    updateWarmupProgress();
-    notifyDiagnostics();
-  }
-
-  function invalidateBlockRenderCache(block) {
-    if (!block) return;
-    for (let hour = block.startHour; hour <= block.endHour; hour++) {
-      animationCache.removeHour(hour);
-    }
-    updateWarmupProgress();
-  }
-
   function beginModelResourceRefresh() {
     if (!modelState) return null;
     modelState.resourceRefreshId = (modelState.resourceRefreshId ?? 0) + 1;
@@ -265,352 +212,6 @@ export function createForecastRunController({
         modelState === downloadKey.state &&
         modelState.resourceRefreshId === downloadKey.refreshId,
     );
-  }
-
-  function bitmapCacheReadyCount() {
-    if (!modelState) return 0;
-    return animationCache.readyCount(modelState.hourList);
-  }
-
-  function isBitmapCacheComplete() {
-    return animationCache.isComplete(modelState?.hourList ?? []);
-  }
-
-  function isAnimationCacheReadyForPlayback() {
-    return Boolean(
-      modelState && modelState.animationCacheStatus === "ready" && isBitmapCacheComplete(),
-    );
-  }
-
-  function updateWarmupProgress() {
-    const container = dom.cacheWarmup;
-    if (!container || !modelState?.hourList.length) {
-      if (container) container.hidden = true;
-      syncPlayButtonAvailability();
-      return;
-    }
-
-    const total = modelState.hourList.length;
-    const ready = bitmapCacheReadyCount();
-    const complete = ready === total;
-    if (modelState.animationCacheStatus === "building" && complete) {
-      modelState.animationCacheStatus = "ready";
-    }
-    const isWaiting = modelState.animationCacheStatus === "waiting";
-    const isReady = modelState.animationCacheStatus === "ready";
-    const pct = total ? Math.round((ready / total) * 100) : 0;
-
-    container.hidden = isReady;
-    container.classList.toggle("waiting", isWaiting);
-    container.classList.toggle("ready", isReady);
-    dom.cacheWarmupBar.style.width = `${pct}%`;
-    dom.cacheWarmupCount.textContent = `${ready} / ${total}`;
-    dom.cacheWarmupLabel.textContent = isWaiting
-      ? "Preparing animation cache"
-      : isReady
-        ? "Animation ready"
-        : "Animation cache";
-    syncPlayButtonAvailability();
-    notifyDiagnostics();
-  }
-
-  function makeBitmapCacheEntryFromWorker(renderEntry) {
-    return {
-      bitmap: renderEntry.bitmap,
-      dataMin: renderEntry.dataMin,
-      dataMax: renderEntry.dataMax,
-      mean: renderEntry.dataMean,
-      count: renderEntry.dataCount,
-      unitTransform: renderEntry.unitTransform,
-      renderMin: renderEntry.renderMin,
-      range: renderEntry.range,
-      staticScale: renderEntry.staticScale,
-      isLog: renderEntry.isLog,
-      displayUnits: renderEntry.displayUnits,
-      isFallback: renderEntry.isFallback,
-      isobars: renderEntry.isobars,
-      grid: renderEntry.grid,
-      product: renderEntry.product,
-      header: renderEntry.header,
-    };
-  }
-
-  function modelWorkerRequestForHour(idx, hour, { includeValues = false } = {}) {
-    return createForecastRenderRequest({
-      state: modelState,
-      hourIndex: idx,
-      hour,
-      renderGen,
-      paletteName: getCurrentPalette(),
-      missingValue,
-      includeValues,
-    });
-  }
-
-  async function renderModelHourViaWorker(idx, { includeValues = false } = {}) {
-    const hour = modelState.hourList[idx];
-    const request = modelWorkerRequestForHour(idx, hour, { includeValues });
-    if (!request) return null;
-
-    const startedAt = perfDebug ? performance.now() : 0;
-    const result = await getModelBlockService().renderHour(request);
-    if (!result) return null;
-    if (perfDebug) {
-      perfStats.lastRenderMs = performance.now() - startedAt;
-      notifyDiagnostics();
-    }
-    if (renderGen !== request.gen) {
-      result.bitmap?.close();
-      return null;
-    }
-    return result;
-  }
-
-  async function decodeModelHourValuesViaWorker(idx, hour) {
-    const request = modelWorkerRequestForHour(idx, hour, {
-      includeValues: false,
-    });
-    if (!request) return null;
-    const result = await getModelBlockService().decodeValues(request);
-    if (!result?.values || renderGen !== request.gen) return null;
-    return result;
-  }
-
-  function updateIsobarOverlay(entry, values) {
-    if (!supportsIsobars(entry.product.shortName)) {
-      mapRenderer.clearIsobars();
-      return;
-    }
-    if (entry.isobars) {
-      mapRenderer.updateIsobars(entry.isobars);
-      return;
-    }
-    if (!values) {
-      mapRenderer.clearIsobars();
-      return;
-    }
-    entry.isobars = generateIsobars({
-      shortName: entry.product.shortName,
-      grid: entry.grid,
-      values,
-      missingValue,
-    });
-    mapRenderer.updateIsobars(entry.isobars);
-  }
-
-  async function presentBitmapEntry(hour, entry, { values } = {}) {
-    const { grid, product, header } = entry;
-    hideMapUnavailable();
-
-    setGridState(makeGridState(entry, values ?? null));
-
-    const { canvas, canvasChanged } = mapRenderer.ensureHeatCanvas(grid);
-    const corners = gridCorners(grid);
-    mapRenderer.drawBitmap(entry.bitmap);
-
-    const scaleRange = {
-      min: entry.renderMin,
-      max: entry.renderMin + entry.range,
-    };
-    const stops = gradientStopsFor(getCurrentPalette(), scaleRange).map((stop) => ({
-      color: stop.color,
-      position: stop.position,
-    }));
-    mapPresentation.setColorScaleGradient(stops);
-
-    await initMap();
-    const isFirstLayer = !mapRenderer.hasLayer();
-    if (isFirstLayer || canvasChanged) {
-      mapRenderer.setLayer(canvas, corners);
-      mapRenderer.fitBounds(
-        [
-          [corners[3][0], corners[2][1]],
-          [corners[1][0], corners[0][1]],
-        ],
-        { padding: 20, animate: false },
-      );
-    }
-    mapRenderer.triggerRepaint();
-    updateIsobarOverlay(entry, values);
-
-    modelState.lastRunInfo = `${modelState.packageKey} · run ${fmtRefTime(header)}`;
-    updateParamInfo(
-      product.name,
-      parameterDescriptionFor(product.shortName),
-      formatModelPackageSubtitle(modelState.packageKey),
-    );
-
-    updateStatsAndColorScale(entry);
-
-    const validTimeProduct =
-      product.pdtNumber === 8 ? { ...product, forecastTime: hour, timeUnit: 1 } : product;
-    mapPresentation.setForecastValidTime(
-      formatForecastValidTimeLabel(fmtValidTime(header, validTimeProduct)),
-    );
-  }
-
-  async function hydrateTooltipValues(idx, hour, token, capturedState, capturedGen) {
-    const data = await decodeModelHourValuesViaWorker(idx, hour);
-    if (
-      !data ||
-      modelState !== capturedState ||
-      renderGen !== capturedGen ||
-      tooltipHydrateToken !== token ||
-      capturedState.currentHour !== hour
-    ) {
-      return;
-    }
-
-    const cachedEntry = animationCache.getHour(hour);
-    if (cachedEntry) {
-      setGridState(makeGridState(cachedEntry, data.values));
-      updateIsobarOverlay(cachedEntry, data.values);
-    }
-  }
-
-  function queueTooltipValueHydration(idx, hour) {
-    tooltipHydrateToken++;
-    if (tooltipHydrateTimer !== null) clearTimeout(tooltipHydrateTimer);
-    tooltipHydrateTimer = null;
-    if (isPlayerPlaying()) return;
-
-    const token = tooltipHydrateToken;
-    const capturedState = modelState;
-    const capturedGen = renderGen;
-    tooltipHydrateTimer = setTimeout(() => {
-      tooltipHydrateTimer = null;
-      if (isPlayerPlaying()) return;
-      hydrateTooltipValues(idx, hour, token, capturedState, capturedGen).catch((error) =>
-        console.error("hydrateTooltipValues:", error),
-      );
-    }, 140);
-  }
-
-  function queueCurrentTooltipValueHydration() {
-    const currentGridState = getGridState();
-    if (!modelState || currentGridState?.values) return;
-    const idx = Number.parseInt(dom.forecastSlider.value, 10);
-    const hour = modelState.hourList[idx];
-    if (animationCache.hasHour(hour)) queueTooltipValueHydration(idx, hour);
-  }
-
-  async function showHour(idx) {
-    if (isDecoding) {
-      pendingHourIdx = idx;
-      return;
-    }
-    isDecoding = true;
-    pendingHourIdx = null;
-    try {
-      const hour = modelState.hourList[idx];
-      dom.forecastHourLabel.textContent = fmtHourLabel(hour);
-
-      const cachedEntry = animationCache.getHour(hour);
-      if (cachedEntry) {
-        modelState.currentHour = hour;
-        await presentBitmapEntry(hour, cachedEntry);
-        queueTooltipValueHydration(idx, hour);
-        return;
-      }
-
-      modelState.currentHour = hour;
-      const renderEntry = await renderModelHourViaWorker(idx, {
-        includeValues: true,
-      });
-      if (!renderEntry) {
-        showUnavailableHour(hour);
-        return;
-      }
-
-      const entry = makeBitmapCacheEntryFromWorker(renderEntry);
-      animationCache.setHour(hour, entry);
-      updateWarmupProgress();
-      await presentBitmapEntry(hour, entry, { values: renderEntry.values });
-    } catch (error) {
-      console.error("showHour:", error);
-      showUnavailableHour(modelState?.hourList[idx] ?? idx);
-    } finally {
-      isDecoding = false;
-      if (pendingHourIdx !== null) {
-        const next = pendingHourIdx;
-        pendingHourIdx = null;
-        showHour(next);
-      }
-    }
-  }
-
-  async function prerenderBlock(blockKey) {
-    const capturedState = modelState;
-    const capturedGen = renderGen;
-    const block = capturedState.resources.find((resource) => resource.key === blockKey);
-    if (!block) return;
-
-    for (let hour = block.startHour; hour <= block.endHour; hour++) {
-      if (modelState !== capturedState || renderGen !== capturedGen) return;
-
-      const idx = capturedState.hourList.indexOf(hour);
-      if (idx === -1 || animationCache.hasHour(hour)) continue;
-
-      const entry = await renderModelHourViaWorker(idx);
-      if (!entry) return;
-
-      if (modelState === capturedState && renderGen === capturedGen) {
-        if (animationCache.hasHour(hour)) {
-          entry.bitmap.close();
-        } else {
-          animationCache.setHour(hour, makeBitmapCacheEntryFromWorker(entry));
-          updateWarmupProgress();
-        }
-      } else {
-        entry.bitmap.close();
-        return;
-      }
-    }
-  }
-
-  function queuePrerenderBlock(blockKey) {
-    if (!modelState?.availableBlocks.has(blockKey)) return;
-    const gen = renderGen;
-    const state = modelState;
-    const queued = animationCache.enqueueBlock(blockKey, gen, state);
-    if (!queued) return;
-    notifyDiagnostics();
-    drainPrerenderQueue();
-  }
-
-  function queuePrerenderForAllBlocks() {
-    if (!modelState) return;
-    updateWarmupProgress();
-    for (const blockKey of modelState.availableBlocks) {
-      queuePrerenderBlock(blockKey);
-    }
-  }
-
-  function waitForPrerenderIdle() {
-    return animationCache.waitForIdle();
-  }
-
-  async function drainPrerenderQueue() {
-    if (!animationCache.beginDrain()) return;
-    notifyDiagnostics();
-    try {
-      let job = animationCache.nextJob();
-      while (job) {
-        notifyDiagnostics();
-        if (modelState === job.state && renderGen === job.gen) {
-          await prerenderBlock(job.blockKey);
-        }
-        animationCache.completeJob(job);
-        notifyDiagnostics();
-        job = animationCache.nextJob();
-      }
-    } finally {
-      animationCache.endDrain();
-      notifyDiagnostics();
-      if (animationCache.queueLength > 0) {
-        drainPrerenderQueue();
-      }
-    }
   }
 
   function setBlockStatus(block, status) {
@@ -640,12 +241,10 @@ export function createForecastRunController({
 
   function configureModelVariableControls(pkg) {
     const varSelect = dom.forecastVarSelect;
-    varSelect.innerHTML = "";
-
     const firstVar = defaultVariableForPackage(pkg);
     modelState.variable = variableKeyFor(firstVar);
     applyDefaultPalette(variableKeyFor(firstVar));
-    appendGroupedVariableOptions(document, varSelect, pkg.variables);
+    replaceGroupedVariableOptions(document, varSelect, pkg.variables);
     varSelect.value = modelState.variable;
     updateLevelInfo(firstVar);
   }
@@ -992,10 +591,14 @@ export function createForecastRunController({
     await new Promise((resolve) => window.requestAnimationFrame(resolve));
     setRendering(false);
     invalidateBitmapCache();
-    const myGen = renderGen;
+    const myGen = animationService.renderGen;
     await showHour(Number.parseInt(dom.forecastSlider.value, 10));
     const session = await refreshCurrentModelResourcesToLatest(downloadKey);
-    if (session && renderGen === myGen && isModelResourceRefreshActive(downloadKey)) {
+    if (
+      session &&
+      animationService.renderGen === myGen &&
+      isModelResourceRefreshActive(downloadKey)
+    ) {
       await buildAnimationCacheAfterNetworkSettles(session);
     }
   }
@@ -1029,8 +632,7 @@ export function createForecastRunController({
     invalidateBitmapCache();
     setRendering(false);
     modelState = null;
-    isDecoding = false;
-    pendingHourIdx = null;
+    animationService.resetDecoding();
     setGridState(null);
     updateWarmupProgress();
     forecastDownloadView.clear();
@@ -1038,17 +640,7 @@ export function createForecastRunController({
 
   return {
     getDiagnostics() {
-      const totalBitmaps = modelState?.hourList.length ?? 0;
-      const readyBitmaps = totalBitmaps ? bitmapCacheReadyCount() : animationCache.size;
-      return {
-        lastRenderMs: perfStats.lastRenderMs,
-        lastDecodeMs: perfStats.lastDecodeMs,
-        queueLength: animationCache.queueLength,
-        isPrerendering: animationCache.isPrerendering,
-        readyBitmaps,
-        totalBitmaps,
-        renderGen,
-      };
+      return animationService.getDiagnostics();
     },
     getModelState: () => modelState,
     getPackageKey: () => modelState?.packageKey ?? null,

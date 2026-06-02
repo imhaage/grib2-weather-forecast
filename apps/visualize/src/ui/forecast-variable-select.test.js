@@ -4,6 +4,7 @@ import { describe, expect, test } from "vitest";
 import {
   appendGroupedVariableOptions,
   defaultVariableForPackage,
+  replaceGroupedVariableOptions,
 } from "./forecast-variable-select.js";
 
 describe("forecast variable select", () => {
@@ -43,5 +44,26 @@ describe("forecast variable select", () => {
     };
 
     expect(defaultVariableForPackage(pkg)).toEqual(pkg.variables[1]);
+  });
+
+  test("replaces existing options without writing HTML strings", () => {
+    const select = document.createElement("select");
+    const staleOption = document.createElement("option");
+    staleOption.textContent = "Stale";
+    select.append(staleOption);
+    const variables = [{ shortName: "t", name: "Temperature", group: "Weather maps" }];
+
+    Object.defineProperty(select, "innerHTML", {
+      configurable: true,
+      set() {
+        throw new Error("select should be cleared as DOM nodes");
+      },
+    });
+
+    replaceGroupedVariableOptions(document, select, variables);
+
+    expect(select.children).toHaveLength(1);
+    expect(select.firstElementChild.label).toBe("Weather maps");
+    expect(select.querySelector("option")?.textContent).toBe("Temperature");
   });
 });

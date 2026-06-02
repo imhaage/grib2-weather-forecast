@@ -127,4 +127,27 @@ describe("forecast download view", () => {
     expect(barsEl.children).toHaveLength(0);
     expect(fileListEl.children).toHaveLength(0);
   });
+
+  test("clears rendered items without writing HTML strings", () => {
+    const { barsEl, fileListEl, view } = createView();
+    view.renderItems([createResource()]);
+
+    Object.defineProperty(barsEl, "innerHTML", {
+      configurable: true,
+      set() {
+        throw new Error("bars should be cleared as DOM nodes");
+      },
+    });
+    Object.defineProperty(fileListEl, "innerHTML", {
+      configurable: true,
+      set() {
+        throw new Error("file list should be cleared as DOM nodes");
+      },
+    });
+
+    view.clear();
+
+    expect(barsEl.children).toHaveLength(0);
+    expect(fileListEl.children).toHaveLength(0);
+  });
 });

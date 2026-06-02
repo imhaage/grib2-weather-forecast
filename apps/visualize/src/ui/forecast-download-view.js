@@ -22,8 +22,8 @@ export function createForecastDownloadView({
   function clear() {
     itemByKey.clear();
     fileItemByKey.clear();
-    barsEl.innerHTML = "";
-    fileListEl.innerHTML = "";
+    barsEl.replaceChildren();
+    fileListEl.replaceChildren();
   }
 
   function setStatus(message) {

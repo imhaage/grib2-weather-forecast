@@ -33,6 +33,12 @@ export function appendGroupedVariableOptions(document, select, variables) {
   }
 }
 
+export function replaceGroupedVariableOptions(document, select, variables) {
+  const fragment = document.createDocumentFragment();
+  appendGroupedVariableOptions(document, fragment, variables);
+  select.replaceChildren(fragment);
+}
+
 export function defaultVariableForPackage(pkg) {
   return pkg.variables.find((variable) => variable.group === "Weather maps") ?? pkg.variables[0];
 }
