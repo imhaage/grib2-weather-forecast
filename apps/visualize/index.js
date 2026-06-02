@@ -38,6 +38,7 @@ import {
 } from "./src/domain/variable-metadata.js";
 import { clearGribCache } from "./src/services/grib-cache-service.js";
 import { createMapRendererService } from "./src/services/map-renderer-service.js";
+import { createRenderWorkerClient } from "./src/workers/render-worker-client.js";
 import { bindAppEvents } from "./src/ui/app-events.js";
 import { createDom } from "./src/ui/dom.js";
 import {
@@ -123,9 +124,8 @@ for (const sel of [dom.paletteSelect, dom.paletteSelectForecast]) {
 // ── State ─────────────────────────────────────────────────────────────────────
 let gridState = null; // { values, min, range, grid, product }
 let currentPalette = "Plasma";
-let renderWorker = null;
+const renderWorkerClient = createRenderWorkerClient();
 let renderGen = 0;
-let nextCallId = 0;
 let forecastRun = null;
 const PERF_DEBUG =
 	new URLSearchParams(window.location.search).get("debug") === "perf";
@@ -219,13 +219,6 @@ function setMapSceneVisible(visible) {
 	mapRenderer.setVisible(visible);
 }
 
-function initRenderWorker() {
-	if (renderWorker) return;
-	renderWorker = new Worker(new URL("./render-worker.js", import.meta.url), {
-		type: "module",
-	});
-}
-
 async function timedDecodeGRIB2(buffer) {
 	const startedAt = PERF_DEBUG ? performance.now() : 0;
 	const decoded = await decodeGRIB2(buffer);
@@ -239,86 +232,62 @@ async function timedDecodeGRIB2(buffer) {
 // Sends raw values to the worker, returns Promise<{bitmap,dataMin,dataMax,mean,count}|null>.
 // Returns null if renderGen changed before the worker responds (stale result).
 // By default values are copied so the main thread keeps ownership for tooltips.
-function renderViaWorker(
+async function renderViaWorker(
 	values,
 	renderParams,
 	outW,
 	outH,
 	{ transferValues = false } = {},
 ) {
-	initRenderWorker();
 	const myGen = renderGen;
-	const myCallId = ++nextCallId;
 	const startedAt = PERF_DEBUG ? performance.now() : 0;
 
 	const { grid } = renderParams;
 	const projection = renderProjectionForGrid(grid);
-
-	return new Promise((resolve) => {
-		function onMsg({ data }) {
-			if (data.callId !== myCallId) return;
-			renderWorker.removeEventListener("message", onMsg);
-			renderWorker.removeEventListener("error", onErr);
-			if (data.error) {
-				console.error("render-worker error:", data.error);
-				resolve(null);
-				return;
-			}
-			if (PERF_DEBUG) {
-				perfStats.lastRenderMs = performance.now() - startedAt;
-				updatePerfDiagnostics();
-			}
-			if (renderGen !== myGen) {
-				data.bitmap?.close();
-				resolve(null);
-				return;
-			}
-			resolve({
-				bitmap: data.bitmap,
-				dataMin: data.dataMin,
-				dataMax: data.dataMax,
-				mean: data.dataMean,
-				count: data.dataCount,
-			});
-		}
-		function onErr(e) {
-			renderWorker.removeEventListener("message", onMsg);
-			renderWorker.removeEventListener("error", onErr);
-			console.error("render-worker crash:", e);
-			resolve(null);
-		}
-		renderWorker.addEventListener("message", onMsg);
-		renderWorker.addEventListener("error", onErr);
-
-		const workerValues = transferValues ? values : values.slice();
-		const lut = buildLUT(currentPalette, {
-			min: renderParams.renderMin,
-			max: renderParams.renderMax,
-		});
-		renderWorker.postMessage(
-			{
-				callId: myCallId,
-				gen: myGen,
-				values: workerValues,
-				unitTransform: renderParams.unitTransform,
-				lut,
-				missingValue: MISSING_VALUE,
-				renderMin: renderParams.renderMin,
-				range: renderParams.range,
-				isLog: renderParams.isLog,
-				logFloor: LOG_SCALE_FLOOR,
-				logDenom: renderParams.logDenom,
-				zeroThreshold: renderParams.zeroThreshold,
-				outW,
-				outH,
-				ni: grid.ni,
-				nj: grid.nj,
-				dj: grid.dj,
-				...projection,
-			},
-			[workerValues.buffer],
-		);
+	const workerValues = transferValues ? values : values.slice();
+	const lut = buildLUT(currentPalette, {
+		min: renderParams.renderMin,
+		max: renderParams.renderMax,
 	});
+
+	const data = await renderWorkerClient.render(
+		{
+			gen: myGen,
+			values: workerValues,
+			unitTransform: renderParams.unitTransform,
+			lut,
+			missingValue: MISSING_VALUE,
+			renderMin: renderParams.renderMin,
+			range: renderParams.range,
+			isLog: renderParams.isLog,
+			logFloor: LOG_SCALE_FLOOR,
+			logDenom: renderParams.logDenom,
+			zeroThreshold: renderParams.zeroThreshold,
+			outW,
+			outH,
+			ni: grid.ni,
+			nj: grid.nj,
+			dj: grid.dj,
+			...projection,
+		},
+		[workerValues.buffer],
+	);
+	if (!data) return null;
+	if (PERF_DEBUG) {
+		perfStats.lastRenderMs = performance.now() - startedAt;
+		updatePerfDiagnostics();
+	}
+	if (renderGen !== myGen) {
+		data.bitmap?.close();
+		return null;
+	}
+	return {
+		bitmap: data.bitmap,
+		dataMin: data.dataMin,
+		dataMax: data.dataMax,
+		mean: data.dataMean,
+		count: data.dataCount,
+	};
 }
 
 function makeBitmapCacheEntry(renderEntry, renderParams) {
