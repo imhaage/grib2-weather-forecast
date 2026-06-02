@@ -88,6 +88,34 @@ describe("forecast download view", () => {
     expect(bar.style.getPropertyValue("--pct")).toBe("0%");
   });
 
+  test("updates rendered items without scanning child lists again", () => {
+    const { barsEl, fileListEl, view } = createView();
+    const resource = createResource();
+    view.renderItems([resource]);
+    const bar = barsEl.querySelector("#dl-01H");
+    const fileItem = fileListEl.querySelector("#dl-file-01H");
+
+    Object.defineProperty(barsEl, "children", {
+      configurable: true,
+      get() {
+        throw new Error("bars children should not be scanned");
+      },
+    });
+    Object.defineProperty(fileListEl, "children", {
+      configurable: true,
+      get() {
+        throw new Error("file children should not be scanned");
+      },
+    });
+
+    view.setBlockStatus(resource, BLOCK_STATUS.READY);
+    view.setBlockDownloadProgress(resource, "67%");
+
+    expect(bar.className).toBe("forecast-download-bar ready done");
+    expect(fileItem.className).toBe("forecast-download-file ready done");
+    expect(bar.style.getPropertyValue("--pct")).toBe("67%");
+  });
+
   test("sets status text and clears rendered items", () => {
     const { barsEl, fileListEl, statusEl, view } = createView();
     view.renderItems([createResource()]);

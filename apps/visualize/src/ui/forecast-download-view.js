@@ -8,15 +8,20 @@ export function createForecastDownloadView({
   formatRunSummary,
   formatSize,
 }) {
+  const itemByKey = new Map();
+  const fileItemByKey = new Map();
+
   function downloadBarForBlock(block) {
-    return [...barsEl.children].find((item) => item.id === `dl-${block.key}`);
+    return itemByKey.get(block.key) ?? null;
   }
 
   function downloadFileItemForBlock(block) {
-    return [...fileListEl.children].find((item) => item.id === `dl-file-${block.key}`);
+    return fileItemByKey.get(block.key) ?? null;
   }
 
   function clear() {
+    itemByKey.clear();
+    fileItemByKey.clear();
     barsEl.innerHTML = "";
     fileListEl.innerHTML = "";
   }
@@ -33,6 +38,7 @@ export function createForecastDownloadView({
       item.id = `dl-${resource.key}`;
       item.textContent = resource.key;
       item.title = formatRunSummary([resource]);
+      itemByKey.set(resource.key, item);
       barsEl.appendChild(item);
 
       const li = document.createElement("li");
@@ -44,6 +50,7 @@ export function createForecastDownloadView({
       statusLabel.className = "forecast-download-file__status";
       statusLabel.textContent = BLOCK_STATUS_LABELS[BLOCK_STATUS.MISSING];
       li.append(fileLabel, statusLabel);
+      fileItemByKey.set(resource.key, li);
       fileListEl.appendChild(li);
     }
   }
