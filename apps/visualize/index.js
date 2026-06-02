@@ -334,8 +334,8 @@ function code(table, v) {
 
 // ── Card builder ──────────────────────────────────────────────────────────────
 
-function buildCard(message) {
-	return renderUploadedMessageCard(message, {
+function buildCard(document, message) {
+	return renderUploadedMessageCard(document, message, {
 		code,
 		formatGrid: fmtGrid,
 		formatLevel: fmtLevel,

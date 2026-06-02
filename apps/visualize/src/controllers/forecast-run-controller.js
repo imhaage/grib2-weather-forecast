@@ -17,6 +17,7 @@ import {
   variableKeyFor,
 } from "../domain/variable-metadata.js";
 import { createAnimationCacheService } from "../services/animation-cache-service.js";
+import { runWithConcurrency } from "../services/concurrency-service.js";
 import { createDataGouvResourceService } from "../services/data-gouv-resource-service.js";
 import { createForecastBlockRefreshService } from "../services/forecast-block-refresh-service.js";
 import { createForecastRenderRequest } from "../services/forecast-render-request-service.js";
@@ -29,10 +30,13 @@ import {
 import { createModelBlockService } from "../services/model-block-service.js";
 import { BLOCK_STATUS, createDataStatusSummaryNodes } from "../ui/data-status-summary.js";
 import { createForecastDownloadView } from "../ui/forecast-download-view.js";
+import {
+  appendGroupedVariableOptions,
+  defaultVariableForPackage,
+} from "../ui/forecast-variable-select.js";
 import { createDownloadWorkerClient as createDefaultDownloadWorkerClient } from "../workers/download-worker-client.js";
 
 const PROXY = "https://grib2-cors-proxy.imh.workers.dev";
-const VARIABLE_GROUP_ORDER = ["Weather maps", "Component fields"];
 const MAX_PARALLEL_DOWNLOADS = 6;
 
 function fmtHourLabel(hour) {
@@ -41,57 +45,6 @@ function fmtHourLabel(hour) {
 
 function fmtSize(bytes) {
   return bytes >= 1e6 ? `${(bytes / 1e6).toFixed(1)} MB` : `${(bytes / 1e3).toFixed(0)} KB`;
-}
-
-async function runWithConcurrency(items, limit, worker) {
-  const results = new Array(items.length);
-  let nextIndex = 0;
-  const workerCount = Math.min(limit, items.length);
-
-  async function runNext() {
-    const index = nextIndex++;
-    if (index >= items.length) return;
-    results[index] = await worker(items[index], index);
-    await runNext();
-  }
-
-  await Promise.all(Array.from({ length: workerCount }, runNext));
-  return results;
-}
-
-function createVariableOption(document, varDef) {
-  const option = document.createElement("option");
-  option.value = variableKeyFor(varDef);
-  option.textContent = varDef.name;
-  return option;
-}
-
-function appendGroupedVariableOptions(document, select, variables) {
-  const groups = new Map();
-  for (const varDef of variables) {
-    const groupName = varDef.group;
-    if (!groupName) {
-      select.appendChild(createVariableOption(document, varDef));
-      continue;
-    }
-    if (!groups.has(groupName)) {
-      const group = document.createElement("optgroup");
-      group.label = groupName;
-      groups.set(groupName, group);
-    }
-    groups.get(groupName).appendChild(createVariableOption(document, varDef));
-  }
-  for (const groupName of VARIABLE_GROUP_ORDER) {
-    const group = groups.get(groupName);
-    if (group) select.appendChild(group);
-  }
-  for (const [groupName, group] of groups) {
-    if (!VARIABLE_GROUP_ORDER.includes(groupName)) select.appendChild(group);
-  }
-}
-
-function defaultVariableForPackage(pkg) {
-  return pkg.variables.find((variable) => variable.group === "Weather maps") ?? pkg.variables[0];
 }
 
 export function createForecastRunController({

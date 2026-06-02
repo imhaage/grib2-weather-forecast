@@ -1,11 +1,4 @@
-function readFileAsArrayBuffer(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (event) => resolve(event.target.result);
-    reader.onerror = () => reject(new Error("Could not read file."));
-    reader.readAsArrayBuffer(file);
-  });
-}
+import { readFileAsArrayBuffer } from "../services/browser-file-reader-service.js";
 
 export function createUploadInspectorController({
   centres,
@@ -27,7 +20,7 @@ export function createUploadInspectorController({
     fileState = null;
     dom.summary.hidden = true;
     dom.results.hidden = true;
-    dom.cards.innerHTML = "";
+    dom.cards.replaceChildren();
     dom.status.textContent = "";
     dom.status.classList.remove("error");
   }
@@ -50,7 +43,9 @@ export function createUploadInspectorController({
       dom.centre.textContent = centres[first.header.centre] ?? `Centre ${first.header.centre}`;
       dom.referenceTime.textContent = formatRefTime(first.header);
       dom.summary.hidden = false;
-      dom.cards.innerHTML = messages.map(renderCard).join("");
+      dom.cards.replaceChildren(
+        ...messages.map((message) => renderCard(dom.cards.ownerDocument, message)),
+      );
       dom.results.hidden = false;
       setStatus("");
     } catch (error) {

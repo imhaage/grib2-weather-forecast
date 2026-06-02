@@ -44,8 +44,12 @@ function createController(overrides = {}) {
     centres: { 85: "Météo-France" },
     formatSize: (size) => `${size} bytes`,
     formatRefTime: () => "2026-06-01 00:00 UTC",
-    renderCard: (message) =>
-      `<article data-index="${message.index}">${message.product.shortName}</article>`,
+    renderCard: (document, message) => {
+      const card = document.createElement("article");
+      card.dataset.index = String(message.index);
+      card.textContent = message.product.shortName;
+      return card;
+    },
     readFileAsArrayBuffer: vi.fn(async () => new ArrayBuffer(8)),
     iterateMessages: vi.fn(() => [
       createMessage(0, "t"),
@@ -90,7 +94,7 @@ describe("upload inspector controller", () => {
     expect(controller.hasFile()).toBe(false);
     expect(document.getElementById("file-summary").hidden).toBe(true);
     expect(document.getElementById("results").hidden).toBe(true);
-    expect(document.getElementById("cards").innerHTML).toBe("");
+    expect(document.getElementById("cards").children).toHaveLength(0);
     expect(document.getElementById("status").textContent).toBe("");
   });
 

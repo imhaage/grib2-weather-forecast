@@ -83,12 +83,17 @@ describe("inspect file flow", () => {
         createMessage(2, "cape"),
       ]),
       readFileAsArrayBuffer: vi.fn(async () => new ArrayBuffer(8)),
-      renderCard: (message) =>
-        `<article data-index="${message.index}">
-          <button class="btn-grid" data-var="${message.product.shortName}" data-message-index="${message.index}">
-            Show on map
-          </button>
-        </article>`,
+      renderCard: (document, message) => {
+        const card = document.createElement("article");
+        const button = document.createElement("button");
+        card.dataset.index = String(message.index);
+        button.className = "btn-grid";
+        button.dataset.var = message.product.shortName;
+        button.dataset.messageIndex = String(message.index);
+        button.textContent = "Show on map";
+        card.append(button);
+        return card;
+      },
     });
     const router = createAppRouter({
       addEventListener: vi.fn(),
