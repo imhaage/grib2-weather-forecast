@@ -7,7 +7,7 @@ import { cardinalDirectionForDegrees } from "./wind-direction-format.js";
 
 const CALM_WIND_KMH = 5;
 const REFERENCE_ZOOM = 6;
-const REFERENCE_MATRIX_STRIDE = 8;
+const REFERENCE_MATRIX_STRIDE = 16;
 
 function createFeatureCollection(features) {
   return {

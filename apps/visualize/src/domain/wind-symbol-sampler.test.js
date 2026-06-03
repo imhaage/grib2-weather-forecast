@@ -108,10 +108,10 @@ describe("wind symbol sampler", () => {
       zoom: 6,
     });
 
-    expect(collection.features).toHaveLength(13);
+    expect(collection.features).toHaveLength(7);
   });
 
-  test("reduces the zoom 6 surface density by about four times", () => {
+  test("keeps the zoom 6 surface density at the extra-reduced level", () => {
     const wideGrid = {
       ...grid,
       ni: 100,
@@ -133,7 +133,7 @@ describe("wind symbol sampler", () => {
       zoom: 6,
     });
 
-    expect(collection.features).toHaveLength(169);
+    expect(collection.features).toHaveLength(49);
   });
 
   test("changes matrix stride only when the rounded zoom changes", () => {
@@ -159,10 +159,10 @@ describe("wind symbol sampler", () => {
         zoom,
       });
 
-    expect(createCollection(5.49).features).toHaveLength(7);
-    expect(createCollection(5.5).features).toHaveLength(13);
-    expect(createCollection(6.49).features).toHaveLength(13);
-    expect(createCollection(4.49).features).toHaveLength(4);
-    expect(createCollection(6.51).features).toHaveLength(25);
+    expect(createCollection(5.49).features).toHaveLength(4);
+    expect(createCollection(5.5).features).toHaveLength(7);
+    expect(createCollection(6.49).features).toHaveLength(7);
+    expect(createCollection(4.49).features).toHaveLength(2);
+    expect(createCollection(6.51).features).toHaveLength(13);
   });
 });
