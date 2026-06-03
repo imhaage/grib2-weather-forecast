@@ -5,6 +5,7 @@
   "dependencies": {
     "@math.gl/web-mercator": "^4.1.0",
     "chroma-js": "^2.4.2",
+    "comlink": "^4.4.2",
     "d3-contour": "^4.0.2",
     "grib2-decoder": "*",
     "idb": "^8.0.3",

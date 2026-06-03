@@ -32,7 +32,7 @@ function renderAppDom() {
       <span id="perf-debug-queue"></span>
       <span id="perf-debug-cache"></span>
       <span id="perf-debug-decoded"></span>
-      <span id="perf-debug-gen"></span>
+      <span id="perf-debug-generation"></span>
     </div>
     <details id="data-status-panel"></details>
     <span id="data-status-summary"></span>
@@ -105,7 +105,7 @@ describe("dom registry", () => {
     expect(dom.perfDebug.queue.id).toBe("perf-debug-queue");
     expect(dom.perfDebug.cache.id).toBe("perf-debug-cache");
     expect(dom.perfDebug.decoded.id).toBe("perf-debug-decoded");
-    expect(dom.perfDebug.gen.id).toBe("perf-debug-gen");
+    expect(dom.perfDebug.generation.id).toBe("perf-debug-generation");
     expect(dom.dataStatus.panel.id).toBe("data-status-panel");
     expect(dom.dataStatus.summary.id).toBe("data-status-summary");
     expect(dom.map.scene.id).toBe("map-scene");

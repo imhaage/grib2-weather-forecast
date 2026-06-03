@@ -46,7 +46,7 @@ export function createDom(document) {
       queue: mustFind(document, "#perf-debug-queue"),
       cache: mustFind(document, "#perf-debug-cache"),
       decoded: mustFind(document, "#perf-debug-decoded"),
-      gen: mustFind(document, "#perf-debug-gen"),
+      generation: mustFind(document, "#perf-debug-generation"),
     },
     dataStatus: {
       panel: mustFind(document, "#data-status-panel"),

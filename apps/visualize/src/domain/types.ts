@@ -153,13 +153,11 @@ export interface RenderFieldResult {
 }
 
 export interface RenderWorkerRequest extends RenderFieldInput {
-  callId: number;
-  gen: number;
+  renderGeneration: number;
 }
 
 export interface RenderWorkerResult {
-  callId: number;
-  gen: number;
+  renderGeneration: number;
   bitmap?: ImageBitmap;
   dataMin?: number;
   dataMax?: number;
@@ -170,8 +168,7 @@ export interface RenderWorkerResult {
 
 export interface ModelBlockRenderRequest {
   type: "renderHour";
-  callId?: number;
-  gen: number;
+  renderGeneration: number;
   blockKey: string;
   block: RemoteResource;
   hour: number;
@@ -198,7 +195,6 @@ export interface ModelBlockRenderRequest {
 
 export interface ModelBlockStoreRequest {
   type: "storeBlock";
-  callId: number;
   blockKey: string;
   buffer: Uint8Array;
 }
@@ -213,8 +209,7 @@ export type ModelBlockWorkerRequest =
   | ModelBlockDecodeValuesRequest;
 
 export interface ModelBlockRenderResult extends Omit<DecodedField, "values"> {
-  callId?: number;
-  gen: number;
+  renderGeneration: number;
   bitmap: ImageBitmap;
   dataMin: number;
   dataMax: number;

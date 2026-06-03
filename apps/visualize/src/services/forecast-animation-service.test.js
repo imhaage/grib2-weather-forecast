@@ -51,7 +51,7 @@ describe("forecast animation service", () => {
 
     expect(modelState.animationCacheStatus).toBe("waiting");
     expect(dom.cacheWarmupLabel.textContent).toBe("Preparing animation cache");
-    expect(service.getDiagnostics().renderGen).toBe(1);
+    expect(service.getDiagnostics().currentRenderGeneration).toBe(1);
     expect(service.isBitmapCacheComplete()).toBe(false);
   });
 });

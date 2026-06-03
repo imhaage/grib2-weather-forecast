@@ -106,7 +106,7 @@ const dom = {
 	perfDebugQueue: domRefs.perfDebug.queue,
 	perfDebugCache: domRefs.perfDebug.cache,
 	perfDebugDecoded: domRefs.perfDebug.decoded,
-	perfDebugGen: domRefs.perfDebug.gen,
+	perfDebugGeneration: domRefs.perfDebug.generation,
 };
 
 function setPaletteSelectValues(palette) {
@@ -125,7 +125,7 @@ for (const sel of [dom.paletteSelect, dom.paletteSelectForecast]) {
 let gridState = null; // { values, min, range, grid, product }
 let currentPalette = "Plasma";
 const renderWorkerClient = createRenderWorkerClient();
-let renderGen = 0;
+let currentRenderGeneration = 0;
 let forecastRun = null;
 const PERF_DEBUG =
 	new URLSearchParams(window.location.search).get("debug") === "perf";
@@ -207,7 +207,8 @@ function updatePerfDiagnostics() {
 	dom.perfDebugCache.textContent =
 		`cache ${readyBitmaps} / ${totalBitmaps || readyBitmaps}`;
 	dom.perfDebugDecoded.textContent = "decoded worker";
-	dom.perfDebugGen.textContent = `gen ${diagnostics?.renderGen ?? renderGen}`;
+	dom.perfDebugGeneration.textContent =
+		`generation ${diagnostics?.currentRenderGeneration ?? currentRenderGeneration}`;
 }
 
 function setRendering(on) {
@@ -230,7 +231,7 @@ async function timedDecodeGRIB2(buffer) {
 }
 
 // Sends raw values to the worker, returns Promise<{bitmap,dataMin,dataMax,mean,count}|null>.
-// Returns null if renderGen changed before the worker responds (stale result).
+// Returns null if renderGeneration changed before the worker responds (stale result).
 // By default values are copied so the main thread keeps ownership for tooltips.
 async function renderViaWorker(
 	values,
@@ -239,7 +240,7 @@ async function renderViaWorker(
 	outH,
 	{ transferValues = false } = {},
 ) {
-	const myGen = renderGen;
+	const capturedRenderGeneration = currentRenderGeneration;
 	const startedAt = PERF_DEBUG ? performance.now() : 0;
 
 	const { grid } = renderParams;
@@ -252,7 +253,7 @@ async function renderViaWorker(
 
 	const data = await renderWorkerClient.render(
 		{
-			gen: myGen,
+			renderGeneration: capturedRenderGeneration,
 			values: workerValues,
 			unitTransform: renderParams.unitTransform,
 			lut,
@@ -277,7 +278,7 @@ async function renderViaWorker(
 		perfStats.lastRenderMs = performance.now() - startedAt;
 		updatePerfDiagnostics();
 	}
-	if (renderGen !== myGen) {
+	if (currentRenderGeneration !== capturedRenderGeneration) {
 		data.bitmap?.close();
 		return null;
 	}

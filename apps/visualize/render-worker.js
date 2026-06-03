@@ -1,21 +1,25 @@
 // apps/visualize/render-worker.js
-// Pixel loop for heatmap rendering — runs in a Web Worker.
+// Pixel loop for heatmap rendering - runs in a Web Worker.
 // Receives raw decoded values + unit transform + LUT + grid params.
 // Returns an ImageBitmap plus field statistics (min/max/mean/count).
+import { expose, transfer } from "comlink";
 import { renderFieldToImageData } from "./src/workers/render-field-core.js";
 
-self.onmessage = async ({ data }) => {
-  const { callId, gen } = data;
+async function render(data) {
+  const { renderGeneration } = data;
+  const { image, dataMin, dataMax, dataMean, dataCount } = renderFieldToImageData(data);
+  const bitmap = await createImageBitmap(image);
+  return transfer(
+    {
+      renderGeneration,
+      bitmap,
+      dataMin,
+      dataMax,
+      dataMean,
+      dataCount,
+    },
+    [bitmap],
+  );
+}
 
-  try {
-    const { image, dataMin, dataMax, dataMean, dataCount } =
-      renderFieldToImageData(data);
-    const bitmap = await createImageBitmap(image);
-    self.postMessage(
-      { callId, gen, bitmap, dataMin, dataMax, dataMean, dataCount },
-      [bitmap],
-    );
-  } catch (e) {
-    self.postMessage({ callId, gen, error: e.message });
-  }
-};
+expose({ render });

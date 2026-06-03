@@ -1,51 +1,67 @@
 import { describe, expect, test, vi } from "vitest";
 import { createRenderWorkerClient } from "./render-worker-client.js";
 
-function createFakeWorker() {
-  const listeners = {
-    message: new Set(),
-    error: new Set(),
-  };
-  return {
-    addEventListener: vi.fn((type, listener) => listeners[type].add(listener)),
-    removeEventListener: vi.fn((type, listener) => listeners[type].delete(listener)),
-    postMessage: vi.fn(),
-    emit(type, event) {
-      for (const listener of listeners[type]) listener(event);
-    },
-  };
-}
-
 describe("render worker client", () => {
-  test("posts render requests through the shared worker RPC client", async () => {
-    const worker = createFakeWorker();
+  test("renders through a Comlink proxy and transfers render buffers", async () => {
+    const worker = {};
+    const bitmap = { close: vi.fn() };
+    const remote = {
+      render: vi.fn(async (request) => ({
+        renderGeneration: request.value.renderGeneration,
+        bitmap,
+        dataMin: 1,
+        dataMax: 1,
+      })),
+    };
+    const comlink = {
+      transfer: vi.fn((value, transferables) => ({ value, transferables })),
+      wrap: vi.fn(() => remote),
+    };
     const client = createRenderWorkerClient({
       createWorker: () => worker,
+      comlink,
     });
-    const bitmap = { close: vi.fn() };
+    const values = new Float32Array([1]);
 
-    const resultPromise = client.render(
-      { gen: 7, values: new Float32Array([1]), outW: 1, outH: 1 },
-      [],
+    const result = await client.render(
+      {
+        renderGeneration: 7,
+        values,
+        outW: 1,
+        outH: 1,
+      },
+      [values.buffer],
     );
-    worker.emit("message", {
-      data: { callId: 1, gen: 7, bitmap, dataMin: 1, dataMax: 1 },
-    });
 
-    await expect(resultPromise).resolves.toMatchObject({
-      gen: 7,
+    expect(result).toMatchObject({
+      renderGeneration: 7,
       bitmap,
       dataMin: 1,
       dataMax: 1,
     });
-    expect(worker.postMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        callId: 1,
-        gen: 7,
-        outW: 1,
-        outH: 1,
-      }),
-      [],
+    expect(comlink.wrap).toHaveBeenCalledWith(worker);
+    expect(comlink.transfer).toHaveBeenCalledWith(
+      expect.objectContaining({ renderGeneration: 7, values }),
+      [values.buffer],
     );
+  });
+
+  test("maps render worker errors to null", async () => {
+    const onError = vi.fn();
+    const client = createRenderWorkerClient({
+      comlink: {
+        transfer: (value) => value,
+        wrap: () => ({
+          render: vi.fn(async () => {
+            throw new Error("render failed");
+          }),
+        }),
+      },
+      createWorker: () => ({}),
+      onError,
+    });
+
+    await expect(client.render({ renderGeneration: 1 }, [])).resolves.toBeNull();
+    expect(onError).toHaveBeenCalledWith(expect.any(Error));
   });
 });

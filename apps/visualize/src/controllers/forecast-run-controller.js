@@ -591,12 +591,12 @@ export function createForecastRunController({
     await new Promise((resolve) => window.requestAnimationFrame(resolve));
     setRendering(false);
     invalidateBitmapCache();
-    const myGen = animationService.renderGen;
+    const capturedRenderGeneration = animationService.currentRenderGeneration;
     await showHour(Number.parseInt(dom.forecastSlider.value, 10));
     const session = await refreshCurrentModelResourcesToLatest(downloadKey);
     if (
       session &&
-      animationService.renderGen === myGen &&
+      animationService.currentRenderGeneration === capturedRenderGeneration &&
       isModelResourceRefreshActive(downloadKey)
     ) {
       await buildAnimationCacheAfterNetworkSettles(session);

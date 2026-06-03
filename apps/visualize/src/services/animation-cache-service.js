@@ -76,11 +76,11 @@ export function createAnimationCacheService() {
       return Boolean(hours.length) && this.readyCount(hours) === hours.length;
     },
 
-    enqueueBlock(blockKey, gen, state) {
-      const queueKey = `${gen}:${blockKey}`;
+    enqueueBlock(blockKey, renderGeneration, state) {
+      const queueKey = `${renderGeneration}:${blockKey}`;
       if (queuedPrerenderKeys.has(queueKey)) return false;
       queuedPrerenderKeys.add(queueKey);
-      prerenderQueue.push({ blockKey, gen, state, queueKey });
+      prerenderQueue.push({ blockKey, renderGeneration, state, queueKey });
       return true;
     },
 

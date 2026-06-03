@@ -29,7 +29,7 @@ describe("forecast render request service", () => {
       state: createState({ availableBlocks: new Set() }),
       hourIndex: 1,
       hour: 2,
-      renderGen: 4,
+      renderGeneration: 4,
       paletteName: "Viridis",
       missingValue: -1e100,
     });
@@ -43,7 +43,7 @@ describe("forecast render request service", () => {
       state,
       hourIndex: 1,
       hour: 2,
-      renderGen: 4,
+      renderGeneration: 4,
       paletteName: "Viridis",
       missingValue: -1e100,
       includeValues: true,
@@ -51,7 +51,7 @@ describe("forecast render request service", () => {
 
     expect(request).toMatchObject({
       type: "renderHour",
-      gen: 4,
+      renderGeneration: 4,
       blockKey: "02H",
       block: state.resources[1],
       hour: 2,

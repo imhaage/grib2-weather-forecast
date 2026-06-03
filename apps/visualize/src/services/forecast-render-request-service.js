@@ -9,7 +9,7 @@ export function createForecastRenderRequest({
   state,
   hourIndex,
   hour,
-  renderGen,
+  renderGeneration,
   paletteName,
   missingValue,
   includeValues = false,
@@ -29,7 +29,7 @@ export function createForecastRenderRequest({
 
   return {
     type: "renderHour",
-    gen: renderGen,
+    renderGeneration,
     blockKey: block.key,
     block,
     hour,

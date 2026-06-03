@@ -46,7 +46,7 @@ export function createForecastAnimationService({
 }) {
   let isDecoding = false;
   let pendingHourIdx = null;
-  let renderGen = 0;
+  let currentRenderGeneration = 0;
   let tooltipHydrateTimer = null;
   let tooltipHydrateToken = 0;
   const animationCache = createAnimationCacheService();
@@ -66,7 +66,7 @@ export function createForecastAnimationService({
     tooltipHydrateToken++;
     if (tooltipHydrateTimer !== null) clearTimeout(tooltipHydrateTimer);
     tooltipHydrateTimer = null;
-    renderGen++;
+    currentRenderGeneration++;
     updateWarmupProgress();
     notifyDiagnostics();
   }
@@ -134,7 +134,7 @@ export function createForecastAnimationService({
       state: currentState(),
       hourIndex: idx,
       hour,
-      renderGen,
+      renderGeneration: currentRenderGeneration,
       paletteName: getCurrentPalette(),
       missingValue,
       includeValues,
@@ -154,7 +154,7 @@ export function createForecastAnimationService({
       perfStats.lastRenderMs = performanceApi.now() - startedAt;
       notifyDiagnostics();
     }
-    if (renderGen !== request.gen) {
+    if (currentRenderGeneration !== request.renderGeneration) {
       result.bitmap?.close();
       return null;
     }
@@ -167,16 +167,16 @@ export function createForecastAnimationService({
     });
     if (!request) return null;
     const result = await getModelBlockService().decodeValues(request);
-    if (!result?.values || renderGen !== request.gen) return null;
+    if (!result?.values || currentRenderGeneration !== request.renderGeneration) return null;
     return result;
   }
 
-  async function hydrateTooltipValues(idx, hour, token, capturedState, capturedGen) {
+  async function hydrateTooltipValues(idx, hour, token, capturedState, capturedRenderGeneration) {
     const data = await decodeModelHourValuesViaWorker(idx, hour);
     if (
       !data ||
       currentState() !== capturedState ||
-      renderGen !== capturedGen ||
+      currentRenderGeneration !== capturedRenderGeneration ||
       tooltipHydrateToken !== token ||
       capturedState.currentHour !== hour
     ) {
@@ -198,12 +198,12 @@ export function createForecastAnimationService({
 
     const token = tooltipHydrateToken;
     const capturedState = currentState();
-    const capturedGen = renderGen;
+    const capturedRenderGeneration = currentRenderGeneration;
     tooltipHydrateTimer = setTimeout(() => {
       tooltipHydrateTimer = null;
       if (isPlayerPlaying()) return;
-      hydrateTooltipValues(idx, hour, token, capturedState, capturedGen).catch((error) =>
-        console.error("hydrateTooltipValues:", error),
+      hydrateTooltipValues(idx, hour, token, capturedState, capturedRenderGeneration).catch(
+        (error) => console.error("hydrateTooltipValues:", error),
       );
     }, 140);
   }
@@ -265,12 +265,13 @@ export function createForecastAnimationService({
 
   async function prerenderBlock(blockKey) {
     const capturedState = currentState();
-    const capturedGen = renderGen;
+    const capturedRenderGeneration = currentRenderGeneration;
     const block = capturedState.resources.find((resource) => resource.key === blockKey);
     if (!block) return;
 
     for (let hour = block.startHour; hour <= block.endHour; hour++) {
-      if (currentState() !== capturedState || renderGen !== capturedGen) return;
+      if (currentState() !== capturedState || currentRenderGeneration !== capturedRenderGeneration)
+        return;
 
       const idx = capturedState.hourList.indexOf(hour);
       if (idx === -1 || animationCache.hasHour(hour)) continue;
@@ -278,7 +279,10 @@ export function createForecastAnimationService({
       const entry = await renderModelHourViaWorker(idx);
       if (!entry) return;
 
-      if (currentState() === capturedState && renderGen === capturedGen) {
+      if (
+        currentState() === capturedState &&
+        currentRenderGeneration === capturedRenderGeneration
+      ) {
         if (animationCache.hasHour(hour)) {
           entry.bitmap.close();
         } else {
@@ -295,9 +299,9 @@ export function createForecastAnimationService({
   function queuePrerenderBlock(blockKey) {
     const modelState = currentState();
     if (!modelState?.availableBlocks.has(blockKey)) return;
-    const gen = renderGen;
+    const renderGeneration = currentRenderGeneration;
     const state = modelState;
-    const queued = animationCache.enqueueBlock(blockKey, gen, state);
+    const queued = animationCache.enqueueBlock(blockKey, renderGeneration, state);
     if (!queued) return;
     notifyDiagnostics();
     drainPrerenderQueue();
@@ -323,7 +327,7 @@ export function createForecastAnimationService({
       let job = animationCache.nextJob();
       while (job) {
         notifyDiagnostics();
-        if (currentState() === job.state && renderGen === job.gen) {
+        if (currentState() === job.state && currentRenderGeneration === job.renderGeneration) {
           await prerenderBlock(job.blockKey);
         }
         animationCache.completeJob(job);
@@ -355,13 +359,13 @@ export function createForecastAnimationService({
       isPrerendering: animationCache.isPrerendering,
       readyBitmaps,
       totalBitmaps,
-      renderGen,
+      currentRenderGeneration,
     };
   }
 
   return {
-    get renderGen() {
-      return renderGen;
+    get currentRenderGeneration() {
+      return currentRenderGeneration;
     },
     bitmapCacheReadyCount,
     getDiagnostics,

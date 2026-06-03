@@ -1,18 +1,13 @@
-import {
-  iterateGRIB2Messages,
-  decodeGRIB2,
-} from "/packages/grib2-decoder/dist/grib2-decoder.js";
+import { expose, transfer } from "comlink";
+import { decodeGRIB2, iterateGRIB2Messages } from "/packages/grib2-decoder/dist/grib2-decoder.js";
 import {
   computeAccumulationDiff,
   effectiveForecastTime,
   productMatchesVariable,
   toFloat32Values,
 } from "./src/domain/forecast-field.js";
-import {
-  mercatorCanvasHeight,
-  renderProjectionForGrid,
-} from "./src/domain/web-mercator.js";
 import { generateIsobars, supportsIsobars } from "./src/domain/isobars.js";
+import { mercatorCanvasHeight, renderProjectionForGrid } from "./src/domain/web-mercator.js";
 import { renderFieldToImageData } from "./src/workers/render-field-core.js";
 
 const blockBuffers = new Map();
@@ -31,7 +26,16 @@ function findMessage(blockKey, block, hour, variable) {
   return null;
 }
 
-async function decodeDisplayValues({ blockKey, block, hour, previousBlockKey, previousBlock, previousHour, variable, missingValue }) {
+async function decodeDisplayValues({
+  blockKey,
+  block,
+  hour,
+  previousBlockKey,
+  previousBlock,
+  previousHour,
+  variable,
+  missingValue,
+}) {
   const currentMessage = findMessage(blockKey, block, hour, variable);
   if (!currentMessage) return null;
 
@@ -55,9 +59,7 @@ async function decodeDisplayValues({ blockKey, block, hour, previousBlockKey, pr
   }
 
   const displayValues = toFloat32Values(values);
-  const displayUnits = isAccumulation && !isFallback && previousHour != null
-    ? "mm/h"
-    : null;
+  const displayUnits = isAccumulation && !isFallback && previousHour != null ? "mm/h" : null;
 
   return {
     values: displayValues,
@@ -69,13 +71,17 @@ async function decodeDisplayValues({ blockKey, block, hour, previousBlockKey, pr
   };
 }
 
+function storeBlock({ blockKey, buffer }) {
+  blockBuffers.set(blockKey, buffer);
+  return { ok: true };
+}
+
 async function renderHour(data) {
   const decoded = await decodeDisplayValues(data);
   if (!decoded) return null;
 
   const {
-    callId,
-    gen,
+    renderGeneration,
     includeValues,
     lut,
     missingValue,
@@ -92,8 +98,7 @@ async function renderHour(data) {
   const { values, grid, product, header, isFallback } = decoded;
   const outW = grid.ni;
   const outH = mercatorCanvasHeight(grid);
-  const { northLat, southLat, isStoN, northY, spanY } =
-    renderProjectionForGrid(grid);
+  const { northLat, southLat, isStoN, northY, spanY } = renderProjectionForGrid(grid);
   const { image, dataMin, dataMax, dataMean, dataCount } = renderFieldToImageData({
     values,
     unitTransform,
@@ -119,8 +124,7 @@ async function renderHour(data) {
 
   const bitmap = await createImageBitmap(image);
   const result = {
-    callId,
-    gen,
+    renderGeneration,
     bitmap,
     dataMin,
     dataMax,
@@ -138,51 +142,29 @@ async function renderHour(data) {
     isFallback,
     isobars: supportsIsobars(product.shortName)
       ? generateIsobars({
-        shortName: product.shortName,
-        grid,
-        values,
-        missingValue,
-      })
+          shortName: product.shortName,
+          grid,
+          values,
+          missingValue,
+        })
       : null,
   };
-  const transfer = [bitmap];
+  const transferables = [bitmap];
   if (includeValues) {
     result.values = values;
-    transfer.push(values.buffer);
+    transferables.push(values.buffer);
   }
-  self.postMessage(result, transfer);
+  return transfer(result, transferables);
 }
 
-self.onmessage = async ({ data }) => {
-  const { type, callId, gen } = data;
+async function decodeValues(data) {
+  const decoded = await decodeDisplayValues(data);
+  if (!decoded) return { renderGeneration: data.renderGeneration, values: null };
+  return transfer({ renderGeneration: data.renderGeneration, ...decoded }, [decoded.values.buffer]);
+}
 
-  try {
-    switch (type) {
-      case "storeBlock": {
-        const { blockKey, buffer } = data;
-        blockBuffers.set(blockKey, buffer);
-        self.postMessage({ callId, ok: true });
-        break;
-      }
-      case "renderHour":
-        await renderHour(data);
-        break;
-      case "decodeValues": {
-        const decoded = await decodeDisplayValues(data);
-        if (!decoded) {
-          self.postMessage({ callId, gen, values: null });
-          break;
-        }
-        self.postMessage(
-          { callId, gen, ...decoded },
-          [decoded.values.buffer],
-        );
-        break;
-      }
-      default:
-        self.postMessage({ callId, gen, error: `Unknown worker message: ${type}` });
-    }
-  } catch (error) {
-    self.postMessage({ callId, gen, error: error.message });
-  }
-};
+expose({
+  decodeValues,
+  renderHour,
+  storeBlock,
+});
