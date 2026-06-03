@@ -1,5 +1,9 @@
 import { describe, expect, test } from "vitest";
-import { deriveVectorSpeedValues, directionDegreesFromVector, speedKmhFromVector } from "./vector-field.js";
+import {
+  deriveVectorSpeedValues,
+  directionDegreesFromVector,
+  speedKmhFromVector,
+} from "./vector-field.js";
 
 describe("vector field", () => {
   test("derives km/h speed values from u and v components", () => {

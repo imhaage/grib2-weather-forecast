@@ -26,7 +26,9 @@ export function createForecastRenderRequest({
   const vComponentKey = componentVariableKeyForVector(selectedVariable, "v");
   const renderVariableKey = uComponentKey ?? selectedVariable;
   const varDef = findPackageVariable(state.packageKey, renderVariableKey);
-  const secondaryVarDef = vComponentKey ? findPackageVariable(state.packageKey, vComponentKey) : null;
+  const secondaryVarDef = vComponentKey
+    ? findPackageVariable(state.packageKey, vComponentKey)
+    : null;
   const shortName = varDef?.shortName ?? renderVariableKey;
   const compositeShortName = isVectorCompositeVariable(selectedVariable) ? selectedVariable : null;
   const scaleShortName = compositeShortName ?? shortName;
