@@ -1,3 +1,5 @@
+import { normalizeDegrees } from "./wind-direction-format.js";
+
 const MS_TO_KMH = 3.6;
 
 function hasVectorComponent(value, missingValue) {
@@ -13,9 +15,21 @@ export function deriveVectorSpeedValues({ uValues, vValues, missingValue }) {
     const v = vValues[index];
     values[index] =
       hasVectorComponent(u, missingValue) && hasVectorComponent(v, missingValue)
-        ? Math.hypot(u, v) * MS_TO_KMH
+        ? speedKmhFromVector(u, v)
         : missingValue;
   }
 
   return values;
+}
+
+export function speedKmhFromVector(u, v) {
+  return Math.hypot(u, v) * MS_TO_KMH;
+}
+
+export function directionDegreesFromVector(u, v) {
+  return normalizeDegrees((Math.atan2(-u, -v) * 180) / Math.PI);
+}
+
+export function hasUsableVectorComponent(value, missingValue) {
+  return hasVectorComponent(value, missingValue);
 }

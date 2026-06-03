@@ -1,7 +1,13 @@
-import { cardinalDirectionForDegrees, normalizeDegrees } from "./wind-direction-format.js";
+import {
+  directionDegreesFromVector,
+  hasUsableVectorComponent,
+  speedKmhFromVector,
+} from "./vector-field.js";
+import { cardinalDirectionForDegrees } from "./wind-direction-format.js";
 
 const CALM_WIND_KMH = 5;
-const TARGET_SYMBOL_SPACING_PX = 10.5;
+const REFERENCE_ZOOM = 6;
+const REFERENCE_MATRIX_STRIDE = 4;
 
 function createFeatureCollection(features) {
   return {
@@ -10,79 +16,129 @@ function createFeatureCollection(features) {
   };
 }
 
-function visibleColumnCount(grid, bounds) {
-  const westCol = Math.max(0, Math.floor((bounds.west - grid.longitudeOfFirstPoint) / grid.di));
-  const eastCol = Math.min(
-    grid.ni - 1,
-    Math.ceil((bounds.east - grid.longitudeOfFirstPoint) / grid.di),
-  );
-  return Math.max(1, eastCol - westCol + 1);
+function matrixStrideForZoom(zoom) {
+  const roundedZoom = Math.round(Number.isFinite(zoom) ? zoom : REFERENCE_ZOOM);
+  const scale = 2 ** (REFERENCE_ZOOM - roundedZoom);
+  return Math.max(1, Math.round(REFERENCE_MATRIX_STRIDE * scale));
 }
 
-function sampleStrideForViewport(grid, bounds, viewport) {
-  const approximateColumns = Math.max(1, Math.floor(viewport.width / TARGET_SYMBOL_SPACING_PX));
-  return Math.max(1, Math.floor(visibleColumnCount(grid, bounds) / approximateColumns));
+function latitudeForRowFromNorth(grid, rowFromNorth, northLat) {
+  return northLat - rowFromNorth * grid.dj;
+}
+
+function gridRowForRowFromNorth(grid, rowFromNorth, isStoN) {
+  return isStoN ? grid.nj - 1 - rowFromNorth : rowFromNorth;
 }
 
 function isInsideBounds(lng, lat, bounds) {
   return lng >= bounds.west && lng <= bounds.east && lat >= bounds.south && lat <= bounds.north;
 }
 
-function hasDisplayValue(value, missingValue) {
-  return Number.isFinite(value) && value > missingValue;
-}
-
-export function buildWindSymbolFeatures({
+function aggregateVectorBlock({
   grid,
-  speedValues,
-  directionValues,
+  vectorUValues,
+  vectorVValues,
   missingValue,
   bounds,
-  viewport,
-  speedUnitTransform = (value) => value,
+  startRowFromNorth,
+  startCol,
+  stride,
+  northLat,
+  isStoN,
 }) {
-  if (!grid || !speedValues || !directionValues || !bounds || !viewport) {
-    return createFeatureCollection([]);
-  }
+  let uSum = 0;
+  let vSum = 0;
+  let lngSum = 0;
+  let latSum = 0;
+  let count = 0;
+  const endRowFromNorth = Math.min(grid.nj, startRowFromNorth + stride);
+  const endCol = Math.min(grid.ni, startCol + stride);
 
-  const features = [];
-  const stride = sampleStrideForViewport(grid, bounds, viewport);
-  const northLat = Math.max(grid.latitudeOfFirstPoint, grid.latitudeOfLastPoint);
-  const isStoN = grid.latitudeOfLastPoint > grid.latitudeOfFirstPoint;
+  for (let rowFromNorth = startRowFromNorth; rowFromNorth < endRowFromNorth; rowFromNorth += 1) {
+    const lat = latitudeForRowFromNorth(grid, rowFromNorth, northLat);
+    const row = gridRowForRowFromNorth(grid, rowFromNorth, isStoN);
 
-  for (let rowFromNorth = 0; rowFromNorth < grid.nj; rowFromNorth += stride) {
-    const lat = northLat - rowFromNorth * grid.dj;
-    const row = isStoN ? grid.nj - 1 - rowFromNorth : rowFromNorth;
-
-    for (let col = 0; col < grid.ni; col += stride) {
+    for (let col = startCol; col < endCol; col += 1) {
       const lng = grid.longitudeOfFirstPoint + col * grid.di;
       if (!isInsideBounds(lng, lat, bounds)) continue;
 
       const index = row * grid.ni + col;
-      const rawSpeed = speedValues[index];
-      const rawDirection = directionValues[index];
+      const u = vectorUValues[index];
+      const v = vectorVValues[index];
       if (
-        !hasDisplayValue(rawSpeed, missingValue) ||
-        !hasDisplayValue(rawDirection, missingValue)
+        !hasUsableVectorComponent(u, missingValue) ||
+        !hasUsableVectorComponent(v, missingValue)
       ) {
         continue;
       }
 
-      const speedKmh = speedUnitTransform(rawSpeed);
-      const directionDegrees = normalizeDegrees(rawDirection);
-      features.push({
-        type: "Feature",
-        geometry: {
-          type: "Point",
-          coordinates: [lng, lat],
-        },
-        properties: {
-          symbol: speedKmh < CALM_WIND_KMH ? "calm" : "arrow",
-          speedKmh,
-          directionDegrees,
-          cardinal: cardinalDirectionForDegrees(directionDegrees),
-        },
+      uSum += u;
+      vSum += v;
+      lngSum += lng;
+      latSum += lat;
+      count += 1;
+    }
+  }
+
+  if (count === 0) return null;
+  return {
+    u: uSum / count,
+    v: vSum / count,
+    lng: lngSum / count,
+    lat: latSum / count,
+  };
+}
+
+function featureForAggregatedVector({ lng, lat, u, v }) {
+  const speedKmh = speedKmhFromVector(u, v);
+  const directionDegrees = directionDegreesFromVector(u, v);
+  return {
+    type: "Feature",
+    geometry: {
+      type: "Point",
+      coordinates: [lng, lat],
+    },
+    properties: {
+      symbol: speedKmh < CALM_WIND_KMH ? "calm" : "arrow",
+      speedKmh,
+      directionDegrees,
+      cardinal: cardinalDirectionForDegrees(directionDegrees),
+    },
+  };
+}
+
+export function buildWindSymbolFeatures({
+  grid,
+  vectorUValues,
+  vectorVValues,
+  missingValue,
+  bounds,
+  zoom,
+}) {
+  if (!grid || !vectorUValues || !vectorVValues || !bounds) {
+    return createFeatureCollection([]);
+  }
+
+  const features = [];
+  const stride = matrixStrideForZoom(zoom);
+  const northLat = Math.max(grid.latitudeOfFirstPoint, grid.latitudeOfLastPoint);
+  const isStoN = grid.latitudeOfLastPoint > grid.latitudeOfFirstPoint;
+
+  for (let rowFromNorth = 0; rowFromNorth < grid.nj; rowFromNorth += stride) {
+    for (let col = 0; col < grid.ni; col += stride) {
+      const vector = aggregateVectorBlock({
+        grid,
+        vectorUValues,
+        vectorVValues,
+        missingValue,
+        bounds,
+        startRowFromNorth: rowFromNorth,
+        startCol: col,
+        stride,
+        northLat,
+        isStoN,
       });
+      if (vector) features.push(featureForAggregatedVector(vector));
     }
   }
 
