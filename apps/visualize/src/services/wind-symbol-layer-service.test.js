@@ -30,6 +30,27 @@ describe("wind symbol layer service", () => {
     expect(map.addLayer).toHaveBeenCalledWith(expect.objectContaining({ id: "wind-calm" }));
   });
 
+  test("registers the arrow icon as explicit image data for MapLibre", () => {
+    const map = {
+      ...createMap(),
+      addImage: vi.fn(),
+      hasImage: vi.fn(() => false),
+    };
+    const service = createWindSymbolLayerService({ getMap: () => map });
+
+    service.update({ type: "FeatureCollection", features: [] });
+
+    expect(map.addImage).toHaveBeenCalledWith(
+      "wind-arrow",
+      expect.objectContaining({
+        width: 32,
+        height: 32,
+        data: expect.any(Uint8ClampedArray),
+      }),
+    );
+    expect(map.addImage.mock.calls[0][1].data).toHaveLength(32 * 32 * 4);
+  });
+
   test("updates existing source data", () => {
     const map = createMap();
     const source = { setData: vi.fn() };

@@ -3,32 +3,46 @@ const WIND_ARROW_LAYER_ID = "wind-arrows";
 const WIND_CALM_LAYER_ID = "wind-calm";
 const WIND_ARROW_ICON_ID = "wind-arrow";
 
-function createArrowIconCanvas() {
-  if (typeof document === "undefined") return null;
-  const canvas = document.createElement("canvas");
-  canvas.width = 32;
-  canvas.height = 32;
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#111827";
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
-  ctx.lineWidth = 2;
-  ctx.lineJoin = "round";
-  ctx.beginPath();
-  ctx.moveTo(16, 3);
-  ctx.lineTo(25, 23);
-  ctx.lineTo(16, 18);
-  ctx.lineTo(7, 23);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-  return canvas;
+function isInsideArrowShape(x, y) {
+  const centerOffset = Math.abs(x - 16);
+  const shaft = y >= 11 && y <= 25 && centerOffset <= 2;
+  const head = y >= 4 && y <= 17 && centerOffset <= (y - 4) * 0.65 + 1;
+  return shaft || head;
+}
+
+function isInsideArrowStroke(x, y) {
+  const centerOffset = Math.abs(x - 16);
+  const shaftStroke = y >= 10 && y <= 26 && centerOffset <= 3;
+  const headStroke = y >= 3 && y <= 18 && centerOffset <= (y - 3) * 0.68 + 2;
+  return shaftStroke || headStroke;
+}
+
+function setPixel(data, x, y, [red, green, blue, alpha]) {
+  const index = (y * 32 + x) * 4;
+  data[index] = red;
+  data[index + 1] = green;
+  data[index + 2] = blue;
+  data[index + 3] = alpha;
+}
+
+function createArrowIconImageData() {
+  const data = new Uint8ClampedArray(32 * 32 * 4);
+  for (let y = 0; y < 32; y++) {
+    for (let x = 0; x < 32; x++) {
+      if (isInsideArrowStroke(x, y)) {
+        setPixel(data, x, y, [255, 255, 255, 230]);
+      }
+      if (isInsideArrowShape(x, y)) {
+        setPixel(data, x, y, [17, 24, 39, 255]);
+      }
+    }
+  }
+  return { width: 32, height: 32, data };
 }
 
 function ensureArrowIcon(map) {
   if (!map.hasImage || !map.addImage || map.hasImage(WIND_ARROW_ICON_ID)) return;
-  const icon = createArrowIconCanvas();
-  if (icon) map.addImage(WIND_ARROW_ICON_ID, icon);
+  map.addImage(WIND_ARROW_ICON_ID, createArrowIconImageData());
 }
 
 function addWindSymbolSource(map, geojson) {
