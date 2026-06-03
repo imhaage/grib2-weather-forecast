@@ -54,4 +54,15 @@ describe("forecast animation service", () => {
     expect(service.getDiagnostics().currentRenderGeneration).toBe(1);
     expect(service.isBitmapCacheComplete()).toBe(false);
   });
+
+  test("explains that cache generation waits for pending downloads", () => {
+    const { dom, modelState, service } = createService();
+    modelState.animationCacheStatus = "waiting";
+    modelState.resources = [{ key: "01H" }, { key: "02H" }];
+    modelState.availableBlocks = new Set(["01H"]);
+
+    service.updateWarmupProgress();
+
+    expect(dom.cacheWarmupLabel.textContent).toBe("Waiting for downloads");
+  });
 });

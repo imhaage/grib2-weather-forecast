@@ -5,6 +5,17 @@ function fmtHourLabel(hour) {
   return `+${String(hour).padStart(2, "0")}H`;
 }
 
+function hasPendingDownloads(modelState) {
+  return modelState.resources.some((block) => !modelState.availableBlocks.has(block.key));
+}
+
+function animationWarmupLabel(modelState, { isWaiting, isReady }) {
+  if (isWaiting && hasPendingDownloads(modelState)) return "Waiting for downloads";
+  if (isWaiting) return "Preparing animation cache";
+  if (isReady) return "Animation ready";
+  return "Animation cache";
+}
+
 export function makeBitmapCacheEntryFromWorker(renderEntry) {
   return {
     bitmap: renderEntry.bitmap,
@@ -120,11 +131,7 @@ export function createForecastAnimationService({
     container.classList.toggle("ready", isReady);
     dom.cacheWarmupBar.style.width = `${pct}%`;
     dom.cacheWarmupCount.textContent = `${ready} / ${total}`;
-    dom.cacheWarmupLabel.textContent = isWaiting
-      ? "Preparing animation cache"
-      : isReady
-        ? "Animation ready"
-        : "Animation cache";
+    dom.cacheWarmupLabel.textContent = animationWarmupLabel(modelState, { isWaiting, isReady });
     syncPlayButtonAvailability();
     notifyDiagnostics();
   }
