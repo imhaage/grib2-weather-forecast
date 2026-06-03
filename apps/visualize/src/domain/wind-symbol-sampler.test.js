@@ -86,7 +86,7 @@ describe("wind symbol sampler", () => {
     expect(collection.features[0].properties.directionDegrees).toBe(270);
   });
 
-  test("uses zoom 6 as the one-point-out-of-four reference density", () => {
+  test("uses zoom 6 as the reduced reference density", () => {
     const wideGrid = {
       ...grid,
       ni: 100,
@@ -108,7 +108,32 @@ describe("wind symbol sampler", () => {
       zoom: 6,
     });
 
-    expect(collection.features).toHaveLength(25);
+    expect(collection.features).toHaveLength(13);
+  });
+
+  test("reduces the zoom 6 surface density by about four times", () => {
+    const wideGrid = {
+      ...grid,
+      ni: 100,
+      nj: 100,
+      latitudeOfFirstPoint: 99,
+      latitudeOfLastPoint: 0,
+      longitudeOfFirstPoint: 0,
+      longitudeOfLastPoint: 99,
+      di: 1,
+      dj: 1,
+    };
+
+    const collection = buildWindSymbolFeatures({
+      grid: wideGrid,
+      vectorUValues: new Float32Array(10000).fill(4),
+      vectorVValues: new Float32Array(10000).fill(0),
+      missingValue: -1e100,
+      bounds: { west: 0, south: 0, east: 99, north: 99 },
+      zoom: 6,
+    });
+
+    expect(collection.features).toHaveLength(169);
   });
 
   test("changes matrix stride only when the rounded zoom changes", () => {
@@ -134,10 +159,10 @@ describe("wind symbol sampler", () => {
         zoom,
       });
 
-    expect(createCollection(5.49).features).toHaveLength(13);
-    expect(createCollection(5.5).features).toHaveLength(25);
-    expect(createCollection(6.49).features).toHaveLength(25);
-    expect(createCollection(4.49).features).toHaveLength(7);
-    expect(createCollection(6.51).features).toHaveLength(50);
+    expect(createCollection(5.49).features).toHaveLength(7);
+    expect(createCollection(5.5).features).toHaveLength(13);
+    expect(createCollection(6.49).features).toHaveLength(13);
+    expect(createCollection(4.49).features).toHaveLength(4);
+    expect(createCollection(6.51).features).toHaveLength(25);
   });
 });
