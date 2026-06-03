@@ -6,14 +6,16 @@ describe("map tooltip formatting", () => {
     expect(
       formatMapTooltipValue({
         rawValue: 12,
-        directionValue: 240,
+        vectorUValue: 1,
+        vectorVValue: 0,
         gridState: {
-          unitFn: (value) => value * 3.6,
+          unitFn: null,
           displayUnits: "km/h",
           product: { units: "m s-1" },
-          windDirectionValues: new Float32Array([240]),
+          vectorUValues: new Float32Array([1]),
+          vectorVValues: new Float32Array([0]),
         },
       }),
-    ).toBe("43.20 km/h · 240° WSW");
+    ).toBe("12.00 km/h · 270° W");
   });
 });

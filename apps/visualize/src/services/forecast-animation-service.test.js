@@ -47,20 +47,23 @@ function createService(overrides = {}) {
 }
 
 describe("forecast animation service", () => {
-  test("copies wind direction values and optionally keeps speed values in bitmap cache entries", () => {
+  test("copies vector component values and optionally keeps speed values in bitmap cache entries", () => {
     const values = new Float32Array([1, 2]);
-    const windDirectionValues = new Float32Array([180, 270]);
+    const vectorUValues = new Float32Array([1, 2]);
+    const vectorVValues = new Float32Array([3, 4]);
     const entry = makeBitmapCacheEntryFromWorker(
       {
         bitmap: {},
         values,
-        windDirectionValues,
+        vectorUValues,
+        vectorVValues,
       },
       { keepValues: true },
     );
 
     expect(entry.values).toBe(values);
-    expect(entry.windDirectionValues).toBe(windDirectionValues);
+    expect(entry.vectorUValues).toBe(vectorUValues);
+    expect(entry.vectorVValues).toBe(vectorVValues);
   });
 
   test("invalidates bitmap cache and exposes render diagnostics", () => {

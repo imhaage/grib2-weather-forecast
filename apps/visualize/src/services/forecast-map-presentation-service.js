@@ -2,9 +2,8 @@ import { fmtRefTime, fmtValidTime } from "grib2-decoder";
 import { blockForHour } from "../domain/forecast-state.js";
 import { generateIsobars, supportsIsobars } from "../domain/isobars.js";
 import { gradientStopsFor } from "../domain/palettes.js";
-import { unitFnFor } from "../domain/unit-transforms.js";
 import { parameterDescriptionFor } from "../domain/variable-metadata.js";
-import { isWindCompositeVariable } from "../domain/wind-composite-variable.js";
+import { isVectorCompositeVariable } from "../domain/wind-composite-variable.js";
 import { buildWindSymbolFeatures } from "../domain/wind-symbol-sampler.js";
 
 function defaultFormatModelPackageSubtitle(packageKey) {
@@ -22,7 +21,6 @@ export function createForecastMapPresentationService({
   formatValidTime = fmtValidTime,
   getCurrentPalette,
   getMapBounds,
-  getMapViewport,
   getMapZoom,
   getModelState,
   gridCorners,
@@ -47,16 +45,6 @@ export function createForecastMapPresentationService({
       south: bounds.getSouth(),
       east: bounds.getEast(),
       north: bounds.getNorth(),
-    };
-  }
-
-  function mapViewportForSymbols() {
-    if (getMapViewport) return getMapViewport();
-    const canvas = mapRenderer.map?.getCanvas?.();
-    if (!canvas) return null;
-    return {
-      width: canvas.clientWidth || canvas.width,
-      height: canvas.clientHeight || canvas.height,
     };
   }
 
@@ -156,9 +144,10 @@ export function createForecastMapPresentationService({
   function updateWindSymbolOverlay(entry, values) {
     const modelState = getModelState();
     if (
-      !isWindCompositeVariable(modelState?.variable) ||
+      !isVectorCompositeVariable(modelState?.variable) ||
       !values ||
-      !entry.windDirectionValues ||
+      !entry.vectorUValues ||
+      !entry.vectorVValues ||
       !mapRenderer.updateWindSymbols
     ) {
       mapRenderer.clearWindSymbols?.();
@@ -166,22 +155,20 @@ export function createForecastMapPresentationService({
     }
 
     const bounds = mapBoundsForSymbols();
-    const viewport = mapViewportForSymbols();
-    if (!bounds || !viewport) {
+    if (!bounds) {
       mapRenderer.clearWindSymbols?.();
       return;
     }
 
+    const zoom = mapZoomForSymbols();
     mapRenderer.updateWindSymbols(
       buildWindSymbolFeatures({
         grid: entry.grid,
-        speedValues: values,
-        directionValues: entry.windDirectionValues,
+        vectorUValues: entry.vectorUValues,
+        vectorVValues: entry.vectorVValues,
         missingValue,
         bounds,
-        zoom: mapZoomForSymbols(),
-        viewport,
-        speedUnitTransform: unitFnFor(entry.unitTransform) ?? ((value) => value),
+        zoom,
       }),
     );
   }

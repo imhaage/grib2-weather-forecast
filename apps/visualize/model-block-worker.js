@@ -166,9 +166,6 @@ async function renderHour(data) {
     vectorComposite: data.vectorComposite ?? null,
     vectorUValues: isVectorComposite ? decoded.values : null,
     vectorVValues: isVectorComposite ? (secondaryDecoded?.values ?? null) : null,
-    windDirectionValues: secondaryDecoded?.values ?? null,
-    windDirectionGrid: secondaryDecoded?.grid ?? null,
-    windDirectionProduct: secondaryDecoded?.product ?? null,
     isobars: supportsIsobars(product.shortName)
       ? generateIsobars({
           shortName: product.shortName,
@@ -215,9 +212,6 @@ async function decodeValues(data) {
     vectorComposite: data.vectorComposite ?? null,
     vectorUValues: isVectorComposite ? decoded.values : null,
     vectorVValues: isVectorComposite ? (secondaryDecoded?.values ?? null) : null,
-    windDirectionValues: secondaryDecoded?.values ?? null,
-    windDirectionGrid: secondaryDecoded?.grid ?? null,
-    windDirectionProduct: secondaryDecoded?.product ?? null,
   };
   const transferables = [values.buffer];
   if (isVectorComposite) {

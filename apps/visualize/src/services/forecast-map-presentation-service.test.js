@@ -130,11 +130,11 @@ describe("forecast map presentation service", () => {
 
   test("updates wind symbols for composite wind entries", async () => {
     const { mapRenderer, modelState, service } = createService();
-    modelState.variable = "wind_10";
+    modelState.variable = "wind";
     const entry = createEntry({
       displayUnits: "km/h",
-      unitTransform: "wspd",
-      windDirectionValues: new Float32Array([180, 180, 180, 180]),
+      vectorUValues: new Float32Array([0, 0, 0, 0]),
+      vectorVValues: new Float32Array([-4, -4, -4, -4]),
       grid: {
         ni: 2,
         nj: 2,
@@ -157,12 +157,12 @@ describe("forecast map presentation service", () => {
 
   test("refreshes wind symbols when the map viewport settles", async () => {
     const { mapRenderer, modelState, service, state } = createService();
-    modelState.variable = "wind_10";
+    modelState.variable = "wind";
     const entry = createEntry({
       displayUnits: "km/h",
-      unitTransform: "wspd",
       values: new Float32Array([4, 4, 4, 4]),
-      windDirectionValues: new Float32Array([180, 180, 180, 180]),
+      vectorUValues: new Float32Array([0, 0, 0, 0]),
+      vectorVValues: new Float32Array([-4, -4, -4, -4]),
       grid: {
         ni: 2,
         nj: 2,

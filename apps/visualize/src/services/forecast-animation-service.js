@@ -1,4 +1,4 @@
-import { isWindCompositeVariable } from "../domain/wind-composite-variable.js";
+import { isVectorCompositeVariable } from "../domain/wind-composite-variable.js";
 import { createAnimationCacheService } from "./animation-cache-service.js";
 import { createForecastRenderRequest } from "./forecast-render-request-service.js";
 
@@ -23,9 +23,9 @@ export function makeBitmapCacheEntryFromWorker(renderEntry, { keepValues = false
   return {
     bitmap: renderEntry.bitmap,
     values: keepValues ? renderEntry.values : undefined,
-    windDirectionValues: renderEntry.windDirectionValues,
-    windDirectionGrid: renderEntry.windDirectionGrid,
-    windDirectionProduct: renderEntry.windDirectionProduct,
+    vectorComposite: renderEntry.vectorComposite,
+    vectorUValues: renderEntry.vectorUValues,
+    vectorVValues: renderEntry.vectorVValues,
     dataMin: renderEntry.dataMin,
     dataMax: renderEntry.dataMax,
     mean: renderEntry.dataMean,
@@ -145,7 +145,7 @@ export function createForecastAnimationService({
 
   function modelWorkerRequestForHour(idx, hour, { includeValues = false } = {}) {
     const modelState = currentState();
-    const shouldKeepValues = isWindCompositeVariable(modelState?.variable);
+    const shouldKeepValues = isVectorCompositeVariable(modelState?.variable);
     return createForecastRenderRequest({
       state: modelState,
       hourIndex: idx,
@@ -158,7 +158,7 @@ export function createForecastAnimationService({
   }
 
   function shouldKeepValuesForCurrentVariable() {
-    return isWindCompositeVariable(currentState()?.variable);
+    return isVectorCompositeVariable(currentState()?.variable);
   }
 
   async function renderModelHourViaWorker(idx, { includeValues = false } = {}) {
@@ -207,9 +207,9 @@ export function createForecastAnimationService({
     if (cachedEntry) {
       const hydratedEntry = {
         ...cachedEntry,
-        windDirectionValues: data.windDirectionValues ?? cachedEntry.windDirectionValues,
-        windDirectionGrid: data.windDirectionGrid ?? cachedEntry.windDirectionGrid,
-        windDirectionProduct: data.windDirectionProduct ?? cachedEntry.windDirectionProduct,
+        vectorComposite: data.vectorComposite ?? cachedEntry.vectorComposite,
+        vectorUValues: data.vectorUValues ?? cachedEntry.vectorUValues,
+        vectorVValues: data.vectorVValues ?? cachedEntry.vectorVValues,
       };
       setGridState(makeGridState(hydratedEntry, data.values));
       updateIsobarOverlay(cachedEntry, data.values);

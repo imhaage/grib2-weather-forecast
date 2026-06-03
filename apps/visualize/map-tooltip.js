@@ -1,11 +1,18 @@
 import { formatValueForUnits } from "./src/domain/unit-transforms.js";
+import { directionDegreesFromVector } from "./src/domain/vector-field.js";
 import { cardinalDirectionForDegrees } from "./src/domain/wind-direction-format.js";
 
-export function formatMapTooltipValue({ rawValue, directionValue, gridState }) {
+export function formatMapTooltipValue({ rawValue, vectorUValue, vectorVValue, gridState }) {
   const val = gridState.unitFn ? gridState.unitFn(rawValue) : rawValue;
   const units = gridState.displayUnits ?? gridState.product.units;
   const speedLabel = `${formatValueForUnits(val, units, 2)} ${units}`;
-  if (gridState.windDirectionValues && Number.isFinite(directionValue)) {
+  if (
+    gridState.vectorUValues &&
+    gridState.vectorVValues &&
+    Number.isFinite(vectorUValue) &&
+    Number.isFinite(vectorVValue)
+  ) {
+    const directionValue = directionDegreesFromVector(vectorUValue, vectorVValue);
     const roundedDirection = Math.round(directionValue);
     return `${speedLabel} · ${roundedDirection}° ${cardinalDirectionForDegrees(directionValue)}`;
   }
@@ -81,15 +88,20 @@ export function setupMapTooltip({
       return;
     }
 
-    const directionValue =
-      gridState.windDirectionValues && idx >= 0 && idx < gridState.windDirectionValues.length
-        ? gridState.windDirectionValues[idx]
+    const vectorUValue =
+      gridState.vectorUValues && idx >= 0 && idx < gridState.vectorUValues.length
+        ? gridState.vectorUValues[idx]
+        : null;
+    const vectorVValue =
+      gridState.vectorVValues && idx >= 0 && idx < gridState.vectorVValues.length
+        ? gridState.vectorVValues[idx]
         : null;
     mapCanvas.style.cursor = "crosshair";
     tooltipEl.hidden = false;
     tooltipEl.textContent = formatMapTooltipValue({
       rawValue: rawVal,
-      directionValue,
+      vectorUValue,
+      vectorVValue,
       gridState,
     });
     const rect = wrapEl.getBoundingClientRect();
