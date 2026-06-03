@@ -68,7 +68,7 @@ describe("wind symbol layer service", () => {
       expect.objectContaining({
         id: "wind-arrows",
         layout: expect.objectContaining({
-          "icon-size": 0.275,
+          "icon-size": 0.4,
         }),
         paint: expect.objectContaining({
           "icon-opacity": 0.5,

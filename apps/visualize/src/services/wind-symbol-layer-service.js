@@ -42,7 +42,7 @@ function addWindArrowLayer(map) {
     filter: ["==", ["get", "symbol"], "arrow"],
     layout: {
       "icon-image": WIND_ARROW_ICON_ID,
-      "icon-size": 0.275,
+      "icon-size": 0.4,
       "icon-allow-overlap": true,
       "icon-ignore-placement": true,
       "icon-rotate": ["get", "directionDegrees"],
