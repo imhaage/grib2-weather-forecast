@@ -36,7 +36,7 @@
 					type="button"
 					aria-label="Warning"
 					aria-controls="storage-warning"
-					aria-expanded="false"
+					aria-expanded="true"
 					title="Warning"
 				>
 					<svg
@@ -108,7 +108,28 @@
 			</nav>
 
 			<main class="container">
-				<div id="storage-warning" class="storage-warning" hidden>
+				<div id="storage-warning" class="storage-warning">
+					<button
+						type="button"
+						id="storage-warning-close"
+						class="storage-warning__close icon-button"
+						aria-label="Close storage warning"
+						title="Close"
+					>
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="16"
+							height="16"
+							viewBox="0 0 24 24"
+							aria-hidden="true"
+							focusable="false"
+						>
+							<path
+								fill="currentColor"
+								d="M6.4 19L5 17.6l5.6-5.6L5 6.4L6.4 5l5.6 5.6L17.6 5L19 6.4L13.4 12l5.6 5.6l-1.4 1.4l-5.6-5.6z"
+							/>
+						</svg>
+					</button>
 					<div class="storage-warning__header">
 						<svg
 							xmlns="http://www.w3.org/2000/svg"

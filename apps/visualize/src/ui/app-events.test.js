@@ -11,6 +11,7 @@ function renderEventsDom() {
     <select id="forecast-var-select"></select>
     <input id="forecast-slider">
     <button id="clear-grib-cache"></button>
+    <button id="storage-warning-close"></button>
     <button id="storage-warning-button" aria-expanded="false"></button>
     <button id="player-play"></button>
   `;
@@ -31,6 +32,7 @@ function createEventDom() {
     },
     storage: {
       clearCacheButton: document.getElementById("clear-grib-cache"),
+      warningCloseButton: document.getElementById("storage-warning-close"),
       warningButton: document.getElementById("storage-warning-button"),
     },
     player: {
@@ -48,6 +50,7 @@ describe("app events", () => {
       onForecastVariableChange: vi.fn(),
       onForecastSliderInput: vi.fn(),
       onClearCache: vi.fn(),
+      onStorageWarningClose: vi.fn(),
       onStorageWarningToggle: vi.fn(),
       onDocumentKeydown: vi.fn(),
     };
@@ -64,6 +67,7 @@ describe("app events", () => {
     document.getElementById("forecast-var-select").dispatchEvent(new Event("change"));
     document.getElementById("forecast-slider").dispatchEvent(new Event("input"));
     document.getElementById("clear-grib-cache").click();
+    document.getElementById("storage-warning-close").click();
     document.getElementById("storage-warning-button").click();
     document.dispatchEvent(new KeyboardEvent("keydown", { code: "Space" }));
 
@@ -72,6 +76,7 @@ describe("app events", () => {
     expect(handlers.onForecastVariableChange).toHaveBeenCalledTimes(1);
     expect(handlers.onForecastSliderInput).toHaveBeenCalledTimes(1);
     expect(handlers.onClearCache).toHaveBeenCalledTimes(1);
+    expect(handlers.onStorageWarningClose).toHaveBeenCalledTimes(1);
     expect(handlers.onStorageWarningToggle).toHaveBeenCalledTimes(1);
     expect(handlers.onDocumentKeydown).toHaveBeenCalledTimes(1);
 

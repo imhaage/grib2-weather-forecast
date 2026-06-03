@@ -502,17 +502,37 @@
 	.storage-warning {
 		--storage-warning-icon-size: 24px;
 
+		position: relative;
 		margin-bottom: var(--space-md);
-		padding: var(--space-md);
-		font-size: var(--font-sm);
+		padding: var(--space-md) calc(var(--space-md) + var(--size-icon-button)) var(--space-md)
+			var(--space-md);
 		color: var(--color-warning);
 		background-color: var(--color-bg-100);
 		border: var(--border-warning);
+		font-size: var(--font-sm);
 
 		& > svg {
 			flex: 0 0 var(--storage-warning-icon-size);
 			width: var(--storage-warning-icon-size);
 			height: var(--storage-warning-icon-size);
+		}
+	}
+
+	.storage-warning__close {
+		position: absolute;
+		top: var(--space-sm);
+		right: var(--space-sm);
+		width: var(--size-icon-button);
+		height: var(--size-icon-button);
+		color: var(--color-warning);
+		background: transparent;
+		border: var(--border-warning);
+		border-radius: var(--radius-round);
+		cursor: pointer;
+
+		&:hover {
+			color: var(--color-text-3);
+			background: var(--color-warning);
 		}
 	}
 

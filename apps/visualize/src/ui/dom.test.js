@@ -69,6 +69,7 @@ function renderAppDom() {
     <div id="status"></div>
     <button id="clear-grib-cache"></button>
     <div id="storage-warning"></div>
+    <button id="storage-warning-close"></button>
     <button id="storage-warning-button"></button>
     <span id="storage-warning-size"></span>
   `;
@@ -141,6 +142,7 @@ describe("dom registry", () => {
     expect(dom.upload.status.id).toBe("status");
     expect(dom.storage.clearCacheButton.id).toBe("clear-grib-cache");
     expect(dom.storage.warning.id).toBe("storage-warning");
+    expect(dom.storage.warningCloseButton.id).toBe("storage-warning-close");
     expect(dom.storage.warningButton.id).toBe("storage-warning-button");
     expect(dom.storage.warningSize.id).toBe("storage-warning-size");
   });

@@ -36,13 +36,15 @@ describe("app shell markup", () => {
     );
   });
 
-  test("hides the storage warning by default behind a header toggle", () => {
+  test("shows the storage warning by default with header toggle and close control", () => {
     const button = document.getElementById("storage-warning-button");
     const warning = document.getElementById("storage-warning");
+    const closeButton = document.getElementById("storage-warning-close");
 
     expect(button?.getAttribute("aria-controls")).toBe("storage-warning");
-    expect(button?.getAttribute("aria-expanded")).toBe("false");
-    expect(warning?.hidden).toBe(true);
+    expect(button?.getAttribute("aria-expanded")).toBe("true");
+    expect(closeButton?.getAttribute("aria-label")).toBe("Close storage warning");
+    expect(warning?.hidden).toBe(false);
     expect(warning?.closest("main")?.parentElement?.id).toBe("view-home");
     expect(warning?.parentElement?.classList.contains("container")).toBe(true);
     expect(warning?.parentElement?.firstElementChild).toBe(warning);

@@ -10,6 +10,9 @@ export function bindAppEvents({ document, dom, handlers }) {
   });
   dom.forecast.slider.addEventListener("input", handlers.onForecastSliderInput, { signal });
   dom.storage.clearCacheButton.addEventListener("click", handlers.onClearCache, { signal });
+  dom.storage.warningCloseButton.addEventListener("click", handlers.onStorageWarningClose, {
+    signal,
+  });
   dom.storage.warningButton.addEventListener("click", handlers.onStorageWarningToggle, {
     signal,
   });

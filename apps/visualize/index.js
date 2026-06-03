@@ -54,7 +54,10 @@ import { resolveMapBackHash } from "./src/ui/map-back-action.js";
 import { prepareFileInputForPick, setHomeTab } from "./src/ui/home-tabs.js";
 import { bindHomeEvents } from "./src/ui/home-events.js";
 import { renderModelList } from "./src/ui/model-list-view.js";
-import { formatStorageEstimate } from "./src/ui/storage-warning.js";
+import {
+	createStorageWarningController,
+	formatStorageEstimate,
+} from "./src/ui/storage-warning.js";
 import { createMapPresentationController } from "./src/controllers/map-presentation-controller.js";
 import { createUploadInspectorController } from "./src/controllers/upload-inspector-controller.js";
 import { createForecastRunController } from "./src/controllers/forecast-run-controller.js";
@@ -98,6 +101,7 @@ const dom = {
 	uploadStatus: domRefs.upload.status,
 	clearGribCacheButton: domRefs.storage.clearCacheButton,
 	storageWarning: domRefs.storage.warning,
+	storageWarningCloseButton: domRefs.storage.warningCloseButton,
 	storageWarningButton: domRefs.storage.warningButton,
 	storageWarningSize: domRefs.storage.warningSize,
 	perfDebugPanel: domRefs.perfDebug.panel,
@@ -133,6 +137,11 @@ const perfStats = {
 	lastRenderMs: null,
 	lastDecodeMs: null,
 };
+const storageWarningController = createStorageWarningController({
+	dom: domRefs.storage,
+	storage: localStorage,
+	updateStorageSize: updateStorageWarningSize,
+});
 const mapRenderer = createMapRendererService({
 	canvasHeightForGrid: mercatorCanvasHeight,
 	getGridState: () => gridState,
@@ -712,12 +721,12 @@ async function onClearCache() {
 	await updateStorageWarningSize();
 }
 
+function onStorageWarningClose() {
+	storageWarningController.close();
+}
+
 function onStorageWarningToggle() {
-	const isExpanded =
-		dom.storageWarningButton.getAttribute("aria-expanded") === "true";
-	dom.storageWarning.hidden = isExpanded;
-	dom.storageWarningButton.setAttribute("aria-expanded", String(!isExpanded));
-	if (!isExpanded) updateStorageWarningSize();
+	storageWarningController.toggle();
 }
 
 function onDocumentKeydown(e) {
@@ -741,9 +750,11 @@ bindAppEvents({
 		onForecastVariableChange,
 		onForecastSliderInput,
 		onClearCache,
+		onStorageWarningClose,
 		onStorageWarningToggle,
 		onDocumentKeydown,
 	},
 });
 
+storageWarningController.initialize();
 updatePerfDiagnostics();

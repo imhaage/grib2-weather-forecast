@@ -98,6 +98,7 @@ export function createDom(document) {
     storage: {
       clearCacheButton: mustFind(document, "#clear-grib-cache"),
       warning: mustFind(document, "#storage-warning"),
+      warningCloseButton: mustFind(document, "#storage-warning-close"),
       warningButton: mustFind(document, "#storage-warning-button"),
       warningSize: mustFind(document, "#storage-warning-size"),
     },
