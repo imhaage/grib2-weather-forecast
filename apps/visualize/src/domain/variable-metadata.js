@@ -48,6 +48,14 @@ export const VARIABLE_METADATA = Object.freeze({
     defaultPalette: "Viridis",
     staticScale: { min: 0, max: 40 },
   },
+  wind: {
+    defaultPalette: "Viridis",
+    staticScale: { min: 0, max: 200 },
+  },
+  gust: {
+    defaultPalette: "Viridis",
+    staticScale: { min: 0, max: 200 },
+  },
   p: {
     description:
       "Atmospheric pressure at ground level, in hPa. High pressure (>1013 hPa) is typically associated with fair weather; low pressure signals approaching fronts or storms. Useful for tracking large-scale weather systems.",

@@ -78,8 +78,8 @@ describe("forecast render request service", () => {
     expect(request.lut).toHaveLength(256 * 3);
   });
 
-  test("renders composite wind variables with the matching speed field and requests direction values", () => {
-    const state = createState({ variable: "wind_10" });
+  test("renders composite wind variables from the matching u and v components", () => {
+    const state = createState({ packageKey: "AROME_SP1", variable: "wind" });
     const request = createForecastRenderRequest({
       state,
       hourIndex: 1,
@@ -91,10 +91,33 @@ describe("forecast render request service", () => {
     });
 
     expect(request).toMatchObject({
-      variable: { shortName: "wspd", levelValue: 10 },
-      secondaryVariable: { shortName: "wdir", levelValue: 10 },
-      unitTransform: "wspd",
+      variable: { shortName: "u", levelValue: null },
+      secondaryVariable: { shortName: "v", levelValue: null },
+      vectorComposite: { shortName: "wind", uComponent: "u", vComponent: "v" },
+      unitTransform: null,
       displayUnits: "km/h",
+      staticScale: { min: 0, max: 200 },
+    });
+  });
+
+  test("renders composite gust variables from the matching u and v gust components", () => {
+    const state = createState({ packageKey: "AROME_SP1", variable: "gust" });
+    const request = createForecastRenderRequest({
+      state,
+      hourIndex: 1,
+      hour: 2,
+      renderGeneration: 8,
+      paletteName: "Viridis",
+      missingValue: -1e100,
+    });
+
+    expect(request).toMatchObject({
+      variable: { shortName: "ugust", levelValue: null },
+      secondaryVariable: { shortName: "vgust", levelValue: null },
+      vectorComposite: { shortName: "gust", uComponent: "ugust", vComponent: "vgust" },
+      unitTransform: null,
+      displayUnits: "km/h",
+      staticScale: { min: 0, max: 200 },
     });
   });
 });

@@ -4,7 +4,10 @@ import { findPackageVariable } from "../domain/model-packages.js";
 import { buildLUT, LOG_SCALE_FLOOR } from "../domain/palettes.js";
 import { displayUnitsFor, unitTransformFor } from "../domain/unit-transforms.js";
 import { staticScaleFor } from "../domain/variable-metadata.js";
-import { componentVariableKeyForWind } from "../domain/wind-composite-variable.js";
+import {
+  componentVariableKeyForVector,
+  isVectorCompositeVariable,
+} from "../domain/wind-composite-variable.js";
 
 export function createForecastRenderRequest({
   state,
@@ -19,13 +22,15 @@ export function createForecastRenderRequest({
   if (!block || !state.availableBlocks.has(block.key)) return null;
 
   const selectedVariable = state.variable;
-  const speedKey = componentVariableKeyForWind(selectedVariable, "speed");
-  const directionKey = componentVariableKeyForWind(selectedVariable, "direction");
-  const renderVariableKey = speedKey ?? selectedVariable;
+  const uComponentKey = componentVariableKeyForVector(selectedVariable, "u");
+  const vComponentKey = componentVariableKeyForVector(selectedVariable, "v");
+  const renderVariableKey = uComponentKey ?? selectedVariable;
   const varDef = findPackageVariable(state.packageKey, renderVariableKey);
-  const secondaryVarDef = directionKey ? findPackageVariable(state.packageKey, directionKey) : null;
+  const secondaryVarDef = vComponentKey ? findPackageVariable(state.packageKey, vComponentKey) : null;
   const shortName = varDef?.shortName ?? renderVariableKey;
-  const staticScale = staticScaleFor(shortName);
+  const compositeShortName = isVectorCompositeVariable(selectedVariable) ? selectedVariable : null;
+  const scaleShortName = compositeShortName ?? shortName;
+  const staticScale = staticScaleFor(scaleShortName);
   const { renderMin, renderMax, range, isLog, logDenom, zeroThreshold } = createRenderScaleParams(
     staticScale,
     LOG_SCALE_FLOOR,
@@ -49,7 +54,11 @@ export function createForecastRenderRequest({
     secondaryVariable: secondaryVarDef
       ? { shortName: secondaryVarDef.shortName, levelValue: secondaryVarDef.levelValue ?? null }
       : null,
-    unitTransform: unitTransformFor(shortName),
+    vectorComposite:
+      compositeShortName && uComponentKey && vComponentKey
+        ? { shortName: compositeShortName, uComponent: uComponentKey, vComponent: vComponentKey }
+        : null,
+    unitTransform: compositeShortName ? null : unitTransformFor(shortName),
     staticScale,
     renderMin,
     range,
@@ -57,7 +66,7 @@ export function createForecastRenderRequest({
     logFloor: LOG_SCALE_FLOOR,
     logDenom,
     zeroThreshold,
-    displayUnits: displayUnitsFor(shortName, varDef?.units),
+    displayUnits: compositeShortName ? "km/h" : displayUnitsFor(shortName, varDef?.units),
     lut: buildLUT(paletteName, { min: renderMin, max: renderMax }),
     missingValue,
     includeValues,
