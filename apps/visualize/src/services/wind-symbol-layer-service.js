@@ -42,11 +42,14 @@ function addWindArrowLayer(map) {
     filter: ["==", ["get", "symbol"], "arrow"],
     layout: {
       "icon-image": WIND_ARROW_ICON_ID,
-      "icon-size": 0.55,
+      "icon-size": 0.275,
       "icon-allow-overlap": true,
       "icon-ignore-placement": true,
       "icon-rotate": ["get", "directionDegrees"],
       "icon-rotation-alignment": "map",
+    },
+    paint: {
+      "icon-opacity": 0.5,
     },
   });
 }
@@ -59,7 +62,9 @@ function addWindCalmLayer(map) {
     filter: ["==", ["get", "symbol"], "calm"],
     paint: {
       "circle-radius": 3,
+      "circle-opacity": 0.5,
       "circle-stroke-width": 1.5,
+      "circle-stroke-opacity": 0.5,
       "circle-stroke-color": "#111827",
       "circle-color": "rgba(255, 255, 255, 0.85)",
     },

@@ -68,7 +68,27 @@ describe("wind symbol layer service", () => {
       expect.objectContaining({
         id: "wind-arrows",
         layout: expect.objectContaining({
-          "icon-size": 0.55,
+          "icon-size": 0.275,
+        }),
+        paint: expect.objectContaining({
+          "icon-opacity": 0.5,
+        }),
+      }),
+    );
+  });
+
+  test("renders calm markers with reduced opacity", () => {
+    const map = createMap();
+    const service = createWindSymbolLayerService({ getMap: () => map });
+
+    service.update({ type: "FeatureCollection", features: [] });
+
+    expect(map.addLayer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "wind-calm",
+        paint: expect.objectContaining({
+          "circle-opacity": 0.5,
+          "circle-stroke-opacity": 0.5,
         }),
       }),
     );

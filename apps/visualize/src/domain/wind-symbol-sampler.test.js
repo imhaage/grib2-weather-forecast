@@ -98,7 +98,7 @@ describe("wind symbol sampler", () => {
     expect(collection.features.length).toBeGreaterThan(5);
   });
 
-  test("samples about twice as densely as the previous 42px spacing", () => {
+  test("samples about four times as densely as the original 42px spacing", () => {
     const wideGrid = {
       ...grid,
       ni: 100,
@@ -122,6 +122,6 @@ describe("wind symbol sampler", () => {
       speedUnitTransform: (value) => value * 3.6,
     });
 
-    expect(collection.features.length).toBeGreaterThanOrEqual(20);
+    expect(collection.features.length).toBeGreaterThanOrEqual(40);
   });
 });
