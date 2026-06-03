@@ -21,6 +21,8 @@ describe("model packages", () => {
     expect(PACKAGES.AROME_SP1.variables.map(({ name, group }) => ({ name, group }))).toEqual([
       { name: "Temperature (2m)", group: "Weather maps" },
       { name: "Relative humidity (2m)", group: "Weather maps" },
+      { name: "Wind (10m)", group: "Weather maps" },
+      { name: "Wind gust (10m)", group: "Weather maps" },
       { name: "U (wind, 10m)", group: "Component fields" },
       { name: "V (wind, 10m)", group: "Component fields" },
       { name: "U (wind gust, 10m)", group: "Component fields" },
@@ -45,7 +47,7 @@ describe("model packages", () => {
     expect(PACKAGES.AROME_HP1.homeVariableGroups).toEqual([
       {
         group: "Weather maps",
-        names: ["Wind (10m, 20m, 50m, 100m)", "Relative humidity (10m, 20m, 50m, 100m)"],
+        names: ["Relative humidity (10m, 20m, 50m, 100m)"],
       },
       {
         group: "Component fields",
@@ -59,10 +61,6 @@ describe("model packages", () => {
     ]);
 
     expect(PACKAGES.AROME_HP1.variables.map(({ name, group }) => ({ name, group }))).toEqual([
-      { name: "Wind (10m)", group: "Weather maps" },
-      { name: "Wind (20m)", group: "Weather maps" },
-      { name: "Wind (50m)", group: "Weather maps" },
-      { name: "Wind (100m)", group: "Weather maps" },
       { name: "Relative humidity (10m)", group: "Weather maps" },
       { name: "Relative humidity (20m)", group: "Weather maps" },
       { name: "Relative humidity (50m)", group: "Weather maps" },

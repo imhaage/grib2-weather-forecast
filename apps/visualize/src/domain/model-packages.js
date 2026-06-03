@@ -1,5 +1,5 @@
 import { variableKeyFor } from "./variable-metadata.js";
-import { windCompositeVariablesForLevels } from "./wind-composite-variable.js";
+import { vectorCompositeVariablesFor } from "./wind-composite-variable.js";
 
 const WIND_LEVELS = Object.freeze([10, 20, 50, 100]);
 
@@ -46,6 +46,7 @@ export const PACKAGES = {
         level: "2 m above ground",
         group: "Weather maps",
       },
+      ...vectorCompositeVariablesFor(["wind", "gust"]),
       {
         shortName: "u",
         name: "U (wind, 10m)",
@@ -160,7 +161,7 @@ export const PACKAGES = {
     homeVariableGroups: [
       {
         group: "Weather maps",
-        names: ["Wind (10m, 20m, 50m, 100m)", "Relative humidity (10m, 20m, 50m, 100m)"],
+        names: ["Relative humidity (10m, 20m, 50m, 100m)"],
       },
       {
         group: "Component fields",
@@ -173,7 +174,6 @@ export const PACKAGES = {
       },
     ],
     variables: [
-      ...windCompositeVariablesForLevels(WIND_LEVELS),
       ...levelVariables({
         shortName: "r",
         varKeyPrefix: "r",
