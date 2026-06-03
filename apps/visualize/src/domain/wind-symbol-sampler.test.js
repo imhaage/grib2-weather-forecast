@@ -97,4 +97,31 @@ describe("wind symbol sampler", () => {
 
     expect(collection.features.length).toBeGreaterThan(5);
   });
+
+  test("samples about twice as densely as the previous 42px spacing", () => {
+    const wideGrid = {
+      ...grid,
+      ni: 100,
+      nj: 1,
+      latitudeOfFirstPoint: 50,
+      latitudeOfLastPoint: 50,
+      longitudeOfFirstPoint: 0,
+      longitudeOfLastPoint: 99,
+      di: 1,
+      dj: 1,
+    };
+
+    const collection = buildWindSymbolFeatures({
+      grid: wideGrid,
+      speedValues: new Float32Array(100).fill(4),
+      directionValues: new Float32Array(100).fill(90),
+      missingValue: -1e100,
+      bounds: { west: 0, south: 49, east: 99, north: 51 },
+      zoom: 8,
+      viewport: { width: 420, height: 300 },
+      speedUnitTransform: (value) => value * 3.6,
+    });
+
+    expect(collection.features.length).toBeGreaterThanOrEqual(20);
+  });
 });

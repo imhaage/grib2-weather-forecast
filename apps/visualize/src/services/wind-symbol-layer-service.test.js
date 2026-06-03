@@ -1,4 +1,4 @@
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { createWindSymbolLayerService } from "./wind-symbol-layer-service.js";
 
 function createMap() {
@@ -14,7 +14,35 @@ function createMap() {
   };
 }
 
+function stubSvgRasterization() {
+  const imageData = {
+    width: 32,
+    height: 32,
+    data: new Uint8ClampedArray(32 * 32 * 4),
+  };
+  const context = {
+    fill: vi.fn(),
+    getImageData: vi.fn(() => imageData),
+    scale: vi.fn(),
+    fillStyle: "",
+  };
+  const canvas = {
+    height: 0,
+    width: 0,
+    getContext: vi.fn(() => context),
+  };
+  vi.stubGlobal("document", {
+    createElement: vi.fn(() => canvas),
+  });
+  vi.stubGlobal("Path2D", vi.fn());
+  return { canvas, context, imageData };
+}
+
 describe("wind symbol layer service", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   test("adds source and layers on first update", () => {
     const map = createMap();
     const service = createWindSymbolLayerService({ getMap: () => map });
@@ -30,7 +58,24 @@ describe("wind symbol layer service", () => {
     expect(map.addLayer).toHaveBeenCalledWith(expect.objectContaining({ id: "wind-calm" }));
   });
 
+  test("keeps the wider SVG arrow compact enough for dense sampling", () => {
+    const map = createMap();
+    const service = createWindSymbolLayerService({ getMap: () => map });
+
+    service.update({ type: "FeatureCollection", features: [] });
+
+    expect(map.addLayer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "wind-arrows",
+        layout: expect.objectContaining({
+          "icon-size": 0.55,
+        }),
+      }),
+    );
+  });
+
   test("registers the arrow icon as explicit image data for MapLibre", () => {
+    stubSvgRasterization();
     const map = {
       ...createMap(),
       addImage: vi.fn(),
@@ -49,6 +94,29 @@ describe("wind symbol layer service", () => {
       }),
     );
     expect(map.addImage.mock.calls[0][1].data).toHaveLength(32 * 32 * 4);
+  });
+
+  test("rasterizes the configured SVG arrow before registering it", () => {
+    const { canvas, context } = stubSvgRasterization();
+    const map = {
+      ...createMap(),
+      addImage: vi.fn(),
+      hasImage: vi.fn(() => false),
+    };
+    const service = createWindSymbolLayerService({ getMap: () => map });
+
+    service.update({ type: "FeatureCollection", features: [] });
+
+    expect(canvas.width).toBe(32);
+    expect(canvas.height).toBe(32);
+    expect(context.scale).toHaveBeenCalledWith(32 / 24, 32 / 24);
+    expect(Path2D).toHaveBeenCalledWith(expect.stringContaining("m3.165 19.503"));
+    expect(context.fill).toHaveBeenCalled();
+    expect(map.addImage).toHaveBeenCalledWith("wind-arrow", {
+      width: 32,
+      height: 32,
+      data: expect.any(Uint8ClampedArray),
+    });
   });
 
   test("updates existing source data", () => {

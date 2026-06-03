@@ -2,42 +2,24 @@ const WIND_SYMBOL_SOURCE_ID = "wind-symbols";
 const WIND_ARROW_LAYER_ID = "wind-arrows";
 const WIND_CALM_LAYER_ID = "wind-calm";
 const WIND_ARROW_ICON_ID = "wind-arrow";
-
-function isInsideArrowShape(x, y) {
-  const centerOffset = Math.abs(x - 16);
-  const shaft = y >= 11 && y <= 25 && centerOffset <= 2;
-  const head = y >= 4 && y <= 17 && centerOffset <= (y - 4) * 0.65 + 1;
-  return shaft || head;
-}
-
-function isInsideArrowStroke(x, y) {
-  const centerOffset = Math.abs(x - 16);
-  const shaftStroke = y >= 10 && y <= 26 && centerOffset <= 3;
-  const headStroke = y >= 3 && y <= 18 && centerOffset <= (y - 3) * 0.68 + 2;
-  return shaftStroke || headStroke;
-}
-
-function setPixel(data, x, y, [red, green, blue, alpha]) {
-  const index = (y * 32 + x) * 4;
-  data[index] = red;
-  data[index + 1] = green;
-  data[index + 2] = blue;
-  data[index + 3] = alpha;
-}
+const WIND_ARROW_ICON_SIZE = 32;
+const WIND_ARROW_VIEWBOX_SIZE = 24;
+const WIND_ARROW_SVG_PATH =
+  "m3.165 19.503l7.362-16.51c.59-1.324 2.355-1.324 2.946 0l7.362 16.51c.667 1.495-.814 3.047-2.202 2.306l-5.904-3.152c-.459-.245-1-.245-1.458 0l-5.904 3.152c-1.388.74-2.87-.81-2.202-2.306";
 
 function createArrowIconImageData() {
-  const data = new Uint8ClampedArray(32 * 32 * 4);
-  for (let y = 0; y < 32; y++) {
-    for (let x = 0; x < 32; x++) {
-      if (isInsideArrowStroke(x, y)) {
-        setPixel(data, x, y, [255, 255, 255, 230]);
-      }
-      if (isInsideArrowShape(x, y)) {
-        setPixel(data, x, y, [17, 24, 39, 255]);
-      }
-    }
-  }
-  return { width: 32, height: 32, data };
+  const canvas = document.createElement("canvas");
+  canvas.width = WIND_ARROW_ICON_SIZE;
+  canvas.height = WIND_ARROW_ICON_SIZE;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(
+    WIND_ARROW_ICON_SIZE / WIND_ARROW_VIEWBOX_SIZE,
+    WIND_ARROW_ICON_SIZE / WIND_ARROW_VIEWBOX_SIZE,
+  );
+  ctx.fillStyle = "#111827";
+  ctx.fill(new Path2D(WIND_ARROW_SVG_PATH));
+  const image = ctx.getImageData(0, 0, WIND_ARROW_ICON_SIZE, WIND_ARROW_ICON_SIZE);
+  return { width: image.width, height: image.height, data: image.data };
 }
 
 function ensureArrowIcon(map) {
@@ -60,7 +42,7 @@ function addWindArrowLayer(map) {
     filter: ["==", ["get", "symbol"], "arrow"],
     layout: {
       "icon-image": WIND_ARROW_ICON_ID,
-      "icon-size": 0.8,
+      "icon-size": 0.55,
       "icon-allow-overlap": true,
       "icon-ignore-placement": true,
       "icon-rotate": ["get", "directionDegrees"],

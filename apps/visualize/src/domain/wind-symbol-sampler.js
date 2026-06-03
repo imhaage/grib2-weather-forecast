@@ -1,7 +1,7 @@
 import { cardinalDirectionForDegrees, normalizeDegrees } from "./wind-direction-format.js";
 
 const CALM_WIND_KMH = 5;
-const TARGET_SYMBOL_SPACING_PX = 42;
+const TARGET_SYMBOL_SPACING_PX = 21;
 
 function createFeatureCollection(features) {
   return {
