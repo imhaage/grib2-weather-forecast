@@ -23,9 +23,11 @@ function createEntry(overrides = {}) {
 function createService(overrides = {}) {
   const modelState = {
     packageKey: "AROME_SP1",
+    variable: "t",
     resources: [],
   };
   const mapRenderer = {
+    clearWindSymbols: vi.fn(),
     clearIsobars: vi.fn(),
     clearLayer: vi.fn(),
     drawBitmap: vi.fn(),
@@ -35,6 +37,7 @@ function createService(overrides = {}) {
     setLayer: vi.fn(),
     triggerRepaint: vi.fn(),
     updateIsobars: vi.fn(),
+    updateWindSymbols: vi.fn(),
   };
   const mapPresentation = {
     clearStats: vi.fn(),
@@ -58,6 +61,9 @@ function createService(overrides = {}) {
     formatRefTime: () => "2026-06-01 00:00 UTC",
     formatValidTime: () => "2026-06-01 01:00 UTC",
     getModelState: () => modelState,
+    getMapBounds: () => ({ west: 0, south: 49, east: 5, north: 53 }),
+    getMapViewport: () => ({ width: 800, height: 600 }),
+    getMapZoom: () => 8,
     gridCorners: () => [
       [1, 2],
       [3, 4],
@@ -116,5 +122,32 @@ describe("forecast map presentation service", () => {
       "AROME SP1",
     );
     expect(modelState.lastRunInfo).toContain("AROME_SP1");
+  });
+
+  test("updates wind symbols for composite wind entries", async () => {
+    const { mapRenderer, modelState, service } = createService();
+    modelState.variable = "wind_10";
+    const entry = createEntry({
+      displayUnits: "km/h",
+      unitTransform: "wspd",
+      windDirectionValues: new Float32Array([180, 180, 180, 180]),
+      grid: {
+        ni: 2,
+        nj: 2,
+        latitudeOfFirstPoint: 51,
+        latitudeOfLastPoint: 50,
+        longitudeOfFirstPoint: 1,
+        longitudeOfLastPoint: 2,
+        di: 1,
+        dj: 1,
+      },
+    });
+
+    await service.presentBitmapEntry(1, entry, { values: new Float32Array([4, 4, 4, 4]) });
+
+    expect(mapRenderer.updateWindSymbols).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "FeatureCollection" }),
+    );
+    expect(mapRenderer.clearWindSymbols).not.toHaveBeenCalled();
   });
 });

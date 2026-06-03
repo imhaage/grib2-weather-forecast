@@ -1,5 +1,6 @@
 import { createAnimationCacheService } from "./animation-cache-service.js";
 import { createForecastRenderRequest } from "./forecast-render-request-service.js";
+import { isWindCompositeVariable } from "../domain/wind-composite-variable.js";
 
 function fmtHourLabel(hour) {
   return `+${String(hour).padStart(2, "0")}H`;
@@ -18,9 +19,13 @@ function animationWarmupLabel(modelState, { isWaiting, isReady }) {
   return "Animation cache";
 }
 
-export function makeBitmapCacheEntryFromWorker(renderEntry) {
+export function makeBitmapCacheEntryFromWorker(renderEntry, { keepValues = false } = {}) {
   return {
     bitmap: renderEntry.bitmap,
+    values: keepValues ? renderEntry.values : undefined,
+    windDirectionValues: renderEntry.windDirectionValues,
+    windDirectionGrid: renderEntry.windDirectionGrid,
+    windDirectionProduct: renderEntry.windDirectionProduct,
     dataMin: renderEntry.dataMin,
     dataMax: renderEntry.dataMax,
     mean: renderEntry.dataMean,
@@ -139,15 +144,21 @@ export function createForecastAnimationService({
   }
 
   function modelWorkerRequestForHour(idx, hour, { includeValues = false } = {}) {
+    const modelState = currentState();
+    const shouldKeepValues = isWindCompositeVariable(modelState?.variable);
     return createForecastRenderRequest({
-      state: currentState(),
+      state: modelState,
       hourIndex: idx,
       hour,
       renderGeneration: currentRenderGeneration,
       paletteName: getCurrentPalette(),
       missingValue,
-      includeValues,
+      includeValues: includeValues || shouldKeepValues,
     });
+  }
+
+  function shouldKeepValuesForCurrentVariable() {
+    return isWindCompositeVariable(currentState()?.variable);
   }
 
   async function renderModelHourViaWorker(idx, { includeValues = false } = {}) {
@@ -194,7 +205,13 @@ export function createForecastAnimationService({
 
     const cachedEntry = animationCache.getHour(hour);
     if (cachedEntry) {
-      setGridState(makeGridState(cachedEntry, data.values));
+      const hydratedEntry = {
+        ...cachedEntry,
+        windDirectionValues: data.windDirectionValues ?? cachedEntry.windDirectionValues,
+        windDirectionGrid: data.windDirectionGrid ?? cachedEntry.windDirectionGrid,
+        windDirectionProduct: data.windDirectionProduct ?? cachedEntry.windDirectionProduct,
+      };
+      setGridState(makeGridState(hydratedEntry, data.values));
       updateIsobarOverlay(cachedEntry, data.values);
     }
   }
@@ -255,7 +272,9 @@ export function createForecastAnimationService({
         return;
       }
 
-      const entry = makeBitmapCacheEntryFromWorker(renderEntry);
+      const entry = makeBitmapCacheEntryFromWorker(renderEntry, {
+        keepValues: shouldKeepValuesForCurrentVariable(),
+      });
       animationCache.setHour(hour, entry);
       updateWarmupProgress();
       await presentBitmapEntry(hour, entry, { values: renderEntry.values });
@@ -295,7 +314,12 @@ export function createForecastAnimationService({
         if (animationCache.hasHour(hour)) {
           entry.bitmap.close();
         } else {
-          animationCache.setHour(hour, makeBitmapCacheEntryFromWorker(entry));
+          animationCache.setHour(
+            hour,
+            makeBitmapCacheEntryFromWorker(entry, {
+              keepValues: shouldKeepValuesForCurrentVariable(),
+            }),
+          );
           updateWarmupProgress();
         }
       } else {

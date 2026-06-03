@@ -1,5 +1,8 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastAnimationService } from "./forecast-animation-service.js";
+import {
+  createForecastAnimationService,
+  makeBitmapCacheEntryFromWorker,
+} from "./forecast-animation-service.js";
 
 function createDom() {
   return {
@@ -44,6 +47,22 @@ function createService(overrides = {}) {
 }
 
 describe("forecast animation service", () => {
+  test("copies wind direction values and optionally keeps speed values in bitmap cache entries", () => {
+    const values = new Float32Array([1, 2]);
+    const windDirectionValues = new Float32Array([180, 270]);
+    const entry = makeBitmapCacheEntryFromWorker(
+      {
+        bitmap: {},
+        values,
+        windDirectionValues,
+      },
+      { keepValues: true },
+    );
+
+    expect(entry.values).toBe(values);
+    expect(entry.windDirectionValues).toBe(windDirectionValues);
+  });
+
   test("invalidates bitmap cache and exposes render diagnostics", () => {
     const { dom, modelState, service } = createService();
 

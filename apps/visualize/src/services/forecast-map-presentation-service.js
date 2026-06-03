@@ -3,6 +3,9 @@ import { blockForHour } from "../domain/forecast-state.js";
 import { generateIsobars, supportsIsobars } from "../domain/isobars.js";
 import { gradientStopsFor } from "../domain/palettes.js";
 import { parameterDescriptionFor } from "../domain/variable-metadata.js";
+import { isWindCompositeVariable } from "../domain/wind-composite-variable.js";
+import { buildWindSymbolFeatures } from "../domain/wind-symbol-sampler.js";
+import { unitFnFor } from "../domain/unit-transforms.js";
 
 function defaultFormatModelPackageSubtitle(packageKey) {
   return packageKey;
@@ -18,6 +21,9 @@ export function createForecastMapPresentationService({
   formatRefTime = fmtRefTime,
   formatValidTime = fmtValidTime,
   getCurrentPalette,
+  getMapBounds,
+  getMapViewport,
+  getMapZoom,
   getModelState,
   gridCorners,
   initMap,
@@ -27,6 +33,32 @@ export function createForecastMapPresentationService({
   missingValue,
   setGridState,
 }) {
+  function mapBoundsForSymbols() {
+    if (getMapBounds) return getMapBounds();
+    const bounds = mapRenderer.map?.getBounds?.();
+    if (!bounds) return null;
+    return {
+      west: bounds.getWest(),
+      south: bounds.getSouth(),
+      east: bounds.getEast(),
+      north: bounds.getNorth(),
+    };
+  }
+
+  function mapViewportForSymbols() {
+    if (getMapViewport) return getMapViewport();
+    const canvas = mapRenderer.map?.getCanvas?.();
+    if (!canvas) return null;
+    return {
+      width: canvas.clientWidth || canvas.width,
+      height: canvas.clientHeight || canvas.height,
+    };
+  }
+
+  function mapZoomForSymbols() {
+    return getMapZoom ? getMapZoom() : mapRenderer.map?.getZoom?.() ?? 0;
+  }
+
   function updateParamInfo(name, description, subtitle) {
     mapPresentation.updateParamInfo(name, description, subtitle);
   }
@@ -116,6 +148,39 @@ export function createForecastMapPresentationService({
     mapRenderer.updateIsobars(entry.isobars);
   }
 
+  function updateWindSymbolOverlay(entry, values) {
+    const modelState = getModelState();
+    if (
+      !isWindCompositeVariable(modelState?.variable) ||
+      !values ||
+      !entry.windDirectionValues ||
+      !mapRenderer.updateWindSymbols
+    ) {
+      mapRenderer.clearWindSymbols?.();
+      return;
+    }
+
+    const bounds = mapBoundsForSymbols();
+    const viewport = mapViewportForSymbols();
+    if (!bounds || !viewport) {
+      mapRenderer.clearWindSymbols?.();
+      return;
+    }
+
+    mapRenderer.updateWindSymbols(
+      buildWindSymbolFeatures({
+        grid: entry.grid,
+        speedValues: values,
+        directionValues: entry.windDirectionValues,
+        missingValue,
+        bounds,
+        zoom: mapZoomForSymbols(),
+        viewport,
+        speedUnitTransform: unitFnFor(entry.unitTransform) ?? ((value) => value),
+      }),
+    );
+  }
+
   async function presentBitmapEntry(hour, entry, { values } = {}) {
     const modelState = getModelState();
     const { grid, product, header } = entry;
@@ -151,6 +216,7 @@ export function createForecastMapPresentationService({
     }
     mapRenderer.triggerRepaint();
     updateIsobarOverlay(entry, values);
+    updateWindSymbolOverlay(entry, values ?? entry.values ?? null);
 
     modelState.lastRunInfo = `${modelState.packageKey} · run ${formatRefTime(header)}`;
     updateParamInfo(
