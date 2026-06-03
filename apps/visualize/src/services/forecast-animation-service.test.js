@@ -63,6 +63,6 @@ describe("forecast animation service", () => {
 
     service.updateWarmupProgress();
 
-    expect(dom.cacheWarmupLabel.textContent).toBe("Waiting for downloads");
+    expect(dom.cacheWarmupLabel.textContent).toBe("Animation cache: waiting for downloads");
   });
 });

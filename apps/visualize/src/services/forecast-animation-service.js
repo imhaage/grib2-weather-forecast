@@ -10,7 +10,7 @@ function hasPendingDownloads(modelState) {
 }
 
 function animationWarmupLabel(modelState, { isWaiting, isReady }) {
-  if (isWaiting && hasPendingDownloads(modelState)) return "Waiting for downloads";
+  if (isWaiting && hasPendingDownloads(modelState)) return "Animation cache: waiting for downloads";
   if (isWaiting) return "Preparing animation cache";
   if (isReady) return "Animation ready";
   return "Animation cache";
