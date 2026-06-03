@@ -9,7 +9,8 @@
     "d3-contour": "^4.0.2",
     "grib2-decoder": "*",
     "idb": "^8.0.3",
-    "maplibre-gl": "^4.7.1"
+    "maplibre-gl": "^4.7.1",
+    "p-limit": "^7.3.0"
   },
   "scripts": {
     "build": "vite build",

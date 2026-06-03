@@ -1,8 +1,15 @@
+import pLimit from "p-limit";
+
 export const CACHE_LOAD_RESULT = Object.freeze({
   CURRENT: "current",
   STALE: "stale",
   MISSING: "missing",
 });
+
+async function mapWithConcurrency(items, concurrency, worker) {
+  const limit = pLimit(concurrency);
+  return Promise.all(items.map((item, index) => limit(() => worker(item, index))));
+}
 
 function resourcesByBlockKey(resources) {
   return new Map(resources.map((block) => [block.key, block]));
@@ -51,7 +58,10 @@ export function createForecastBlockRefreshService({
 
   async function refreshBlocksToLatest(session, { previousResources = [] } = {}) {
     const previousBlocks = resourcesByBlockKey(previousResources);
-    const cacheResults = await lifecycle.runWithConcurrency(
+    const enqueueAvailableBlock = async (block, buffer, status) => {
+      await presentation.enqueueAvailableBlock(block, buffer, status, session);
+    };
+    const cacheResults = await mapWithConcurrency(
       session.resources,
       maxParallelDownloads,
       async (block) => {
@@ -69,9 +79,7 @@ export function createForecastBlockRefreshService({
           session.packageKey,
           block,
           session.downloadKey,
-          async (block, buffer, status) => {
-            await presentation.enqueueAvailableBlock(block, buffer, status, session);
-          },
+          enqueueAvailableBlock,
         );
       },
     );
@@ -84,34 +92,26 @@ export function createForecastBlockRefreshService({
       .map((result) => result.block);
 
     if (!lifecycle.isRefreshActive(session.downloadKey)) return false;
-    await lifecycle.runWithConcurrency(missingBlocks, maxParallelDownloads, async (block) => {
+    await mapWithConcurrency(missingBlocks, maxParallelDownloads, async (block) => {
       await refreshBlockFromNetwork(
         session.packageKey,
         block,
         session.downloadKey,
-        async (block, buffer, status) => {
-          await presentation.enqueueAvailableBlock(block, buffer, status, session);
-        },
+        enqueueAvailableBlock,
       );
     });
     if (!lifecycle.isRefreshActive(session.downloadKey)) return false;
     await presentation.waitForPresentationIdle(session);
     if (!lifecycle.isRefreshActive(session.downloadKey)) return false;
 
-    await lifecycle.runWithConcurrency(
-      blocksNeedingRefresh,
-      maxParallelDownloads,
-      async (block) => {
-        await refreshBlockFromNetwork(
-          session.packageKey,
-          block,
-          session.downloadKey,
-          async (block, buffer, status) => {
-            await presentation.enqueueAvailableBlock(block, buffer, status, session);
-          },
-        );
-      },
-    );
+    await mapWithConcurrency(blocksNeedingRefresh, maxParallelDownloads, async (block) => {
+      await refreshBlockFromNetwork(
+        session.packageKey,
+        block,
+        session.downloadKey,
+        enqueueAvailableBlock,
+      );
+    });
     await presentation.waitForPresentationIdle(session);
     return lifecycle.isRefreshActive(session.downloadKey);
   }

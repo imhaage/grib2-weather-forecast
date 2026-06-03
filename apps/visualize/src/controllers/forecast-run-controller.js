@@ -14,7 +14,6 @@ import {
   staticScaleFor,
   variableKeyFor,
 } from "../domain/variable-metadata.js";
-import { runWithConcurrency } from "../services/concurrency-service.js";
 import { createDataGouvResourceService } from "../services/data-gouv-resource-service.js";
 import { createForecastAnimationService } from "../services/forecast-animation-service.js";
 import { createForecastBlockRefreshService } from "../services/forecast-block-refresh-service.js";
@@ -431,7 +430,6 @@ export function createForecastRunController({
       deleteObsoleteCachedBlocks: deleteObsoleteCachedGribBlocks,
     },
     lifecycle: {
-      runWithConcurrency,
       isRefreshActive: isModelResourceRefreshActive,
       isBlockInMemoryCurrent: isModelBlockInMemoryCurrent,
       isBlockInMemoryStale: isModelBlockInMemoryStale,

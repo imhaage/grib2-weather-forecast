@@ -19,11 +19,6 @@ function createService(overrides = {}) {
       deleteObsoleteCachedBlocks: vi.fn(),
     },
     lifecycle: {
-      runWithConcurrency: async (items, _limit, worker) => {
-        const results = [];
-        for (const item of items) results.push(await worker(item));
-        return results;
-      },
       isRefreshActive: () => true,
       isBlockInMemoryCurrent: () => false,
       isBlockInMemoryStale: () => false,
@@ -242,5 +237,74 @@ describe("forecast block refresh service", () => {
       `${BLOCK_STATUS.READY}:02H`,
       "presentation-idle",
     ]);
+  });
+
+  test("limits cache loading concurrency with maxParallelDownloads", async () => {
+    const blocks = [
+      { key: "01H", url: "https://example.test/01H", filesize: 1 },
+      { key: "02H", url: "https://example.test/02H", filesize: 1 },
+      { key: "03H", url: "https://example.test/03H", filesize: 1 },
+    ];
+    const releaseReads = [];
+    let activeReadCount = 0;
+    let maxActiveReadCount = 0;
+    async function waitForPendingReads(count) {
+      for (let attempt = 0; attempt < 10 && releaseReads.length < count; attempt++) {
+        await Promise.resolve();
+      }
+    }
+
+    const service = createForecastBlockRefreshService({
+      statuses: BLOCK_STATUS,
+      maxParallelDownloads: 2,
+      cache: {
+        readCachedBlock: vi.fn(async () => {
+          activeReadCount += 1;
+          maxActiveReadCount = Math.max(maxActiveReadCount, activeReadCount);
+          await new Promise((resolve) => releaseReads.push(resolve));
+          activeReadCount -= 1;
+          return new Uint8Array([1]);
+        }),
+        readLatestCachedBlock: vi.fn(),
+        writeCachedBlock: vi.fn(),
+        deleteObsoleteCachedBlocks: vi.fn(),
+      },
+      lifecycle: {
+        isRefreshActive: () => true,
+        isBlockInMemoryCurrent: () => false,
+        isBlockInMemoryStale: () => false,
+      },
+      network: {
+        downloadFile: vi.fn(),
+      },
+      presentation: {
+        enqueueAvailableBlock: vi.fn(),
+        waitForPresentationIdle: vi.fn(),
+      },
+      status: {
+        markInMemoryBlockAvailable: vi.fn(),
+        setBlockStatus: vi.fn(),
+        resetBlockDownloadProgress: vi.fn(),
+        setBlockDownloadProgress: vi.fn(),
+      },
+    });
+
+    const resultPromise = service.refreshBlocksToLatest({
+      packageKey: "AROME_SP1",
+      resources: blocks,
+      downloadKey: {},
+    });
+
+    await waitForPendingReads(2);
+    expect(releaseReads).toHaveLength(2);
+    expect(maxActiveReadCount).toBe(2);
+
+    releaseReads.shift()();
+    await waitForPendingReads(2);
+    expect(releaseReads).toHaveLength(2);
+    expect(maxActiveReadCount).toBe(2);
+
+    for (const releaseRead of releaseReads.splice(0)) releaseRead();
+    await expect(resultPromise).resolves.toBe(true);
   });
 });
