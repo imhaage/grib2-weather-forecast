@@ -53,6 +53,7 @@ function createService(overrides = {}) {
   };
   const state = {
     gridState: null,
+    viewportSettledCallback: null,
   };
   const service = createForecastMapPresentationService({
     getCurrentPalette: () => "Temperature",
@@ -75,6 +76,9 @@ function createService(overrides = {}) {
     mapPresentation,
     mapRenderer,
     missingValue: 9999,
+    onMapViewportSettled: (callback) => {
+      state.viewportSettledCallback = callback;
+    },
     setGridState: (gridState) => {
       state.gridState = gridState;
     },
@@ -149,5 +153,31 @@ describe("forecast map presentation service", () => {
       expect.objectContaining({ type: "FeatureCollection" }),
     );
     expect(mapRenderer.clearWindSymbols).not.toHaveBeenCalled();
+  });
+
+  test("refreshes wind symbols when the map viewport settles", async () => {
+    const { mapRenderer, modelState, service, state } = createService();
+    modelState.variable = "wind_10";
+    const entry = createEntry({
+      displayUnits: "km/h",
+      unitTransform: "wspd",
+      values: new Float32Array([4, 4, 4, 4]),
+      windDirectionValues: new Float32Array([180, 180, 180, 180]),
+      grid: {
+        ni: 2,
+        nj: 2,
+        latitudeOfFirstPoint: 51,
+        latitudeOfLastPoint: 50,
+        longitudeOfFirstPoint: 1,
+        longitudeOfLastPoint: 2,
+        di: 1,
+        dj: 1,
+      },
+    });
+
+    await service.presentBitmapEntry(1, entry);
+    state.viewportSettledCallback();
+
+    expect(mapRenderer.updateWindSymbols).toHaveBeenCalledTimes(2);
   });
 });

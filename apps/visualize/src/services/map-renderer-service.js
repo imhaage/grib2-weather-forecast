@@ -136,5 +136,11 @@ export function createMapRendererService({
     clearWindSymbols() {
       windSymbolLayer.remove();
     },
+
+    onViewportSettled(callback) {
+      if (!map) return;
+      map.on("moveend", callback);
+      map.on("zoomend", callback);
+    },
   };
 }

@@ -190,7 +190,7 @@ export function variableMetadataFor(shortName) {
   const directMetadata = VARIABLE_METADATA[shortName];
   if (directMetadata) return directMetadata;
   const speedKey = componentVariableKeyForWind(shortName, "speed");
-  return speedKey ? VARIABLE_METADATA[speedKey] ?? {} : {};
+  return speedKey ? (VARIABLE_METADATA[speedKey] ?? {}) : {};
 }
 
 /**

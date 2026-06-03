@@ -1,6 +1,6 @@
+import { isWindCompositeVariable } from "../domain/wind-composite-variable.js";
 import { createAnimationCacheService } from "./animation-cache-service.js";
 import { createForecastRenderRequest } from "./forecast-render-request-service.js";
-import { isWindCompositeVariable } from "../domain/wind-composite-variable.js";
 
 function fmtHourLabel(hour) {
   return `+${String(hour).padStart(2, "0")}H`;

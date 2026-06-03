@@ -2,10 +2,10 @@ import { fmtRefTime, fmtValidTime } from "grib2-decoder";
 import { blockForHour } from "../domain/forecast-state.js";
 import { generateIsobars, supportsIsobars } from "../domain/isobars.js";
 import { gradientStopsFor } from "../domain/palettes.js";
+import { unitFnFor } from "../domain/unit-transforms.js";
 import { parameterDescriptionFor } from "../domain/variable-metadata.js";
 import { isWindCompositeVariable } from "../domain/wind-composite-variable.js";
 import { buildWindSymbolFeatures } from "../domain/wind-symbol-sampler.js";
-import { unitFnFor } from "../domain/unit-transforms.js";
 
 function defaultFormatModelPackageSubtitle(packageKey) {
   return packageKey;
@@ -31,8 +31,13 @@ export function createForecastMapPresentationService({
   mapPresentation,
   mapRenderer,
   missingValue,
+  onMapViewportSettled,
   setGridState,
 }) {
+  let viewportRefreshRegistered = false;
+  let lastPresentedEntry = null;
+  let lastPresentedValues = null;
+
   function mapBoundsForSymbols() {
     if (getMapBounds) return getMapBounds();
     const bounds = mapRenderer.map?.getBounds?.();
@@ -56,7 +61,7 @@ export function createForecastMapPresentationService({
   }
 
   function mapZoomForSymbols() {
-    return getMapZoom ? getMapZoom() : mapRenderer.map?.getZoom?.() ?? 0;
+    return getMapZoom ? getMapZoom() : (mapRenderer.map?.getZoom?.() ?? 0);
   }
 
   function updateParamInfo(name, description, subtitle) {
@@ -181,6 +186,19 @@ export function createForecastMapPresentationService({
     );
   }
 
+  function refreshWindSymbolOverlayForViewport() {
+    if (!lastPresentedEntry) return;
+    updateWindSymbolOverlay(lastPresentedEntry, lastPresentedValues);
+  }
+
+  function ensureViewportRefreshRegistered() {
+    if (viewportRefreshRegistered) return;
+    const register = onMapViewportSettled ?? mapRenderer.onViewportSettled;
+    if (!register) return;
+    register(refreshWindSymbolOverlayForViewport);
+    viewportRefreshRegistered = true;
+  }
+
   async function presentBitmapEntry(hour, entry, { values } = {}) {
     const modelState = getModelState();
     const { grid, product, header } = entry;
@@ -203,6 +221,7 @@ export function createForecastMapPresentationService({
     mapPresentation.setColorScaleGradient(stops);
 
     await initMap();
+    ensureViewportRefreshRegistered();
     const isFirstLayer = !mapRenderer.hasLayer();
     if (isFirstLayer || canvasChanged) {
       mapRenderer.setLayer(canvas, corners);
@@ -216,7 +235,9 @@ export function createForecastMapPresentationService({
     }
     mapRenderer.triggerRepaint();
     updateIsobarOverlay(entry, values);
-    updateWindSymbolOverlay(entry, values ?? entry.values ?? null);
+    lastPresentedEntry = entry;
+    lastPresentedValues = values ?? entry.values ?? null;
+    updateWindSymbolOverlay(entry, lastPresentedValues);
 
     modelState.lastRunInfo = `${modelState.packageKey} · run ${formatRefTime(header)}`;
     updateParamInfo(

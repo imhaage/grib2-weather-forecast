@@ -61,7 +61,10 @@ export function buildWindSymbolFeatures({
       const index = row * grid.ni + col;
       const rawSpeed = speedValues[index];
       const rawDirection = directionValues[index];
-      if (!hasDisplayValue(rawSpeed, missingValue) || !hasDisplayValue(rawDirection, missingValue)) {
+      if (
+        !hasDisplayValue(rawSpeed, missingValue) ||
+        !hasDisplayValue(rawDirection, missingValue)
+      ) {
         continue;
       }
 
