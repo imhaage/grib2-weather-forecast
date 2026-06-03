@@ -4,8 +4,7 @@ const WIND_CALM_LAYER_ID = "wind-calm";
 const WIND_ARROW_ICON_ID = "wind-arrow";
 const WIND_ARROW_ICON_SIZE = 32;
 const WIND_ARROW_VIEWBOX_SIZE = 24;
-const WIND_ARROW_SVG_PATH =
-  "m3.165 19.503l7.362-16.51c.59-1.324 2.355-1.324 2.946 0l7.362 16.51c.667 1.495-.814 3.047-2.202 2.306l-5.904-3.152c-.459-.245-1-.245-1.458 0l-5.904 3.152c-1.388.74-2.87-.81-2.202-2.306";
+const WIND_ARROW_SVG_PATH = "M12 2 L21 22 L13.2 18.2 L12 17.6 L10.8 18.2 L3 22 Z";
 
 function createArrowIconImageData() {
   const canvas = document.createElement("canvas");
@@ -62,11 +61,11 @@ function addWindCalmLayer(map) {
     filter: ["==", ["get", "symbol"], "calm"],
     paint: {
       "circle-radius": 3,
-      "circle-opacity": 0.5,
+      "circle-opacity": 0,
       "circle-stroke-width": 1.5,
       "circle-stroke-opacity": 0.5,
       "circle-stroke-color": "#111827",
-      "circle-color": "rgba(255, 255, 255, 0.85)",
+      "circle-color": "rgba(17, 24, 39, 0)",
     },
   });
 }

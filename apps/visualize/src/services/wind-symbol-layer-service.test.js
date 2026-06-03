@@ -77,7 +77,7 @@ describe("wind symbol layer service", () => {
     );
   });
 
-  test("renders calm markers with reduced opacity", () => {
+  test("renders calm markers as an unfilled stroked circle", () => {
     const map = createMap();
     const service = createWindSymbolLayerService({ getMap: () => map });
 
@@ -87,7 +87,8 @@ describe("wind symbol layer service", () => {
       expect.objectContaining({
         id: "wind-calm",
         paint: expect.objectContaining({
-          "circle-opacity": 0.5,
+          "circle-color": "rgba(17, 24, 39, 0)",
+          "circle-opacity": 0,
           "circle-stroke-opacity": 0.5,
         }),
       }),
@@ -130,7 +131,7 @@ describe("wind symbol layer service", () => {
     expect(canvas.width).toBe(32);
     expect(canvas.height).toBe(32);
     expect(context.scale).toHaveBeenCalledWith(32 / 24, 32 / 24);
-    expect(Path2D).toHaveBeenCalledWith(expect.stringContaining("m3.165 19.503"));
+    expect(Path2D).toHaveBeenCalledWith(expect.stringContaining("M12 2"));
     expect(context.fill).toHaveBeenCalled();
     expect(map.addImage).toHaveBeenCalledWith("wind-arrow", {
       width: 32,
