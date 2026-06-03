@@ -44,7 +44,7 @@ function addWindArrowLayer(map) {
       "icon-size": 0.4,
       "icon-allow-overlap": true,
       "icon-ignore-placement": true,
-      "icon-rotate": ["get", "directionDegrees"],
+      "icon-rotate": ["+", ["get", "directionDegrees"], 180],
       "icon-rotation-alignment": "map",
     },
     paint: {
