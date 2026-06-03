@@ -7,6 +7,7 @@ import {
   toFloat32Values,
 } from "./src/domain/forecast-field.js";
 import { generateIsobars, supportsIsobars } from "./src/domain/isobars.js";
+import { deriveVectorSpeedValues } from "./src/domain/vector-field.js";
 import { mercatorCanvasHeight, renderProjectionForGrid } from "./src/domain/web-mercator.js";
 import { renderFieldToImageData } from "./src/workers/render-field-core.js";
 
@@ -92,6 +93,7 @@ async function renderHour(data) {
   if (!decoded) return null;
   const secondaryDecoded = await decodeSecondaryDisplayValues(data);
   if (data.secondaryVariable && !secondaryDecoded) return null;
+  const isVectorComposite = Boolean(data.vectorComposite);
 
   const {
     renderGeneration,
@@ -108,12 +110,20 @@ async function renderHour(data) {
     staticScale,
     displayUnits,
   } = data;
-  const { values, grid, product, header, isFallback } = decoded;
+  const displayValues =
+    isVectorComposite && secondaryDecoded
+      ? deriveVectorSpeedValues({
+          uValues: decoded.values,
+          vValues: secondaryDecoded.values,
+          missingValue,
+        })
+      : decoded.values;
+  const { grid, product, header, isFallback } = decoded;
   const outW = grid.ni;
   const outH = mercatorCanvasHeight(grid);
   const { northLat, southLat, isStoN, northY, spanY } = renderProjectionForGrid(grid);
   const { image, dataMin, dataMax, dataMean, dataCount } = renderFieldToImageData({
-    values,
+    values: displayValues,
     unitTransform,
     lut,
     missingValue,
@@ -153,6 +163,9 @@ async function renderHour(data) {
     isLog,
     displayUnits: decoded.displayUnits ?? displayUnits,
     isFallback,
+    vectorComposite: data.vectorComposite ?? null,
+    vectorUValues: isVectorComposite ? decoded.values : null,
+    vectorVValues: isVectorComposite ? (secondaryDecoded?.values ?? null) : null,
     windDirectionValues: secondaryDecoded?.values ?? null,
     windDirectionGrid: secondaryDecoded?.grid ?? null,
     windDirectionProduct: secondaryDecoded?.product ?? null,
@@ -160,15 +173,18 @@ async function renderHour(data) {
       ? generateIsobars({
           shortName: product.shortName,
           grid,
-          values,
+          values: displayValues,
           missingValue,
         })
       : null,
   };
   const transferables = [bitmap];
   if (includeValues) {
-    result.values = values;
-    transferables.push(values.buffer);
+    result.values = displayValues;
+    transferables.push(displayValues.buffer);
+  }
+  if (isVectorComposite) {
+    transferables.push(decoded.values.buffer);
   }
   if (secondaryDecoded?.values) {
     transferables.push(secondaryDecoded.values.buffer);
@@ -183,14 +199,30 @@ async function decodeValues(data) {
   if (data.secondaryVariable && !secondaryDecoded) {
     return { renderGeneration: data.renderGeneration, values: null };
   }
+  const isVectorComposite = Boolean(data.vectorComposite);
+  const values =
+    isVectorComposite && secondaryDecoded
+      ? deriveVectorSpeedValues({
+          uValues: decoded.values,
+          vValues: secondaryDecoded.values,
+          missingValue: data.missingValue,
+        })
+      : decoded.values;
   const result = {
     renderGeneration: data.renderGeneration,
     ...decoded,
+    values,
+    vectorComposite: data.vectorComposite ?? null,
+    vectorUValues: isVectorComposite ? decoded.values : null,
+    vectorVValues: isVectorComposite ? (secondaryDecoded?.values ?? null) : null,
     windDirectionValues: secondaryDecoded?.values ?? null,
     windDirectionGrid: secondaryDecoded?.grid ?? null,
     windDirectionProduct: secondaryDecoded?.product ?? null,
   };
-  const transferables = [decoded.values.buffer];
+  const transferables = [values.buffer];
+  if (isVectorComposite) {
+    transferables.push(decoded.values.buffer);
+  }
   if (secondaryDecoded?.values) {
     transferables.push(secondaryDecoded.values.buffer);
   }
