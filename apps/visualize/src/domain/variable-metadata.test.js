@@ -19,6 +19,7 @@ describe("variable metadata helpers", () => {
     expect(defaultPaletteFor("cape")).toBe("CAPE");
     expect(defaultPaletteFor("r_100")).toBe("Blues");
     expect(defaultPaletteFor("wspd_100")).toBe("Viridis");
+    expect(defaultPaletteFor("wind_100")).toBe("Viridis");
     expect(defaultPaletteFor("u_100")).toBe("Viridis");
     expect(defaultPaletteFor("v_100")).toBe("Viridis");
   });
@@ -30,6 +31,7 @@ describe("variable metadata helpers", () => {
     expect(staticScaleFor("cape")).toEqual({ min: 0, max: 4000 });
     expect(staticScaleFor("r_100")).toEqual({ min: 0, max: 100 });
     expect(staticScaleFor("wspd_100")).toEqual({ min: 0, max: 200 });
+    expect(staticScaleFor("wind_100")).toEqual({ min: 0, max: 200 });
     expect(staticScaleFor("u_100")).toEqual({ min: -30, max: 30 });
     expect(staticScaleFor("v_100")).toEqual({ min: -30, max: 30 });
   });

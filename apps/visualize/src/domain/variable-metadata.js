@@ -3,6 +3,8 @@
 /** @typedef {import("./types").VariableKeySource} VariableKeySource */
 /** @typedef {import("./types").VariableMetadata} VariableMetadata */
 
+import { componentVariableKeyForWind } from "./wind-composite-variable.js";
+
 const PRESSURE_METADATA = Object.freeze({
   defaultPalette: "Plasma",
   staticScale: { min: 950, max: 1050 },
@@ -185,7 +187,10 @@ export function variableKeyFor(varDef) {
  * @param {string} shortName
  */
 export function variableMetadataFor(shortName) {
-  return VARIABLE_METADATA[shortName] ?? {};
+  const directMetadata = VARIABLE_METADATA[shortName];
+  if (directMetadata) return directMetadata;
+  const speedKey = componentVariableKeyForWind(shortName, "speed");
+  return speedKey ? VARIABLE_METADATA[speedKey] ?? {} : {};
 }
 
 /**
