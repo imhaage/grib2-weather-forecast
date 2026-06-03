@@ -2,6 +2,7 @@ import maplibregl from "maplibre-gl";
 
 import { setupMapTooltip } from "../../map-tooltip.js";
 import { createIsobarLayerService } from "./isobar-layer-service.js";
+import { createWindSymbolLayerService } from "./wind-symbol-layer-service.js";
 
 export function createMapRendererService({
   canvasHeightForGrid,
@@ -15,6 +16,7 @@ export function createMapRendererService({
   let map = null;
   let heatCanvas = null;
   const isobarLayer = createIsobarLayerService({ getMap: () => map });
+  const windSymbolLayer = createWindSymbolLayerService({ getMap: () => map });
 
   function removeLayerIfExists() {
     if (map?.getSource("grib2")) {
@@ -37,6 +39,7 @@ export function createMapRendererService({
     clearLayer() {
       removeLayerIfExists();
       isobarLayer.remove();
+      windSymbolLayer.remove();
     },
 
     ensureHeatCanvas(grid) {
@@ -124,6 +127,14 @@ export function createMapRendererService({
 
     clearIsobars() {
       isobarLayer.remove();
+    },
+
+    updateWindSymbols(geojson) {
+      windSymbolLayer.update(geojson);
+    },
+
+    clearWindSymbols() {
+      windSymbolLayer.remove();
     },
   };
 }
