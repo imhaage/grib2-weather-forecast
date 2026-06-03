@@ -6,7 +6,9 @@ function fmtHourLabel(hour) {
 }
 
 function hasPendingDownloads(modelState) {
-  return modelState.resources.some((block) => !modelState.availableBlocks.has(block.key));
+  return modelState.resources.some(
+    (block) => block.status === "downloading" || !modelState.availableBlocks.has(block.key),
+  );
 }
 
 function animationWarmupLabel(modelState, { isWaiting, isReady }) {

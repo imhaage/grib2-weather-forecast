@@ -65,4 +65,18 @@ describe("forecast animation service", () => {
 
     expect(dom.cacheWarmupLabel.textContent).toBe("Animation cache: waiting for downloads");
   });
+
+  test("keeps waiting for downloads while an available block is updating", () => {
+    const { dom, modelState, service } = createService();
+    modelState.animationCacheStatus = "waiting";
+    modelState.resources = [
+      { key: "01H", status: "loaded-from-cache" },
+      { key: "02H", status: "downloading" },
+    ];
+    modelState.availableBlocks = new Set(["01H", "02H"]);
+
+    service.updateWarmupProgress();
+
+    expect(dom.cacheWarmupLabel.textContent).toBe("Animation cache: waiting for downloads");
+  });
 });
