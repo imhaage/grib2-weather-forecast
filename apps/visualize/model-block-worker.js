@@ -71,6 +71,17 @@ async function decodeDisplayValues({
   };
 }
 
+function decodeSecondaryDisplayValues(data) {
+  if (!data.secondaryVariable) return null;
+  return decodeDisplayValues({
+    ...data,
+    variable: data.secondaryVariable,
+    previousBlockKey: null,
+    previousBlock: null,
+    previousHour: null,
+  });
+}
+
 function storeBlock({ blockKey, buffer }) {
   blockBuffers.set(blockKey, buffer);
   return { ok: true };
@@ -79,6 +90,8 @@ function storeBlock({ blockKey, buffer }) {
 async function renderHour(data) {
   const decoded = await decodeDisplayValues(data);
   if (!decoded) return null;
+  const secondaryDecoded = await decodeSecondaryDisplayValues(data);
+  if (data.secondaryVariable && !secondaryDecoded) return null;
 
   const {
     renderGeneration,
@@ -140,6 +153,9 @@ async function renderHour(data) {
     isLog,
     displayUnits: decoded.displayUnits ?? displayUnits,
     isFallback,
+    windDirectionValues: secondaryDecoded?.values ?? null,
+    windDirectionGrid: secondaryDecoded?.grid ?? null,
+    windDirectionProduct: secondaryDecoded?.product ?? null,
     isobars: supportsIsobars(product.shortName)
       ? generateIsobars({
           shortName: product.shortName,
@@ -154,13 +170,31 @@ async function renderHour(data) {
     result.values = values;
     transferables.push(values.buffer);
   }
+  if (secondaryDecoded?.values) {
+    transferables.push(secondaryDecoded.values.buffer);
+  }
   return transfer(result, transferables);
 }
 
 async function decodeValues(data) {
   const decoded = await decodeDisplayValues(data);
   if (!decoded) return { renderGeneration: data.renderGeneration, values: null };
-  return transfer({ renderGeneration: data.renderGeneration, ...decoded }, [decoded.values.buffer]);
+  const secondaryDecoded = await decodeSecondaryDisplayValues(data);
+  if (data.secondaryVariable && !secondaryDecoded) {
+    return { renderGeneration: data.renderGeneration, values: null };
+  }
+  const result = {
+    renderGeneration: data.renderGeneration,
+    ...decoded,
+    windDirectionValues: secondaryDecoded?.values ?? null,
+    windDirectionGrid: secondaryDecoded?.grid ?? null,
+    windDirectionProduct: secondaryDecoded?.product ?? null,
+  };
+  const transferables = [decoded.values.buffer];
+  if (secondaryDecoded?.values) {
+    transferables.push(secondaryDecoded.values.buffer);
+  }
+  return transfer(result, transferables);
 }
 
 expose({

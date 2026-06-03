@@ -4,6 +4,7 @@ import { findPackageVariable } from "../domain/model-packages.js";
 import { buildLUT, LOG_SCALE_FLOOR } from "../domain/palettes.js";
 import { displayUnitsFor, unitTransformFor } from "../domain/unit-transforms.js";
 import { staticScaleFor } from "../domain/variable-metadata.js";
+import { componentVariableKeyForWind } from "../domain/wind-composite-variable.js";
 
 export function createForecastRenderRequest({
   state,
@@ -17,8 +18,13 @@ export function createForecastRenderRequest({
   const block = blockForHour(state.resources, hour);
   if (!block || !state.availableBlocks.has(block.key)) return null;
 
-  const varDef = findPackageVariable(state.packageKey, state.variable);
-  const shortName = varDef?.shortName ?? state.variable;
+  const selectedVariable = state.variable;
+  const speedKey = componentVariableKeyForWind(selectedVariable, "speed");
+  const directionKey = componentVariableKeyForWind(selectedVariable, "direction");
+  const renderVariableKey = speedKey ?? selectedVariable;
+  const varDef = findPackageVariable(state.packageKey, renderVariableKey);
+  const secondaryVarDef = directionKey ? findPackageVariable(state.packageKey, directionKey) : null;
+  const shortName = varDef?.shortName ?? renderVariableKey;
   const staticScale = staticScaleFor(shortName);
   const { renderMin, renderMax, range, isLog, logDenom, zeroThreshold } = createRenderScaleParams(
     staticScale,
@@ -40,6 +46,9 @@ export function createForecastRenderRequest({
       shortName,
       levelValue: varDef?.levelValue ?? null,
     },
+    secondaryVariable: secondaryVarDef
+      ? { shortName: secondaryVarDef.shortName, levelValue: secondaryVarDef.levelValue ?? null }
+      : null,
     unitTransform: unitTransformFor(shortName),
     staticScale,
     renderMin,

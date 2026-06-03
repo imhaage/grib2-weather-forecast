@@ -77,4 +77,24 @@ describe("forecast render request service", () => {
     expect(request.lut).toBeInstanceOf(Uint8Array);
     expect(request.lut).toHaveLength(256 * 3);
   });
+
+  test("renders composite wind variables with the matching speed field and requests direction values", () => {
+    const state = createState({ variable: "wind_10" });
+    const request = createForecastRenderRequest({
+      state,
+      hourIndex: 1,
+      hour: 2,
+      renderGeneration: 7,
+      paletteName: "Viridis",
+      missingValue: -1e100,
+      includeValues: true,
+    });
+
+    expect(request).toMatchObject({
+      variable: { shortName: "wspd", levelValue: 10 },
+      secondaryVariable: { shortName: "wdir", levelValue: 10 },
+      unitTransform: "wspd",
+      displayUnits: "km/h",
+    });
+  });
 });
