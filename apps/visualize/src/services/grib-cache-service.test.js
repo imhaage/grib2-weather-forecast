@@ -146,3 +146,59 @@ describe("grib cache service", () => {
     });
   });
 });
+
+describe("indexeddb grib cache storage", () => {
+  test("finds and deletes records through the package/block index", async () => {
+    const records = new Map();
+    const store = {
+      get: (id) => records.get(id) ?? null,
+      put: (record) => {
+        records.set(record.id, record);
+      },
+      index: () => ({
+        getAll: ([packageKey, blockKey]) =>
+          [...records.values()].filter(
+            (record) => record.packageKey === packageKey && record.blockKey === blockKey,
+          ),
+      }),
+      delete: (id) => {
+        records.delete(id);
+      },
+      clear: () => {
+        records.clear();
+      },
+    };
+    const db = {
+      getAllFromIndex: (_storeName, _indexName, key) => store.index().getAll(key),
+      get: (_storeName, id) => store.get(id),
+      put: (_storeName, record) => store.put(record),
+      transaction: () => ({
+        done: Promise.resolve(),
+        objectStore: () => store,
+      }),
+    };
+    const { createIndexedDbGribCacheStorage } = await import("./grib-cache-service.js");
+    const storage = createIndexedDbGribCacheStorage({ openDb: async () => db });
+
+    await storage.put({
+      id: "old",
+      packageKey: "AROME_SP1",
+      blockKey: "01H",
+      savedAt: "2026-05-22T00:00:00Z",
+    });
+    await storage.put({
+      id: "current",
+      packageKey: "AROME_SP1",
+      blockKey: "01H",
+      savedAt: "2026-05-22T03:00:00Z",
+    });
+
+    await expect(
+      storage.findByPackageBlock("AROME_SP1", "01H", (record) => record.id !== "current"),
+    ).resolves.toMatchObject({ id: "old" });
+
+    await storage.deleteObsolete("AROME_SP1", "01H", "current");
+
+    expect([...records.keys()]).toEqual(["current"]);
+  });
+});

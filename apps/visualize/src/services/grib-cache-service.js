@@ -1,3 +1,4 @@
+import { openDB } from "idb";
 import { runTimeValue } from "../domain/resources.js";
 
 const GRIB_CACHE_DB_NAME = "grib2-visualizer-cache";
@@ -6,45 +7,26 @@ const GRIB_BLOCK_STORE = "gribBlocks";
 
 let gribCacheDbPromise = null;
 
-function idbRequest(request) {
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-function idbTransactionDone(transaction) {
-  return new Promise((resolve, reject) => {
-    transaction.oncomplete = () => resolve();
-    transaction.onabort = () => reject(transaction.error);
-    transaction.onerror = () => reject(transaction.error);
-  });
-}
-
 function openGribCacheDb() {
   if (typeof indexedDB === "undefined") return Promise.resolve(null);
   if (gribCacheDbPromise) return gribCacheDbPromise;
 
-  gribCacheDbPromise = new Promise((resolve) => {
-    const request = indexedDB.open(GRIB_CACHE_DB_NAME, GRIB_CACHE_DB_VERSION);
-    request.onupgradeneeded = () => {
-      const db = request.result;
+  gribCacheDbPromise = openDB(GRIB_CACHE_DB_NAME, GRIB_CACHE_DB_VERSION, {
+    upgrade(db, _oldVersion, _newVersion, transaction) {
       const store = db.objectStoreNames.contains(GRIB_BLOCK_STORE)
-        ? request.transaction.objectStore(GRIB_BLOCK_STORE)
+        ? transaction.objectStore(GRIB_BLOCK_STORE)
         : db.createObjectStore(GRIB_BLOCK_STORE, { keyPath: "id" });
       if (!store.indexNames.contains("byPackageBlock")) {
         store.createIndex("byPackageBlock", ["packageKey", "blockKey"]);
       }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => {
-      console.warn("IndexedDB cache unavailable:", request.error);
-      gribCacheDbPromise = null;
-      resolve(null);
-    };
-    request.onblocked = () => {
+    },
+    blocked() {
       console.warn("IndexedDB cache upgrade is blocked by another tab.");
-    };
+    },
+  }).catch((error) => {
+    console.warn("IndexedDB cache unavailable:", error);
+    gribCacheDbPromise = null;
+    return null;
   });
 
   return gribCacheDbPromise;
@@ -80,78 +62,55 @@ function isOlderCachedGribBlock(record, block) {
   return runTimeValue(record.runId) < runTimeValue(block.runId);
 }
 
-export function createIndexedDbGribCacheStorage() {
+export function createIndexedDbGribCacheStorage({ openDb = openGribCacheDb } = {}) {
   return {
     async get(id) {
-      const db = await openGribCacheDb();
+      const db = await openDb();
       if (!db) return null;
-      const transaction = db.transaction(GRIB_BLOCK_STORE, "readonly");
-      return idbRequest(transaction.objectStore(GRIB_BLOCK_STORE).get(id));
+      return db.get(GRIB_BLOCK_STORE, id);
     },
 
     async put(record) {
-      const db = await openGribCacheDb();
+      const db = await openDb();
       if (!db) return false;
-      const transaction = db.transaction(GRIB_BLOCK_STORE, "readwrite");
-      transaction.objectStore(GRIB_BLOCK_STORE).put(record);
-      await idbTransactionDone(transaction);
+      await db.put(GRIB_BLOCK_STORE, record);
       return true;
     },
 
     async findByPackageBlock(packageKey, blockKey, predicate) {
-      const db = await openGribCacheDb();
+      const db = await openDb();
       if (!db) return null;
-      const transaction = db.transaction(GRIB_BLOCK_STORE, "readonly");
-      const index = transaction.objectStore(GRIB_BLOCK_STORE).index("byPackageBlock");
-      const range = IDBKeyRange.only([packageKey, blockKey]);
       let match = null;
-      await new Promise((resolve, reject) => {
-        const request = index.openCursor(range);
-        request.onsuccess = () => {
-          const cursor = request.result;
-          if (!cursor) {
-            resolve();
-            return;
-          }
-          const record = cursor.value;
-          if (predicate(record) && (!match || String(record.savedAt) > String(match.savedAt))) {
-            match = record;
-          }
-          cursor.continue();
-        };
-        request.onerror = () => reject(request.error);
-      });
+      const records = await db.getAllFromIndex(GRIB_BLOCK_STORE, "byPackageBlock", [
+        packageKey,
+        blockKey,
+      ]);
+      for (const record of records) {
+        if (predicate(record) && (!match || String(record.savedAt) > String(match.savedAt))) {
+          match = record;
+        }
+      }
       return match;
     },
 
     async deleteObsolete(packageKey, blockKey, currentId) {
-      const db = await openGribCacheDb();
+      const db = await openDb();
       if (!db) return;
       const transaction = db.transaction(GRIB_BLOCK_STORE, "readwrite");
       const index = transaction.objectStore(GRIB_BLOCK_STORE).index("byPackageBlock");
-      const range = IDBKeyRange.only([packageKey, blockKey]);
-      await new Promise((resolve, reject) => {
-        const request = index.openCursor(range);
-        request.onsuccess = () => {
-          const cursor = request.result;
-          if (!cursor) {
-            resolve();
-            return;
-          }
-          if (cursor.value.id !== currentId) cursor.delete();
-          cursor.continue();
-        };
-        request.onerror = () => reject(request.error);
-      });
-      await idbTransactionDone(transaction);
+      const records = await index.getAll([packageKey, blockKey]);
+      await Promise.all(
+        records
+          .filter((record) => record.id !== currentId)
+          .map((record) => transaction.objectStore(GRIB_BLOCK_STORE).delete(record.id)),
+      );
+      await transaction.done;
     },
 
     async clear() {
-      const db = await openGribCacheDb();
+      const db = await openDb();
       if (!db) return;
-      const transaction = db.transaction(GRIB_BLOCK_STORE, "readwrite");
-      transaction.objectStore(GRIB_BLOCK_STORE).clear();
-      await idbTransactionDone(transaction);
+      await db.clear(GRIB_BLOCK_STORE);
     },
   };
 }
