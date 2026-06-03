@@ -1,6 +1,7 @@
 import { fmtRefTime, fmtValidTime } from "grib2-decoder";
 import { blockForHour } from "../domain/forecast-state.js";
 import { generateIsobars, supportsIsobars } from "../domain/isobars.js";
+import { findPackageVariable } from "../domain/model-packages.js";
 import { gradientStopsFor } from "../domain/palettes.js";
 import { parameterDescriptionFor } from "../domain/variable-metadata.js";
 import { isVectorCompositeVariable } from "../domain/wind-composite-variable.js";
@@ -73,6 +74,11 @@ export function createForecastMapPresentationService({
     mapPresentation.showColorScale(legendMin, legendMax, entry.displayUnits, {
       isLog: entry.isLog,
     });
+  }
+
+  function selectedVariableDefinition(product) {
+    const modelState = getModelState();
+    return findPackageVariable(modelState?.packageKey, modelState?.variable) ?? product;
   }
 
   function clearStats() {
@@ -227,9 +233,10 @@ export function createForecastMapPresentationService({
     updateWindSymbolOverlay(entry, lastPresentedValues);
 
     modelState.lastRunInfo = `${modelState.packageKey} · run ${formatRefTime(header)}`;
+    const selectedVarDef = selectedVariableDefinition(product);
     updateParamInfo(
-      product.name,
-      parameterDescriptionFor(product.shortName),
+      selectedVarDef.name ?? product.name,
+      parameterDescriptionFor(selectedVarDef.shortName ?? product.shortName),
       formatModelPackageSubtitle(modelState.packageKey),
     );
 

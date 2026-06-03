@@ -121,7 +121,7 @@ describe("forecast map presentation service", () => {
       { padding: 20, animate: false },
     );
     expect(mapPresentation.updateParamInfo).toHaveBeenCalledWith(
-      "Temperature",
+      "Temperature (2m)",
       expect.any(String),
       "AROME SP1",
     );
@@ -129,10 +129,11 @@ describe("forecast map presentation service", () => {
   });
 
   test("updates wind symbols for composite wind entries", async () => {
-    const { mapRenderer, modelState, service } = createService();
+    const { mapPresentation, mapRenderer, modelState, service } = createService();
     modelState.variable = "wind";
     const entry = createEntry({
       displayUnits: "km/h",
+      product: { name: "U-component of wind", shortName: "u", pdtNumber: 0 },
       vectorUValues: new Float32Array([0, 0, 0, 0]),
       vectorVValues: new Float32Array([-4, -4, -4, -4]),
       grid: {
@@ -153,6 +154,11 @@ describe("forecast map presentation service", () => {
       expect.objectContaining({ type: "FeatureCollection" }),
     );
     expect(mapRenderer.clearWindSymbols).not.toHaveBeenCalled();
+    expect(mapPresentation.updateParamInfo).toHaveBeenCalledWith(
+      "Wind (10m)",
+      expect.any(String),
+      "AROME SP1",
+    );
   });
 
   test("refreshes wind symbols when the map viewport settles", async () => {
