@@ -14,6 +14,7 @@ import {
   staticScaleFor,
   variableKeyFor,
 } from "../domain/variable-metadata.js";
+import { isVectorCompositeVariable } from "../domain/wind-composite-variable.js";
 import { createDataGouvResourceService } from "../services/data-gouv-resource-service.js";
 import { createForecastAnimationService } from "../services/forecast-animation-service.js";
 import { createForecastBlockRefreshService } from "../services/forecast-block-refresh-service.js";
@@ -89,6 +90,7 @@ export function createForecastRunController({
   });
   const {
     presentBitmapEntry,
+    refreshWindSymbolOverlay,
     showUnavailableHour,
     updateIsobarOverlay,
     updateLevelInfo,
@@ -242,10 +244,20 @@ export function createForecastRunController({
     const varSelect = dom.forecastVarSelect;
     const firstVar = defaultVariableForPackage(pkg);
     modelState.variable = variableKeyFor(firstVar);
+    modelState.showWindDirection = true;
     applyDefaultPalette(variableKeyFor(firstVar));
     replaceGroupedVariableOptions(document, varSelect, pkg.variables);
     varSelect.value = modelState.variable;
+    syncWindDirectionControl();
     updateLevelInfo(firstVar);
+  }
+
+  function syncWindDirectionControl() {
+    const control = dom.forecastWindDirectionControl;
+    const toggle = dom.forecastWindDirectionToggle;
+    if (!control || !toggle) return;
+    control.hidden = !isVectorCompositeVariable(modelState?.variable);
+    toggle.checked = modelState?.showWindDirection !== false;
   }
 
   function applyModelResources(resources) {
@@ -607,6 +619,7 @@ export function createForecastRunController({
     const varDef = findPackageVariable(modelState.packageKey, varKey);
     const shortName = varDef?.shortName ?? varKey;
     applyDefaultPalette(varKey);
+    syncWindDirectionControl();
 
     if (varDef) {
       updateParamInfo(
@@ -618,6 +631,13 @@ export function createForecastRunController({
     }
 
     await refreshCurrentModelVisuals();
+  }
+
+  function setWindDirectionVisible(visible) {
+    if (!modelState) return;
+    modelState.showWindDirection = Boolean(visible);
+    syncWindDirectionControl();
+    refreshWindSymbolOverlay();
   }
 
   function onForecastSliderInput() {
@@ -650,6 +670,7 @@ export function createForecastRunController({
     queueCurrentTooltipValueHydration,
     refreshCurrentModelVisuals,
     resetModelState,
+    setWindDirectionVisible,
     setAnimationPlayer(player) {
       animationPlayer = player;
       updateWarmupProgress();

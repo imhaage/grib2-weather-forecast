@@ -68,10 +68,10 @@ describe("wind symbol layer service", () => {
       expect.objectContaining({
         id: "wind-arrows",
         layout: expect.objectContaining({
-          "icon-size": 0.4,
+          "icon-size": 0.36,
         }),
         paint: expect.objectContaining({
-          "icon-opacity": 0.5,
+          "icon-opacity": 0.42,
         }),
       }),
     );
@@ -89,7 +89,7 @@ describe("wind symbol layer service", () => {
         paint: expect.objectContaining({
           "circle-color": "rgba(17, 24, 39, 0)",
           "circle-opacity": 0,
-          "circle-stroke-opacity": 0.5,
+          "circle-stroke-opacity": 0.42,
         }),
       }),
     );

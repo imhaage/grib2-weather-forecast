@@ -360,6 +360,28 @@
 		max-width: 100%;
 	}
 
+	.forecast-player__toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--space-xs);
+		align-self: end;
+		min-height: 2.2rem;
+		color: var(--color-text-2);
+		font-size: var(--font-sm);
+		cursor: pointer;
+
+		&[hidden] {
+			display: none;
+		}
+
+		& input {
+			width: 1rem;
+			height: 1rem;
+			margin: 0;
+			cursor: inherit;
+		}
+	}
+
 	.forecast-player__slider {
 		display: flex;
 		flex-wrap: wrap;

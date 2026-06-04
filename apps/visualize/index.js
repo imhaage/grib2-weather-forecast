@@ -75,6 +75,8 @@ const dom = {
 	forecastHourLabel: domRefs.forecast.hourLabel,
 	forecastSlider: domRefs.forecast.slider,
 	forecastVarSelect: domRefs.forecast.variableSelect,
+	forecastWindDirectionControl: domRefs.forecast.windDirectionControl,
+	forecastWindDirectionToggle: domRefs.forecast.windDirectionToggle,
 	playerPlayButton: domRefs.player.playButton,
 	cacheWarmup: domRefs.cacheWarmup.root,
 	cacheWarmupBar: domRefs.cacheWarmup.bar,
@@ -697,6 +699,10 @@ async function onForecastVariableChange(e) {
 	await forecastRun.handleVariableChange(e.target.value);
 }
 
+function onForecastWindDirectionToggle(e) {
+	forecastRun.setWindDirectionVisible(e.target.checked);
+}
+
 function onForecastSliderInput() {
 	forecastRun.onForecastSliderInput();
 }
@@ -748,6 +754,7 @@ bindAppEvents({
 		handleMapBack,
 		onPaletteChange,
 		onForecastVariableChange,
+		onForecastWindDirectionToggle,
 		onForecastSliderInput,
 		onClearCache,
 		onStorageWarningClose,

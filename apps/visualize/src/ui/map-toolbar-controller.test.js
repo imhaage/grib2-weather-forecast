@@ -8,7 +8,9 @@ describe("map toolbar controller", () => {
     document.body.innerHTML = `
       <button id="map-back-btn" hidden>Back</button>
       <div id="map-toolbar" hidden></div>
-      <div id="forecast-player-toolbar" hidden></div>
+      <div id="forecast-player-toolbar" hidden>
+        <label id="forecast-wind-direction-control"></label>
+      </div>
     `;
   });
 
@@ -26,5 +28,15 @@ describe("map toolbar controller", () => {
     expect(document.getElementById("map-back-btn")?.hidden).toBe(false);
     expect(document.getElementById("map-toolbar")?.hidden).toBe(true);
     expect(document.getElementById("forecast-player-toolbar")?.hidden).toBe(false);
+  });
+
+  test("shows wind direction control only for vector forecast variables", () => {
+    setMapToolbarMode(document, "run", { showWindDirectionControl: true });
+
+    expect(document.getElementById("forecast-wind-direction-control")?.hidden).toBe(false);
+
+    setMapToolbarMode(document, "run", { showWindDirectionControl: false });
+
+    expect(document.getElementById("forecast-wind-direction-control")?.hidden).toBe(true);
   });
 });

@@ -151,6 +151,7 @@ export function createForecastMapPresentationService({
     const modelState = getModelState();
     if (
       !isVectorCompositeVariable(modelState?.variable) ||
+      modelState?.showWindDirection === false ||
       !values ||
       !entry.vectorUValues ||
       !entry.vectorVValues ||
@@ -255,6 +256,7 @@ export function createForecastMapPresentationService({
     hideColorScale,
     hideMapUnavailable,
     presentBitmapEntry,
+    refreshWindSymbolOverlay: refreshWindSymbolOverlayForViewport,
     showMapUnavailable,
     showUnavailableHour,
     updateIsobarOverlay,

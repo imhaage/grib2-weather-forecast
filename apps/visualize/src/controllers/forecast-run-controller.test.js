@@ -54,6 +54,10 @@ function createDom() {
       value: "0",
     }),
     forecastVarSelect: createElement("select"),
+    forecastWindDirectionControl: createElement("label"),
+    forecastWindDirectionToggle: Object.assign(createElement("input"), {
+      type: "checkbox",
+    }),
   };
 }
 
@@ -239,6 +243,22 @@ describe("forecast run controller", () => {
       "Weather maps",
       "Component fields",
     ]);
+  });
+
+  test("shows wind direction control for vector packages and syncs the toggle state", async () => {
+    const { controller, dom } = createController();
+
+    await controller.startDownload("AROME_SP1");
+    await controller.handleVariableChange("wind");
+
+    expect(controller.getModelState().variable).toBe("wind");
+    expect(dom.forecastWindDirectionControl.hidden).toBe(false);
+    expect(dom.forecastWindDirectionToggle.checked).toBe(true);
+
+    controller.setWindDirectionVisible(false);
+
+    expect(controller.getModelState().showWindDirection).toBe(false);
+    expect(dom.forecastWindDirectionToggle.checked).toBe(false);
   });
 
   test("reset clears forecast state and download DOM", async () => {

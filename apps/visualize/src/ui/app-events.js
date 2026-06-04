@@ -8,6 +8,11 @@ export function bindAppEvents({ document, dom, handlers }) {
   dom.forecast.variableSelect.addEventListener("change", handlers.onForecastVariableChange, {
     signal,
   });
+  dom.forecast.windDirectionToggle.addEventListener(
+    "change",
+    handlers.onForecastWindDirectionToggle,
+    { signal },
+  );
   dom.forecast.slider.addEventListener("input", handlers.onForecastSliderInput, { signal });
   dom.storage.clearCacheButton.addEventListener("click", handlers.onClearCache, { signal });
   dom.storage.warningCloseButton.addEventListener("click", handlers.onStorageWarningClose, {

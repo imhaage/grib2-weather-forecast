@@ -24,6 +24,8 @@ export function createDom(document) {
     forecast: {
       slider: mustFind(document, "#forecast-slider"),
       variableSelect: mustFind(document, "#forecast-var-select"),
+      windDirectionControl: mustFind(document, "#forecast-wind-direction-control"),
+      windDirectionToggle: mustFind(document, "#forecast-wind-direction-toggle"),
       hourLabel: mustFind(document, "#forecast-hour-label"),
       validTime: mustFind(document, "#forecast-valid-time"),
     },

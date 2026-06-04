@@ -15,6 +15,9 @@ function renderAppDom() {
     <p id="forecast-dl-status"></p>
     <input id="forecast-slider">
     <select id="forecast-var-select"></select>
+    <label id="forecast-wind-direction-control">
+      <input id="forecast-wind-direction-toggle" type="checkbox">
+    </label>
     <span id="forecast-hour-label"></span>
     <span id="forecast-valid-time"></span>
     <button id="player-play"></button>
@@ -90,6 +93,8 @@ describe("dom registry", () => {
     expect(dom.forecastDownload.status.id).toBe("forecast-dl-status");
     expect(dom.forecast.slider.id).toBe("forecast-slider");
     expect(dom.forecast.variableSelect.id).toBe("forecast-var-select");
+    expect(dom.forecast.windDirectionControl.id).toBe("forecast-wind-direction-control");
+    expect(dom.forecast.windDirectionToggle.id).toBe("forecast-wind-direction-toggle");
     expect(dom.forecast.hourLabel.id).toBe("forecast-hour-label");
     expect(dom.forecast.validTime.id).toBe("forecast-valid-time");
     expect(dom.player.playButton.id).toBe("player-play");

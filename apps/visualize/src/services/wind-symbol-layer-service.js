@@ -3,8 +3,10 @@ const WIND_ARROW_LAYER_ID = "wind-arrows";
 const WIND_CALM_LAYER_ID = "wind-calm";
 const WIND_ARROW_ICON_ID = "wind-arrow";
 const WIND_ARROW_ICON_SIZE = 32;
+const WIND_ARROW_MAP_SIZE = 0.36;
 const WIND_ARROW_VIEWBOX_SIZE = 24;
 const WIND_ARROW_SVG_PATH = "M12 2 L21 22 L13.2 18.2 L12 17.6 L10.8 18.2 L3 22 Z";
+const WIND_SYMBOL_OPACITY = 0.42;
 
 function createArrowIconImageData() {
   const canvas = document.createElement("canvas");
@@ -41,14 +43,14 @@ function addWindArrowLayer(map) {
     filter: ["==", ["get", "symbol"], "arrow"],
     layout: {
       "icon-image": WIND_ARROW_ICON_ID,
-      "icon-size": 0.4,
+      "icon-size": WIND_ARROW_MAP_SIZE,
       "icon-allow-overlap": true,
       "icon-ignore-placement": true,
       "icon-rotate": ["+", ["get", "directionDegrees"], 180],
       "icon-rotation-alignment": "map",
     },
     paint: {
-      "icon-opacity": 0.5,
+      "icon-opacity": WIND_SYMBOL_OPACITY,
     },
   });
 }
@@ -63,7 +65,7 @@ function addWindCalmLayer(map) {
       "circle-radius": 3,
       "circle-opacity": 0,
       "circle-stroke-width": 1.5,
-      "circle-stroke-opacity": 0.5,
+      "circle-stroke-opacity": WIND_SYMBOL_OPACITY,
       "circle-stroke-color": "#111827",
       "circle-color": "rgba(17, 24, 39, 0)",
     },

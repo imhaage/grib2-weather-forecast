@@ -9,6 +9,7 @@ function renderEventsDom() {
     <select id="palette-select"></select>
     <select id="palette-select-forecast"></select>
     <select id="forecast-var-select"></select>
+    <input id="forecast-wind-direction-toggle" type="checkbox">
     <input id="forecast-slider">
     <button id="clear-grib-cache"></button>
     <button id="storage-warning-close"></button>
@@ -28,6 +29,7 @@ function createEventDom() {
     },
     forecast: {
       variableSelect: document.getElementById("forecast-var-select"),
+      windDirectionToggle: document.getElementById("forecast-wind-direction-toggle"),
       slider: document.getElementById("forecast-slider"),
     },
     storage: {
@@ -48,6 +50,7 @@ describe("app events", () => {
       handleMapBack: vi.fn(),
       onPaletteChange: vi.fn(),
       onForecastVariableChange: vi.fn(),
+      onForecastWindDirectionToggle: vi.fn(),
       onForecastSliderInput: vi.fn(),
       onClearCache: vi.fn(),
       onStorageWarningClose: vi.fn(),
@@ -65,6 +68,7 @@ describe("app events", () => {
     document.getElementById("palette-select").dispatchEvent(new Event("change"));
     document.getElementById("palette-select-forecast").dispatchEvent(new Event("change"));
     document.getElementById("forecast-var-select").dispatchEvent(new Event("change"));
+    document.getElementById("forecast-wind-direction-toggle").dispatchEvent(new Event("change"));
     document.getElementById("forecast-slider").dispatchEvent(new Event("input"));
     document.getElementById("clear-grib-cache").click();
     document.getElementById("storage-warning-close").click();
@@ -74,6 +78,7 @@ describe("app events", () => {
     expect(handlers.handleMapBack).toHaveBeenCalledTimes(1);
     expect(handlers.onPaletteChange).toHaveBeenCalledTimes(2);
     expect(handlers.onForecastVariableChange).toHaveBeenCalledTimes(1);
+    expect(handlers.onForecastWindDirectionToggle).toHaveBeenCalledTimes(1);
     expect(handlers.onForecastSliderInput).toHaveBeenCalledTimes(1);
     expect(handlers.onClearCache).toHaveBeenCalledTimes(1);
     expect(handlers.onStorageWarningClose).toHaveBeenCalledTimes(1);

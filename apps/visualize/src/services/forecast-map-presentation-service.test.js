@@ -161,6 +161,31 @@ describe("forecast map presentation service", () => {
     );
   });
 
+  test("clears wind symbols when direction display is disabled", async () => {
+    const { mapRenderer, modelState, service } = createService();
+    modelState.variable = "wind";
+    modelState.showWindDirection = false;
+    const entry = createEntry({
+      vectorUValues: new Float32Array([0, 0, 0, 0]),
+      vectorVValues: new Float32Array([-4, -4, -4, -4]),
+      grid: {
+        ni: 2,
+        nj: 2,
+        latitudeOfFirstPoint: 51,
+        latitudeOfLastPoint: 50,
+        longitudeOfFirstPoint: 1,
+        longitudeOfLastPoint: 2,
+        di: 1,
+        dj: 1,
+      },
+    });
+
+    await service.presentBitmapEntry(1, entry, { values: new Float32Array([4, 4, 4, 4]) });
+
+    expect(mapRenderer.updateWindSymbols).not.toHaveBeenCalled();
+    expect(mapRenderer.clearWindSymbols).toHaveBeenCalled();
+  });
+
   test("refreshes wind symbols when the map viewport settles", async () => {
     const { mapRenderer, modelState, service, state } = createService();
     modelState.variable = "wind";
