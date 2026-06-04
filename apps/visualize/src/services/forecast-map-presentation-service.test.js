@@ -34,6 +34,7 @@ function createService(overrides = {}) {
     ensureHeatCanvas: vi.fn(() => ({ canvas: "canvas", canvasChanged: true })),
     fitBounds: vi.fn(),
     hasLayer: vi.fn(() => false),
+    setVisible: vi.fn(),
     setLayer: vi.fn(),
     triggerRepaint: vi.fn(),
     updateIsobars: vi.fn(),
@@ -245,5 +246,64 @@ describe("forecast map presentation service", () => {
     state.viewportSettledCallback();
 
     expect(mapRenderer.updateWindSymbols).toHaveBeenCalledTimes(2);
+  });
+
+  test("presents the first available forecast block by showing and fitting the map", async () => {
+    const { mapRenderer, modelState, service } = createService();
+    modelState.hourList = [1, 2];
+    modelState.resources = [{ key: "01H", startHour: 1, endHour: 1 }];
+    const showHour = vi.fn(async () => {});
+
+    await service.presentAvailableBlock(
+      { key: "01H" },
+      {
+        availableCount: 1,
+        downloadKey: { id: 1 },
+        pkg: {
+          bounds: [
+            [-5, 41],
+            [9, 51],
+          ],
+        },
+      },
+      {
+        isRefreshActive: vi.fn(() => true),
+        selectedHourIndex: vi.fn(() => 0),
+        showHour,
+      },
+    );
+
+    expect(mapRenderer.setVisible).toHaveBeenCalledWith(true);
+    expect(mapRenderer.fitBounds).toHaveBeenCalledWith(
+      [
+        [-5, 41],
+        [9, 51],
+      ],
+      { padding: 20, animate: false },
+    );
+    expect(showHour).toHaveBeenCalledWith(0);
+  });
+
+  test("presents a later available block only when it matches the selected hour", async () => {
+    const { mapRenderer, modelState, service } = createService();
+    modelState.hourList = [1, 2];
+    modelState.resources = [
+      { key: "01H", startHour: 1, endHour: 1 },
+      { key: "02H", startHour: 2, endHour: 2 },
+    ];
+    const showHour = vi.fn(async () => {});
+
+    await service.presentAvailableBlock(
+      { key: "02H" },
+      { availableCount: 2, downloadKey: { id: 1 }, pkg: { bounds: [] } },
+      {
+        isRefreshActive: vi.fn(() => true),
+        selectedHourIndex: vi.fn(() => 1),
+        showHour,
+      },
+    );
+
+    expect(mapRenderer.setVisible).not.toHaveBeenCalled();
+    expect(showHour).toHaveBeenCalledWith(1);
   });
 });

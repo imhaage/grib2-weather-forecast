@@ -2,12 +2,7 @@ import {
   formatForecastValidTimeLabel as formatPackageForecastValidTimeLabel,
   formatModelPackageSubtitle as formatPackageModelSubtitle,
 } from "../domain/forecast-package-labels.js";
-import {
-  buildHourList,
-  createModelState,
-  blockForHour as findBlockForHour,
-  markBlockAvailable,
-} from "../domain/forecast-state.js";
+import { buildHourList, createModelState, markBlockAvailable } from "../domain/forecast-state.js";
 import { findPackageVariable, MODEL_INFO, PACKAGES } from "../domain/model-packages.js";
 import { formatRunSummary } from "../domain/resources.js";
 import {
@@ -121,6 +116,7 @@ export function createForecastRunController({
     setGridState,
   });
   const {
+    presentAvailableBlock: presentAvailableMapBlock,
     presentBitmapEntry,
     refreshWindSymbolOverlay,
     showUnavailableHour,
@@ -259,10 +255,6 @@ export function createForecastRunController({
     dataStatusSummaryView.render(modelState.resources);
   }
 
-  function blockForHour(hour) {
-    return findBlockForHour(modelState?.resources ?? [], hour);
-  }
-
   function configureModelVariableControls(pkg) {
     const firstVar = defaultVariableForPackage(pkg);
     modelState.variable = variableKeyFor(firstVar);
@@ -337,20 +329,6 @@ export function createForecastRunController({
     updateAvailableFileCount(session);
   }
 
-  async function refreshMapForAvailableModelBlock(block, session) {
-    const currentIdx = forecastHourControlView.selectedIndex();
-    const currentHour = modelState.hourList[currentIdx];
-    if (session.availableCount === 1) {
-      mapRenderer.setVisible(true);
-      await initMap();
-      if (!isModelResourceRefreshActive(session.downloadKey)) return;
-      mapRenderer.fitBounds(session.pkg.bounds, { padding: 20, animate: false });
-      await showHour(currentIdx);
-    } else if (blockForHour(currentHour)?.key === block.key) {
-      await showHour(currentIdx);
-    }
-  }
-
   function completeModelDownloadIfReady(session) {
     if (session.availableCount !== session.resources.length) return;
     updateAvailableFileCount(session);
@@ -361,7 +339,11 @@ export function createForecastRunController({
     forecastLegendInitializerService.initializeFromBlock(buffer, { modelState, session });
     await storeAvailableModelBlock(block, buffer, status, session);
     if (!isModelResourceRefreshActive(session.downloadKey)) return;
-    await refreshMapForAvailableModelBlock(block, session);
+    await presentAvailableMapBlock(block, session, {
+      isRefreshActive: isModelResourceRefreshActive,
+      selectedHourIndex: forecastHourControlView.selectedIndex,
+      showHour,
+    });
     completeModelDownloadIfReady(session);
   }
 

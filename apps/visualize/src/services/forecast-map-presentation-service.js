@@ -249,11 +249,34 @@ export function createForecastMapPresentationService({
     );
   }
 
+  async function presentAvailableBlock(
+    block,
+    session,
+    { isRefreshActive, selectedHourIndex, showHour },
+  ) {
+    const currentIndex = selectedHourIndex();
+    const currentHour = getModelState()?.hourList?.[currentIndex];
+    if (session.availableCount === 1) {
+      mapRenderer.setVisible(true);
+      await initMap();
+      if (!isRefreshActive(session.downloadKey)) return false;
+      mapRenderer.fitBounds(session.pkg.bounds, { padding: 20, animate: false });
+      await showHour(currentIndex);
+      return true;
+    }
+
+    const currentBlock = blockForHour(getModelState()?.resources ?? [], currentHour);
+    if (currentBlock?.key !== block.key) return false;
+    await showHour(currentIndex);
+    return true;
+  }
+
   return {
     clearMapLayer,
     clearStats,
     hideColorScale,
     hideMapUnavailable,
+    presentAvailableBlock,
     presentBitmapEntry,
     refreshWindSymbolOverlay: refreshWindSymbolOverlayForViewport,
     showMapUnavailable,
