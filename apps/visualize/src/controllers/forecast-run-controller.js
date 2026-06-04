@@ -10,6 +10,7 @@ import { createDataGouvResourceService } from "../services/data-gouv-resource-se
 import { createForecastAnimationService } from "../services/forecast-animation-service.js";
 import { createForecastAvailableBlockService } from "../services/forecast-available-block-service.js";
 import { createForecastBlockRefreshService } from "../services/forecast-block-refresh-service.js";
+import { createForecastDownloadPreparationService } from "../services/forecast-download-preparation-service.js";
 import { createForecastDownloadSessionService } from "../services/forecast-download-session-service.js";
 import { createForecastLegendInitializerService } from "../services/forecast-legend-initializer-service.js";
 import { createForecastMapPresentationService } from "../services/forecast-map-presentation-service.js";
@@ -415,6 +416,13 @@ export function createForecastRunController({
     isRefreshActive: isModelResourceRefreshActive,
     setStatus: forecastDownloadView.setStatus,
   });
+  const forecastDownloadPreparationService = createForecastDownloadPreparationService({
+    applyResources: applyModelResources,
+    createSession: forecastDownloadSessionService.createSession,
+    formatRunSummary,
+    renderItems: forecastDownloadView.renderItems,
+    resetResourceStatuses,
+  });
 
   function proxyUrl(url) {
     return dataGouvResourceService.proxyResourceUrl(url);
@@ -427,20 +435,6 @@ export function createForecastRunController({
   function resetResourceStatuses(resources) {
     forecastDownloadSessionService.resetResourceStatuses(resources, modelState);
     updateDataStatusSummary();
-  }
-
-  function prepareModelDownloadSession({ packageKey, pkg, resources, downloadKey }) {
-    applyModelResources(resources);
-    const runSummary = formatRunSummary(resources);
-    forecastDownloadView.renderItems(resources);
-    resetResourceStatuses(resources);
-    return forecastDownloadSessionService.createSession({
-      packageKey,
-      pkg,
-      resources,
-      runSummary,
-      downloadKey,
-    });
   }
 
   async function startDownload(packageKey) {
@@ -460,7 +454,7 @@ export function createForecastRunController({
     });
     if (!isModelResourceRefreshActive(downloadKey) || !resources) return;
 
-    const session = prepareModelDownloadSession({
+    const session = forecastDownloadPreparationService.prepareSession({
       packageKey,
       pkg,
       resources,
@@ -488,7 +482,7 @@ export function createForecastRunController({
     });
     if (!isModelResourceRefreshActive(downloadKey) || !resources) return null;
 
-    const session = prepareModelDownloadSession({
+    const session = forecastDownloadPreparationService.prepareSession({
       packageKey,
       pkg,
       resources,
