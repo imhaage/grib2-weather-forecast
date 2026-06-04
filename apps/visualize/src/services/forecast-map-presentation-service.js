@@ -15,6 +15,11 @@ function defaultFormatForecastValidTimeLabel(timeLabel) {
   return timeLabel;
 }
 
+const WIND_SYMBOL_SAMPLING = Object.freeze({
+  referenceZoom: 6,
+  matrixStride: 16,
+});
+
 export function createForecastMapPresentationService({
   formatForecastValidTimeLabel = defaultFormatForecastValidTimeLabel,
   formatModelPackageSubtitle = defaultFormatModelPackageSubtitle,
@@ -169,6 +174,7 @@ export function createForecastMapPresentationService({
         missingValue,
         bounds,
         zoom,
+        sampling: WIND_SYMBOL_SAMPLING,
       }),
     );
   }

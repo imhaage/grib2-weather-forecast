@@ -6,8 +6,6 @@ import {
 import { cardinalDirectionForDegrees } from "./wind-direction-format.js";
 
 const CALM_WIND_KMH = 5;
-const REFERENCE_ZOOM = 6;
-const REFERENCE_MATRIX_STRIDE = 16;
 
 function createFeatureCollection(features) {
   return {
@@ -16,10 +14,18 @@ function createFeatureCollection(features) {
   };
 }
 
-function matrixStrideForZoom(zoom) {
-  const roundedZoom = Math.round(Number.isFinite(zoom) ? zoom : REFERENCE_ZOOM);
-  const scale = 2 ** (REFERENCE_ZOOM - roundedZoom);
-  return Math.max(1, Math.round(REFERENCE_MATRIX_STRIDE * scale));
+function matrixStrideForZoom(zoom, sampling) {
+  if (
+    !sampling ||
+    !Number.isFinite(sampling.referenceZoom) ||
+    !Number.isFinite(sampling.matrixStride) ||
+    sampling.matrixStride <= 0
+  ) {
+    throw new TypeError("Wind symbol sampling policy is required");
+  }
+  const roundedZoom = Math.round(Number.isFinite(zoom) ? zoom : sampling.referenceZoom);
+  const scale = 2 ** (sampling.referenceZoom - roundedZoom);
+  return Math.max(1, Math.round(sampling.matrixStride * scale));
 }
 
 function latitudeForRowFromNorth(grid, rowFromNorth, northLat) {
@@ -132,13 +138,14 @@ export function buildWindSymbolFeatures({
   missingValue,
   bounds,
   zoom,
+  sampling,
 }) {
   if (!grid || !vectorUValues || !vectorVValues || !bounds) {
     return createFeatureCollection([]);
   }
 
   const features = [];
-  const stride = matrixStrideForZoom(zoom);
+  const stride = matrixStrideForZoom(zoom, sampling);
   const northLat = Math.max(grid.latitudeOfFirstPoint, grid.latitudeOfLastPoint);
   const isStoN = grid.latitudeOfLastPoint > grid.latitudeOfFirstPoint;
 

@@ -11,10 +11,15 @@ const grid = {
   di: 1,
   dj: 1,
 };
+const sampling = { referenceZoom: 6, matrixStride: 16 };
+
+function buildFeatures(options) {
+  return buildWindSymbolFeatures({ sampling, ...options });
+}
 
 describe("wind symbol sampler", () => {
   test("returns only vector-aggregated features inside visible bounds", () => {
-    const collection = buildWindSymbolFeatures({
+    const collection = buildFeatures({
       grid,
       vectorUValues: new Float32Array(12).fill(3),
       vectorVValues: new Float32Array(12).fill(4),
@@ -33,7 +38,7 @@ describe("wind symbol sampler", () => {
   });
 
   test("marks calm wind when aggregated vector speed is below 5 km/h", () => {
-    const collection = buildWindSymbolFeatures({
+    const collection = buildFeatures({
       grid,
       vectorUValues: new Float32Array(12).fill(1),
       vectorVValues: new Float32Array(12).fill(0),
@@ -46,7 +51,7 @@ describe("wind symbol sampler", () => {
   });
 
   test("stores arrow properties from aggregated u and v components", () => {
-    const collection = buildWindSymbolFeatures({
+    const collection = buildFeatures({
       grid,
       vectorUValues: new Float32Array(12).fill(0),
       vectorVValues: new Float32Array(12).fill(-4),
@@ -66,7 +71,7 @@ describe("wind symbol sampler", () => {
   test("averages u and v components inside each matrix block", () => {
     const vectorUValues = new Float32Array(16).fill(1);
     vectorUValues[0] = 9;
-    const collection = buildWindSymbolFeatures({
+    const collection = buildFeatures({
       grid: {
         ...grid,
         ni: 4,
@@ -99,7 +104,7 @@ describe("wind symbol sampler", () => {
       dj: 1,
     };
 
-    const collection = buildWindSymbolFeatures({
+    const collection = buildFeatures({
       grid: wideGrid,
       vectorUValues: new Float32Array(1600).fill(4),
       vectorVValues: new Float32Array(1600).fill(0),
@@ -124,7 +129,7 @@ describe("wind symbol sampler", () => {
       dj: 1,
     };
 
-    const collection = buildWindSymbolFeatures({
+    const collection = buildFeatures({
       grid: wideGrid,
       vectorUValues: new Float32Array(10000).fill(4),
       vectorVValues: new Float32Array(10000).fill(0),
@@ -149,7 +154,7 @@ describe("wind symbol sampler", () => {
       dj: 1,
     };
 
-    const collection = buildWindSymbolFeatures({
+    const collection = buildFeatures({
       grid: wideGrid,
       vectorUValues: new Float32Array(10000).fill(4),
       vectorVValues: new Float32Array(10000).fill(0),
@@ -176,7 +181,7 @@ describe("wind symbol sampler", () => {
     const vectorUValues = new Float32Array(256).fill(4);
     vectorUValues[0] = -Infinity;
 
-    const collection = buildWindSymbolFeatures({
+    const collection = buildFeatures({
       grid: blockGrid,
       vectorUValues,
       vectorVValues: new Float32Array(256).fill(0),
@@ -203,6 +208,7 @@ describe("wind symbol sampler", () => {
 
     const createCollection = (zoom) =>
       buildWindSymbolFeatures({
+        sampling,
         grid: wideGrid,
         vectorUValues: new Float32Array(6400).fill(4),
         vectorVValues: new Float32Array(6400).fill(0),
@@ -216,5 +222,29 @@ describe("wind symbol sampler", () => {
     expect(createCollection(6.49).features).toHaveLength(24);
     expect(createCollection(4.49).features).toHaveLength(1);
     expect(createCollection(6.51).features).toHaveLength(96);
+  });
+
+  test("uses an injected sampling policy for presentation density", () => {
+    const collection = buildWindSymbolFeatures({
+      sampling: { referenceZoom: 0, matrixStride: 4 },
+      grid: {
+        ...grid,
+        ni: 8,
+        nj: 8,
+        latitudeOfFirstPoint: 57,
+        latitudeOfLastPoint: 50,
+        longitudeOfFirstPoint: 0,
+        longitudeOfLastPoint: 7,
+        di: 1,
+        dj: 1,
+      },
+      vectorUValues: new Float32Array(64).fill(4),
+      vectorVValues: new Float32Array(64).fill(0),
+      missingValue: -1e100,
+      bounds: { west: 0, south: 50, east: 7, north: 57 },
+      zoom: 0,
+    });
+
+    expect(collection.features).toHaveLength(4);
   });
 });
