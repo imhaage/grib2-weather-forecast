@@ -21,6 +21,7 @@ import {
 import { isVectorCompositeVariable } from "../domain/wind-composite-variable.js";
 import { createDataGouvResourceService } from "../services/data-gouv-resource-service.js";
 import { createForecastAnimationService } from "../services/forecast-animation-service.js";
+import { createForecastAvailableBlockService } from "../services/forecast-available-block-service.js";
 import { createForecastBlockRefreshService } from "../services/forecast-block-refresh-service.js";
 import { createForecastDownloadSessionService } from "../services/forecast-download-session-service.js";
 import { createForecastMapPresentationService } from "../services/forecast-map-presentation-service.js";
@@ -301,6 +302,14 @@ export function createForecastRunController({
     forecastDownloadView.setStatus(forecastDownloadSessionService.fileCountStatus(session));
   }
 
+  const forecastAvailableBlockService = createForecastAvailableBlockService({
+    incrementAvailableCount: forecastDownloadSessionService.incrementAvailableCount,
+    invalidateBlockRenderCache,
+    markBlockAvailable,
+    setBlockStatus,
+    storeBlock: (block, buffer) => getModelBlockService().storeBlock(block, buffer),
+  });
+
   function markInMemoryModelBlockAvailable(block, status, session) {
     setBlockStatus(block, status);
     setBlockDownloadProgress(block, "100%");
@@ -309,20 +318,15 @@ export function createForecastRunController({
     completeModelDownloadIfReady(session);
   }
 
-  async function storeModelBlockInWorker(block, buffer) {
-    return getModelBlockService().storeBlock(block, buffer);
-  }
-
   async function storeAvailableModelBlock(block, buffer, status, session) {
-    const hadBuffer = modelState.availableBlocks.has(block.key);
-    if (hadBuffer) {
-      invalidateBlockRenderCache(block);
-    }
-    const storedInWorker = await storeModelBlockInWorker(block, buffer);
+    const storedInWorker = await forecastAvailableBlockService.storeAvailableBlock({
+      block,
+      buffer,
+      session,
+      state: modelState,
+      status,
+    });
     if (!storedInWorker) return;
-    markBlockAvailable(modelState, block);
-    setBlockStatus(block, status);
-    if (!hadBuffer) forecastDownloadSessionService.incrementAvailableCount(session);
 
     setBlockDownloadProgress(block, "100%");
     updateAvailableFileCount(session);
