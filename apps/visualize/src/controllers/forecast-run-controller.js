@@ -32,6 +32,7 @@ import {
   defaultVariableForPackage,
   replaceGroupedVariableOptions,
 } from "../ui/forecast-variable-select.js";
+import { createForecastWarmupView } from "../ui/forecast-warmup-view.js";
 import { createDownloadWorkerClient as createDefaultDownloadWorkerClient } from "../workers/download-worker-client.js";
 
 const PROXY = "https://grib2-cors-proxy.imh.workers.dev";
@@ -75,6 +76,12 @@ export function createForecastRunController({
     formatRunSummary,
     formatSize: fmtSize,
   });
+  const forecastWarmupView = createForecastWarmupView({
+    root: dom.cacheWarmup,
+    bar: dom.cacheWarmupBar,
+    count: dom.cacheWarmupCount,
+    label: dom.cacheWarmupLabel,
+  });
   const mapPresenter = createForecastMapPresentationService({
     formatForecastValidTimeLabel,
     formatModelPackageSubtitle,
@@ -108,6 +115,7 @@ export function createForecastRunController({
     notifyDiagnostics,
     perfDebug,
     presentBitmapEntry,
+    renderWarmupProgress: forecastWarmupView.render,
     setGridState,
     showUnavailableHour,
     syncPlayButtonAvailability,

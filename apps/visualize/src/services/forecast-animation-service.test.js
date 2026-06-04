@@ -67,29 +67,44 @@ describe("forecast animation service", () => {
   });
 
   test("invalidates bitmap cache and exposes render diagnostics", () => {
-    const { dom, modelState, service } = createService();
+    const renderWarmupProgress = vi.fn();
+    const { modelState, service } = createService({ dom: undefined, renderWarmupProgress });
 
     service.invalidateBitmapCache();
 
     expect(modelState.animationCacheStatus).toBe("waiting");
-    expect(dom.cacheWarmupLabel.textContent).toBe("Preparing animation cache");
+    expect(renderWarmupProgress).toHaveBeenLastCalledWith({
+      hidden: false,
+      isReady: false,
+      isWaiting: true,
+      label: "Preparing animation cache",
+      percent: 0,
+      ready: 0,
+      total: 2,
+    });
     expect(service.getDiagnostics().currentRenderGeneration).toBe(1);
     expect(service.isBitmapCacheComplete()).toBe(false);
   });
 
   test("explains that cache generation waits for pending downloads", () => {
-    const { dom, modelState, service } = createService();
+    const renderWarmupProgress = vi.fn();
+    const { modelState, service } = createService({ dom: undefined, renderWarmupProgress });
     modelState.animationCacheStatus = "waiting";
     modelState.resources = [{ key: "01H" }, { key: "02H" }];
     modelState.availableBlocks = new Set(["01H"]);
 
     service.updateWarmupProgress();
 
-    expect(dom.cacheWarmupLabel.textContent).toBe("Animation cache: waiting for downloads");
+    expect(renderWarmupProgress).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        label: "Animation cache: waiting for downloads",
+      }),
+    );
   });
 
   test("keeps waiting for downloads while an available block is updating", () => {
-    const { dom, modelState, service } = createService();
+    const renderWarmupProgress = vi.fn();
+    const { modelState, service } = createService({ dom: undefined, renderWarmupProgress });
     modelState.animationCacheStatus = "waiting";
     modelState.resources = [
       { key: "01H", status: "loaded-from-cache" },
@@ -99,6 +114,10 @@ describe("forecast animation service", () => {
 
     service.updateWarmupProgress();
 
-    expect(dom.cacheWarmupLabel.textContent).toBe("Animation cache: waiting for downloads");
+    expect(renderWarmupProgress).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        label: "Animation cache: waiting for downloads",
+      }),
+    );
   });
 });

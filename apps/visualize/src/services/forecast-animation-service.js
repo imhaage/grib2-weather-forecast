@@ -57,6 +57,7 @@ export function createForecastAnimationService({
   perfDebug = false,
   performanceApi = globalThis.performance,
   presentBitmapEntry,
+  renderWarmupProgress = () => {},
   setGridState,
   showUnavailableHour,
   syncPlayButtonAvailability,
@@ -116,9 +117,16 @@ export function createForecastAnimationService({
 
   function updateWarmupProgress() {
     const modelState = currentState();
-    const container = dom.cacheWarmup;
-    if (!container || !modelState?.hourList.length) {
-      if (container) container.hidden = true;
+    if (!modelState?.hourList.length) {
+      renderWarmupProgress({
+        hidden: true,
+        isReady: false,
+        isWaiting: false,
+        label: "Animation cache",
+        percent: 0,
+        ready: 0,
+        total: 0,
+      });
       syncPlayButtonAvailability();
       return;
     }
@@ -133,12 +141,15 @@ export function createForecastAnimationService({
     const isReady = modelState.animationCacheStatus === "ready";
     const pct = total ? Math.round((ready / total) * 100) : 0;
 
-    container.hidden = isReady;
-    container.classList.toggle("waiting", isWaiting);
-    container.classList.toggle("ready", isReady);
-    dom.cacheWarmupBar.style.width = `${pct}%`;
-    dom.cacheWarmupCount.textContent = `${ready} / ${total}`;
-    dom.cacheWarmupLabel.textContent = animationWarmupLabel(modelState, { isWaiting, isReady });
+    renderWarmupProgress({
+      hidden: isReady,
+      isReady,
+      isWaiting,
+      label: animationWarmupLabel(modelState, { isWaiting, isReady }),
+      percent: pct,
+      ready,
+      total,
+    });
     syncPlayButtonAvailability();
     notifyDiagnostics();
   }
