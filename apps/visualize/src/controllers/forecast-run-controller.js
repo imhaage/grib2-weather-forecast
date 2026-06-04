@@ -12,6 +12,7 @@ import { createForecastAvailableBlockService } from "../services/forecast-availa
 import { createForecastBlockRefreshService } from "../services/forecast-block-refresh-service.js";
 import { createForecastDownloadPreparationService } from "../services/forecast-download-preparation-service.js";
 import { createForecastDownloadSessionService } from "../services/forecast-download-session-service.js";
+import { createForecastInitialDownloadService } from "../services/forecast-initial-download-service.js";
 import { createForecastLegendInitializerService } from "../services/forecast-legend-initializer-service.js";
 import { createForecastMapPresentationService } from "../services/forecast-map-presentation-service.js";
 import { createForecastPackageResourceService } from "../services/forecast-package-resource-service.js";
@@ -432,6 +433,14 @@ export function createForecastRunController({
     refreshStatus: forecastDownloadSessionService.refreshStatus,
     setStatus: forecastDownloadView.setStatus,
   });
+  const forecastInitialDownloadService = createForecastInitialDownloadService({
+    downloadStatus: forecastDownloadSessionService.downloadStatus,
+    isRefreshActive: isModelResourceRefreshActive,
+    loadPackageResources: forecastResourceLoadService.loadPackageResources,
+    prepareSession: forecastDownloadPreparationService.prepareSession,
+    refreshBlocksToLatest: forecastBlockRefreshService.refreshBlocksToLatest,
+    setStatus: forecastDownloadView.setStatus,
+  });
 
   function proxyUrl(url) {
     return dataGouvResourceService.proxyResourceUrl(url);
@@ -456,24 +465,13 @@ export function createForecastRunController({
 
     forecastHourControlView.reset();
 
-    const resources = await forecastResourceLoadService.loadPackageResources({
-      packageKey,
-      downloadKey,
-      loadingStatus: "Fetching file list…",
-    });
-    if (!isModelResourceRefreshActive(downloadKey) || !resources) return;
-
-    const session = forecastDownloadPreparationService.prepareSession({
+    const session = await forecastInitialDownloadService.startInitialDownload({
       packageKey,
       pkg,
-      resources,
       downloadKey,
     });
-    forecastDownloadView.setStatus(forecastDownloadSessionService.downloadStatus(session));
+    if (!session) return;
     updateWarmupProgress();
-
-    const latestReady = await forecastBlockRefreshService.refreshBlocksToLatest(session);
-    if (!latestReady) return;
 
     await buildAnimationCacheAfterNetworkSettles(session);
   }
