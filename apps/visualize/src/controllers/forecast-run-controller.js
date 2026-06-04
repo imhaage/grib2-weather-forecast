@@ -19,6 +19,7 @@ import { createDataGouvResourceService } from "../services/data-gouv-resource-se
 import { createForecastAnimationService } from "../services/forecast-animation-service.js";
 import { createForecastBlockRefreshService } from "../services/forecast-block-refresh-service.js";
 import { createForecastMapPresentationService } from "../services/forecast-map-presentation-service.js";
+import { createForecastPresentationQueueService } from "../services/forecast-presentation-queue-service.js";
 import {
   deleteObsoleteCachedGribBlocks,
   readCachedGribBlock,
@@ -404,50 +405,18 @@ export function createForecastRunController({
     updateWarmupProgress();
   }
 
-  function resolvePresentationIdle(session) {
-    const resolvers = session.presentationIdleResolvers.splice(0);
-    for (const resolve of resolvers) resolve();
-  }
-
-  function waitForPresentationIdle(session) {
-    if (!session.isPresentingQueuedBlock && session.presentationQueue.length === 0) {
-      return Promise.resolve();
-    }
-    return new Promise((resolve) => {
-      session.presentationIdleResolvers.push(resolve);
-    });
-  }
-
   async function writeCachedModelBlock(packageKey, block, buffer) {
     const cacheWriteSucceeded = await writeCachedGribBlock(packageKey, block, buffer);
     if (cacheWriteSucceeded) updateStorageWarningSizeIfOpen?.();
     return cacheWriteSucceeded;
   }
 
-  async function enqueueAvailableModelBlockPresentation(block, buffer, status, session) {
-    if (status !== BLOCK_STATUS.READY) {
-      await presentAvailableModelBlock(block, buffer, status, session);
-      return;
-    }
-
-    session.presentationQueue.push({ block, buffer, status, session });
-    if (session.isPresentingQueuedBlock) return;
-
-    session.isPresentingQueuedBlock = true;
-    try {
-      while (session.presentationQueue.length > 0) {
-        const job = session.presentationQueue.shift();
-        await scheduleLowPriorityWork();
-        if (!isModelResourceRefreshActive(session.downloadKey)) return;
-        await presentAvailableModelBlock(job.block, job.buffer, job.status, job.session);
-      }
-    } finally {
-      session.isPresentingQueuedBlock = false;
-      if (session.presentationQueue.length === 0) {
-        resolvePresentationIdle(session);
-      }
-    }
-  }
+  const forecastPresentationQueueService = createForecastPresentationQueueService({
+    readyStatus: BLOCK_STATUS.READY,
+    isSessionActive: (session) => isModelResourceRefreshActive(session.downloadKey),
+    presentAvailableBlock: presentAvailableModelBlock,
+    scheduleLowPriorityWork,
+  });
 
   const forecastBlockRefreshService = createForecastBlockRefreshService({
     statuses: BLOCK_STATUS,
@@ -467,8 +436,8 @@ export function createForecastRunController({
       downloadFile: downloadFileProg,
     },
     presentation: {
-      enqueueAvailableBlock: enqueueAvailableModelBlockPresentation,
-      waitForPresentationIdle,
+      enqueueAvailableBlock: forecastPresentationQueueService.enqueueAvailableBlock,
+      waitForPresentationIdle: forecastPresentationQueueService.waitForIdle,
     },
     status: {
       markInMemoryBlockAvailable: markInMemoryModelBlockAvailable,
@@ -521,9 +490,6 @@ export function createForecastRunController({
       slider: dom.forecastSlider,
       availableCount: 0,
       legendInitialized: false,
-      presentationQueue: [],
-      presentationIdleResolvers: [],
-      isPresentingQueuedBlock: false,
     };
   }
 
