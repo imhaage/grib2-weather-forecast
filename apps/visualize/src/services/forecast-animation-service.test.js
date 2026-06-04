@@ -27,6 +27,7 @@ function createService(overrides = {}) {
     dom,
     getCurrentPalette: () => "Temperature",
     getGridState: () => null,
+    getSelectedHourIndex: () => Number.parseInt(dom.forecastSlider.value, 10),
     getModelBlockService: () => ({
       decodeValues: vi.fn(),
       renderHour: vi.fn(),
@@ -37,6 +38,9 @@ function createService(overrides = {}) {
     missingValue: 9999,
     notifyDiagnostics: vi.fn(),
     presentBitmapEntry: vi.fn(),
+    renderForecastHourLabel: (label) => {
+      dom.forecastHourLabel.textContent = label;
+    },
     setGridState: vi.fn(),
     showUnavailableHour: vi.fn(),
     syncPlayButtonAvailability: vi.fn(),
@@ -119,5 +123,33 @@ describe("forecast animation service", () => {
         label: "Animation cache: waiting for downloads",
       }),
     );
+  });
+
+  test("renders hour labels through an injected view port", async () => {
+    const renderForecastHourLabel = vi.fn();
+    const { service } = createService({
+      dom: undefined,
+      getSelectedHourIndex: () => 0,
+      getModelBlockService: () => ({
+        decodeValues: vi.fn(),
+        renderHour: vi.fn(async () => ({
+          bitmap: {},
+          dataMin: 1,
+          dataMax: 2,
+          dataMean: 1.5,
+          dataCount: 2,
+          displayUnits: "K",
+          grid: {},
+          header: {},
+          product: { shortName: "t" },
+          values: new Float32Array([1, 2]),
+        })),
+      }),
+      renderForecastHourLabel,
+    });
+
+    await service.showHour(0);
+
+    expect(renderForecastHourLabel).toHaveBeenCalledWith("+01H");
   });
 });

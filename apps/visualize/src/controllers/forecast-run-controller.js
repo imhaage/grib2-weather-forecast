@@ -95,6 +95,7 @@ export function createForecastRunController({
     container: dom.dataStatusSummary,
   });
   const forecastHourControlView = createForecastHourControlView({
+    hourLabel: dom.forecastHourLabel,
     slider: dom.forecastSlider,
   });
   const mapPresenter = createForecastMapPresentationService({
@@ -119,9 +120,9 @@ export function createForecastRunController({
     updateParamInfo,
   } = mapPresenter;
   const animationService = createForecastAnimationService({
-    dom,
     getCurrentPalette,
     getGridState,
+    getSelectedHourIndex: forecastHourControlView.selectedIndex,
     getModelBlockService,
     getModelState: () => modelState,
     isPlayerPlaying,
@@ -130,6 +131,7 @@ export function createForecastRunController({
     notifyDiagnostics,
     perfDebug,
     presentBitmapEntry,
+    renderForecastHourLabel: forecastHourControlView.renderHourLabel,
     renderWarmupProgress: forecastWarmupView.render,
     setGridState,
     showUnavailableHour,

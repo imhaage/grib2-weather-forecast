@@ -45,9 +45,9 @@ export function makeBitmapCacheEntryFromWorker(renderEntry, { keepValues = false
 }
 
 export function createForecastAnimationService({
-  dom,
   getCurrentPalette,
   getGridState,
+  getSelectedHourIndex,
   getModelBlockService,
   getModelState,
   isPlayerPlaying,
@@ -57,6 +57,7 @@ export function createForecastAnimationService({
   perfDebug = false,
   performanceApi = globalThis.performance,
   presentBitmapEntry,
+  renderForecastHourLabel,
   renderWarmupProgress = () => {},
   setGridState,
   showUnavailableHour,
@@ -249,7 +250,7 @@ export function createForecastAnimationService({
     const modelState = currentState();
     const currentGridState = getGridState();
     if (!modelState || currentGridState?.values) return;
-    const idx = Number.parseInt(dom.forecastSlider.value, 10);
+    const idx = getSelectedHourIndex();
     const hour = modelState.hourList[idx];
     if (animationCache.hasHour(hour)) queueTooltipValueHydration(idx, hour);
   }
@@ -264,7 +265,7 @@ export function createForecastAnimationService({
     pendingHourIdx = null;
     try {
       const hour = modelState.hourList[idx];
-      dom.forecastHourLabel.textContent = fmtHourLabel(hour);
+      renderForecastHourLabel(fmtHourLabel(hour));
 
       const cachedEntry = animationCache.getHour(hour);
       if (cachedEntry) {

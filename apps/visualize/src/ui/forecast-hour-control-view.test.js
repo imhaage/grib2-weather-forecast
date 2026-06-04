@@ -31,4 +31,16 @@ describe("forecast hour control view", () => {
     expect(slider.value).toBe("0");
     expect(view.selectedIndex()).toBe(0);
   });
+
+  test("renders the current forecast hour label", () => {
+    const label = document.createElement("span");
+    const view = createForecastHourControlView({
+      hourLabel: label,
+      slider: document.createElement("input"),
+    });
+
+    view.renderHourLabel("+03H");
+
+    expect(label.textContent).toBe("+03H");
+  });
 });

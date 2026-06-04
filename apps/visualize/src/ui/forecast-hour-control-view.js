@@ -1,4 +1,4 @@
-export function createForecastHourControlView({ slider }) {
+export function createForecastHourControlView({ hourLabel = null, slider }) {
   function selectedIndex() {
     return Number.parseInt(slider.value, 10);
   }
@@ -8,11 +8,16 @@ export function createForecastHourControlView({ slider }) {
     if (Number(slider.value) > Number(slider.max)) slider.value = slider.max;
   }
 
+  function renderHourLabel(label) {
+    if (hourLabel) hourLabel.textContent = label;
+  }
+
   function reset() {
     slider.value = "0";
   }
 
   return {
+    renderHourLabel,
     renderHourList,
     reset,
     selectedIndex,
