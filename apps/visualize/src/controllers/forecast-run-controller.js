@@ -18,6 +18,7 @@ import { createForecastPackageResourceService } from "../services/forecast-packa
 import { createForecastPresentationQueueService } from "../services/forecast-presentation-queue-service.js";
 import { createForecastResourceLoadService } from "../services/forecast-resource-load-service.js";
 import { createForecastResourceRefreshService } from "../services/forecast-resource-refresh-service.js";
+import { createForecastResourceUpdateService } from "../services/forecast-resource-update-service.js";
 import { createForecastVariableSelectionService } from "../services/forecast-variable-selection-service.js";
 import {
   deleteObsoleteCachedGribBlocks,
@@ -423,6 +424,14 @@ export function createForecastRunController({
     renderItems: forecastDownloadView.renderItems,
     resetResourceStatuses,
   });
+  const forecastResourceUpdateService = createForecastResourceUpdateService({
+    isRefreshActive: isModelResourceRefreshActive,
+    loadPackageResources: forecastResourceLoadService.loadPackageResources,
+    prepareSession: forecastDownloadPreparationService.prepareSession,
+    refreshBlocksToLatest: forecastBlockRefreshService.refreshBlocksToLatest,
+    refreshStatus: forecastDownloadSessionService.refreshStatus,
+    setStatus: forecastDownloadView.setStatus,
+  });
 
   function proxyUrl(url) {
     return dataGouvResourceService.proxyResourceUrl(url);
@@ -470,29 +479,7 @@ export function createForecastRunController({
   }
 
   async function refreshCurrentModelResourcesToLatest(downloadKey) {
-    if (!isModelResourceRefreshActive(downloadKey)) return null;
-    const packageKey = downloadKey.state.packageKey;
-    const pkg = PACKAGES[packageKey];
-    const previousResources = downloadKey.state.resources;
-
-    const resources = await forecastResourceLoadService.loadPackageResources({
-      packageKey,
-      downloadKey,
-      loadingStatus: "Checking latest files…",
-    });
-    if (!isModelResourceRefreshActive(downloadKey) || !resources) return null;
-
-    const session = forecastDownloadPreparationService.prepareSession({
-      packageKey,
-      pkg,
-      resources,
-      downloadKey,
-    });
-    forecastDownloadView.setStatus(forecastDownloadSessionService.refreshStatus(session));
-    const latestReady = await forecastBlockRefreshService.refreshBlocksToLatest(session, {
-      previousResources,
-    });
-    return latestReady ? session : null;
+    return forecastResourceUpdateService.refreshCurrentResourcesToLatest(downloadKey);
   }
 
   async function refreshCurrentModelVisuals() {
