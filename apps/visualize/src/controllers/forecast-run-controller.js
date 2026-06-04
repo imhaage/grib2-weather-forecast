@@ -18,6 +18,7 @@ import { isVectorCompositeVariable } from "../domain/wind-composite-variable.js"
 import { createDataGouvResourceService } from "../services/data-gouv-resource-service.js";
 import { createForecastAnimationService } from "../services/forecast-animation-service.js";
 import { createForecastBlockRefreshService } from "../services/forecast-block-refresh-service.js";
+import { createForecastDownloadSessionService } from "../services/forecast-download-session-service.js";
 import { createForecastMapPresentationService } from "../services/forecast-map-presentation-service.js";
 import { createForecastPresentationQueueService } from "../services/forecast-presentation-queue-service.js";
 import {
@@ -78,6 +79,7 @@ export function createForecastRunController({
     formatRunSummary,
     formatSize: fmtSize,
   });
+  const forecastDownloadSessionService = createForecastDownloadSessionService();
   const forecastWarmupView = createForecastWarmupView({
     root: dom.cacheWarmup,
     bar: dom.cacheWarmupBar,
@@ -308,13 +310,13 @@ export function createForecastRunController({
   }
 
   function updateAvailableFileCount(session) {
-    forecastDownloadView.setStatus(`${session.availableCount} / ${session.resources.length} files`);
+    forecastDownloadView.setStatus(forecastDownloadSessionService.fileCountStatus(session));
   }
 
   function markInMemoryModelBlockAvailable(block, status, session) {
     setBlockStatus(block, status);
     setBlockDownloadProgress(block, "100%");
-    session.availableCount++;
+    forecastDownloadSessionService.incrementAvailableCount(session);
     updateAvailableFileCount(session);
     completeModelDownloadIfReady(session);
   }
@@ -332,7 +334,7 @@ export function createForecastRunController({
     if (!storedInWorker) return;
     markBlockAvailable(modelState, block);
     setBlockStatus(block, status);
-    if (!hadBuffer) session.availableCount++;
+    if (!hadBuffer) forecastDownloadSessionService.incrementAvailableCount(session);
 
     setBlockDownloadProgress(block, "100%");
     updateAvailableFileCount(session);
@@ -483,19 +485,6 @@ export function createForecastRunController({
     updateDataStatusSummary();
   }
 
-  function createModelDownloadSession({ packageKey, pkg, resources, runSummary, downloadKey }) {
-    return {
-      packageKey,
-      pkg,
-      pkgVars: pkg.variables,
-      resources,
-      runSummary,
-      downloadKey,
-      availableCount: 0,
-      legendInitialized: false,
-    };
-  }
-
   async function startDownload(packageKey) {
     const pkg = PACKAGES[packageKey];
     modelState = createModelState(packageKey);
@@ -526,7 +515,7 @@ export function createForecastRunController({
     );
     forecastDownloadView.renderItems(resources);
     resetResourceStatuses(resources);
-    const session = createModelDownloadSession({
+    const session = forecastDownloadSessionService.createSession({
       packageKey,
       pkg,
       resources,
@@ -567,7 +556,7 @@ export function createForecastRunController({
     forecastDownloadView.renderItems(resources);
     resetResourceStatuses(resources);
 
-    const session = createModelDownloadSession({
+    const session = forecastDownloadSessionService.createSession({
       packageKey,
       pkg,
       resources,
