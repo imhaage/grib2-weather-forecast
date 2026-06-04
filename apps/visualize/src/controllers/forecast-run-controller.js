@@ -526,9 +526,7 @@ export function createForecastRunController({
       resources,
       downloadKey,
     });
-    forecastDownloadView.setStatus(
-      `Downloading ${resources.length} ${packageKey} files (${session.runSummary})…`,
-    );
+    forecastDownloadView.setStatus(forecastDownloadSessionService.downloadStatus(session));
     updateWarmupProgress();
 
     const latestReady = await forecastBlockRefreshService.refreshBlocksToLatest(session);
@@ -561,9 +559,7 @@ export function createForecastRunController({
       resources,
       downloadKey,
     });
-    forecastDownloadView.setStatus(
-      `Checking ${resources.length} ${packageKey} files (${session.runSummary})…`,
-    );
+    forecastDownloadView.setStatus(forecastDownloadSessionService.refreshStatus(session));
     const latestReady = await forecastBlockRefreshService.refreshBlocksToLatest(session, {
       previousResources,
     });

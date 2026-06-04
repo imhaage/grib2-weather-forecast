@@ -21,6 +21,14 @@ export function createForecastDownloadSessionService({ missingStatus = "missing"
     return `${session.availableCount} / ${session.resources.length} files`;
   }
 
+  function downloadStatus(session) {
+    return `Downloading ${session.resources.length} ${session.packageKey} files (${session.runSummary})…`;
+  }
+
+  function refreshStatus(session) {
+    return `Checking ${session.resources.length} ${session.packageKey} files (${session.runSummary})…`;
+  }
+
   function resetResourceStatuses(resources, modelState) {
     for (const resource of resources) {
       resource.status = missingStatus;
@@ -30,8 +38,10 @@ export function createForecastDownloadSessionService({ missingStatus = "missing"
 
   return {
     createSession,
+    downloadStatus,
     fileCountStatus,
     incrementAvailableCount,
+    refreshStatus,
     resetResourceStatuses,
   };
 }

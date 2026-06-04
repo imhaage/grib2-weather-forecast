@@ -42,6 +42,20 @@ describe("forecast download session service", () => {
     expect(service.fileCountStatus(session)).toBe("1 / 2 files");
   });
 
+  test("formats initial and refresh download status messages", () => {
+    const service = createForecastDownloadSessionService();
+    const session = service.createSession({
+      packageKey: "AROME_SP1",
+      pkg: { variables: [] },
+      resources: [{ key: "01H" }, { key: "02H" }],
+      runSummary: "run 06Z",
+      downloadKey: {},
+    });
+
+    expect(service.downloadStatus(session)).toBe("Downloading 2 AROME_SP1 files (run 06Z)…");
+    expect(service.refreshStatus(session)).toBe("Checking 2 AROME_SP1 files (run 06Z)…");
+  });
+
   test("marks every resource as missing in state and block status map", () => {
     const service = createForecastDownloadSessionService({ missingStatus: "missing" });
     const resources = [{ key: "01H" }, { key: "02H", status: "ready" }];
