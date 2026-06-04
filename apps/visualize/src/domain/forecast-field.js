@@ -1,3 +1,5 @@
+const ACCUMULATION_DIFF_SHORT_NAMES = new Set(["rrate", "srate", "tgrp"]);
+
 export function effectiveForecastTime(product, block) {
   return product.pdtNumber === 8 && block.startHour === block.endHour
     ? block.endHour
@@ -26,6 +28,10 @@ export function computeAccumulationDiff({ currentValues, previousValues, missing
     }
   }
   return diff;
+}
+
+export function shouldComputeAccumulationDiff(product) {
+  return product.pdtNumber === 8 && ACCUMULATION_DIFF_SHORT_NAMES.has(product.shortName);
 }
 
 export function createRenderScaleParams(staticScale, logFloor) {

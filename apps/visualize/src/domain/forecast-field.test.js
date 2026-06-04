@@ -6,6 +6,7 @@ import {
   effectiveForecastTime,
   forecastMessageKeys,
   productMatchesVariable,
+  shouldComputeAccumulationDiff,
   toFloat32Values,
 } from "./forecast-field.js";
 
@@ -50,6 +51,15 @@ describe("forecast field domain logic", () => {
     });
 
     expect([...diff]).toEqual([3, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, 0]);
+  });
+
+  test("only computes accumulation diffs for precipitation-like PDT 8 fields", () => {
+    expect(shouldComputeAccumulationDiff({ pdtNumber: 8, shortName: "rrate" })).toBe(true);
+    expect(shouldComputeAccumulationDiff({ pdtNumber: 8, shortName: "srate" })).toBe(true);
+    expect(shouldComputeAccumulationDiff({ pdtNumber: 8, shortName: "tgrp" })).toBe(true);
+    expect(shouldComputeAccumulationDiff({ pdtNumber: 8, shortName: "ugust" })).toBe(false);
+    expect(shouldComputeAccumulationDiff({ pdtNumber: 8, shortName: "vgust" })).toBe(false);
+    expect(shouldComputeAccumulationDiff({ pdtNumber: 0, shortName: "rrate" })).toBe(false);
   });
 
   test("converts regular arrays to Float32Array", () => {

@@ -4,6 +4,7 @@ import {
   computeAccumulationDiff,
   effectiveForecastTime,
   productMatchesVariable,
+  shouldComputeAccumulationDiff,
   toFloat32Values,
 } from "./src/domain/forecast-field.js";
 import { generateIsobars, supportsIsobars } from "./src/domain/isobars.js";
@@ -41,7 +42,7 @@ async function decodeDisplayValues({
   if (!currentMessage) return null;
 
   const current = await decodeGRIB2(currentMessage.buffer);
-  const isAccumulation = current.product.pdtNumber === 8;
+  const isAccumulation = shouldComputeAccumulationDiff(current.product);
   let values = current.values;
   let isFallback = false;
 
