@@ -26,7 +26,7 @@ import {
   writeCachedGribBlock,
 } from "../services/grib-cache-service.js";
 import { createModelBlockService } from "../services/model-block-service.js";
-import { BLOCK_STATUS, createDataStatusSummaryNodes } from "../ui/data-status-summary.js";
+import { BLOCK_STATUS, createDataStatusSummaryView } from "../ui/data-status-summary.js";
 import { createForecastDownloadView } from "../ui/forecast-download-view.js";
 import {
   createForecastVariableControlsView,
@@ -87,6 +87,10 @@ export function createForecastRunController({
     variableSelect: dom.forecastVarSelect,
     windDirectionControl: dom.forecastWindDirectionControl,
     windDirectionToggle: dom.forecastWindDirectionToggle,
+  });
+  const dataStatusSummaryView = createDataStatusSummaryView({
+    document,
+    container: dom.dataStatusSummary,
   });
   const mapPresenter = createForecastMapPresentationService({
     formatForecastValidTimeLabel,
@@ -245,9 +249,8 @@ export function createForecastRunController({
   }
 
   function updateDataStatusSummary() {
-    const summary = dom.dataStatusSummary;
-    if (!summary || !modelState?.resources.length) return;
-    summary.replaceChildren(...createDataStatusSummaryNodes(document, modelState.resources));
+    if (!modelState?.resources.length) return;
+    dataStatusSummaryView.render(modelState.resources);
   }
 
   function blockForHour(hour) {

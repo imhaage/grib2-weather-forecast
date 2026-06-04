@@ -5,6 +5,7 @@ import {
   BLOCK_STATUS,
   countBlockStatuses,
   createDataStatusSummaryNodes,
+  createDataStatusSummaryView,
 } from "./data-status-summary.js";
 
 describe("data status summary", () => {
@@ -42,5 +43,16 @@ describe("data status summary", () => {
       [BLOCK_STATUS.READY]: 2,
       [BLOCK_STATUS.MISSING]: 1,
     });
+  });
+
+  test("renders summary nodes into the configured container", () => {
+    const container = document.createElement("div");
+    const view = createDataStatusSummaryView({ document, container });
+
+    view.render([{ status: BLOCK_STATUS.READY }, {}]);
+
+    expect(
+      [...container.querySelectorAll(".data-status-count")].map((node) => node.textContent),
+    ).toEqual(["0 loaded from cache", "1 missing", "1 loaded from network", "0 updating"]);
   });
 });

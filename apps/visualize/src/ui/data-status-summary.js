@@ -40,3 +40,12 @@ export function createDataStatusSummaryNodes(document, blocks) {
     return item;
   });
 }
+
+export function createDataStatusSummaryView({ document, container }) {
+  function render(blocks) {
+    if (!container) return;
+    container.replaceChildren(...createDataStatusSummaryNodes(document, blocks));
+  }
+
+  return { render };
+}
