@@ -1,4 +1,3 @@
-import { fmtRefTime, iterateGRIB2Messages } from "grib2-decoder";
 import {
   formatForecastValidTimeLabel as formatPackageForecastValidTimeLabel,
   formatModelPackageSubtitle as formatPackageModelSubtitle,
@@ -11,11 +10,9 @@ import {
 } from "../domain/forecast-state.js";
 import { findPackageVariable, MODEL_INFO, PACKAGES } from "../domain/model-packages.js";
 import { formatRunSummary } from "../domain/resources.js";
-import { displayUnitsFor } from "../domain/unit-transforms.js";
 import {
   defaultPaletteFor,
   parameterDescriptionFor,
-  staticScaleFor,
   variableKeyFor,
 } from "../domain/variable-metadata.js";
 import { isVectorCompositeVariable } from "../domain/wind-composite-variable.js";
@@ -24,6 +21,7 @@ import { createForecastAnimationService } from "../services/forecast-animation-s
 import { createForecastAvailableBlockService } from "../services/forecast-available-block-service.js";
 import { createForecastBlockRefreshService } from "../services/forecast-block-refresh-service.js";
 import { createForecastDownloadSessionService } from "../services/forecast-download-session-service.js";
+import { createForecastLegendInitializerService } from "../services/forecast-legend-initializer-service.js";
 import { createForecastMapPresentationService } from "../services/forecast-map-presentation-service.js";
 import { createForecastPresentationQueueService } from "../services/forecast-presentation-queue-service.js";
 import { createForecastResourceRefreshService } from "../services/forecast-resource-refresh-service.js";
@@ -130,6 +128,13 @@ export function createForecastRunController({
     updateLevelInfo,
     updateParamInfo,
   } = mapPresenter;
+  const forecastLegendInitializerService = createForecastLegendInitializerService({
+    applyDefaultPalette,
+    formatModelPackageSubtitle,
+    showColorScale: mapPresentation.showColorScale,
+    updateLevelInfo,
+    updateParamInfo,
+  });
   const animationService = createForecastAnimationService({
     getCurrentPalette,
     getGridState,
@@ -332,38 +337,6 @@ export function createForecastRunController({
     updateAvailableFileCount(session);
   }
 
-  function initializeModelLegendFromBlock(buffer, session) {
-    if (session.legendInitialized) return;
-    session.legendInitialized = true;
-    const curVarDef = findPackageVariable(session.packageKey, modelState.variable);
-    const curShortName = curVarDef?.shortName ?? modelState.variable;
-    for (const msg of iterateGRIB2Messages(buffer)) {
-      const product = msg.product;
-      if (!product || product.shortName !== curShortName) continue;
-      if (curVarDef?.levelValue != null && product.levelValue !== curVarDef.levelValue) {
-        continue;
-      }
-      modelState.lastRunInfo = `${session.packageKey} · run ${fmtRefTime(msg.header)}`;
-      applyDefaultPalette(modelState.variable);
-      updateParamInfo(
-        product.name,
-        parameterDescriptionFor(curShortName),
-        formatModelPackageSubtitle(modelState.packageKey),
-      );
-      updateLevelInfo(curVarDef);
-      const staticScale = staticScaleFor(curShortName);
-      if (staticScale && curVarDef) {
-        mapPresentation.showColorScale(
-          staticScale.min,
-          staticScale.max,
-          displayUnitsFor(curShortName, curVarDef.units),
-          { isLog: staticScale.log ?? false },
-        );
-      }
-      break;
-    }
-  }
-
   async function refreshMapForAvailableModelBlock(block, session) {
     const currentIdx = forecastHourControlView.selectedIndex();
     const currentHour = modelState.hourList[currentIdx];
@@ -385,7 +358,7 @@ export function createForecastRunController({
 
   async function presentAvailableModelBlock(block, buffer, status, session) {
     if (!isModelResourceRefreshActive(session.downloadKey)) return;
-    initializeModelLegendFromBlock(buffer, session);
+    forecastLegendInitializerService.initializeFromBlock(buffer, { modelState, session });
     await storeAvailableModelBlock(block, buffer, status, session);
     if (!isModelResourceRefreshActive(session.downloadKey)) return;
     await refreshMapForAvailableModelBlock(block, session);
