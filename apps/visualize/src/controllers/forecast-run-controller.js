@@ -29,8 +29,8 @@ import { createModelBlockService } from "../services/model-block-service.js";
 import { BLOCK_STATUS, createDataStatusSummaryNodes } from "../ui/data-status-summary.js";
 import { createForecastDownloadView } from "../ui/forecast-download-view.js";
 import {
+  createForecastVariableControlsView,
   defaultVariableForPackage,
-  replaceGroupedVariableOptions,
 } from "../ui/forecast-variable-select.js";
 import { createForecastWarmupView } from "../ui/forecast-warmup-view.js";
 import { createDownloadWorkerClient as createDefaultDownloadWorkerClient } from "../workers/download-worker-client.js";
@@ -81,6 +81,12 @@ export function createForecastRunController({
     bar: dom.cacheWarmupBar,
     count: dom.cacheWarmupCount,
     label: dom.cacheWarmupLabel,
+  });
+  const forecastVariableControlsView = createForecastVariableControlsView({
+    document,
+    variableSelect: dom.forecastVarSelect,
+    windDirectionControl: dom.forecastWindDirectionControl,
+    windDirectionToggle: dom.forecastWindDirectionToggle,
   });
   const mapPresenter = createForecastMapPresentationService({
     formatForecastValidTimeLabel,
@@ -249,23 +255,23 @@ export function createForecastRunController({
   }
 
   function configureModelVariableControls(pkg) {
-    const varSelect = dom.forecastVarSelect;
     const firstVar = defaultVariableForPackage(pkg);
     modelState.variable = variableKeyFor(firstVar);
     modelState.showWindDirection = true;
     applyDefaultPalette(variableKeyFor(firstVar));
-    replaceGroupedVariableOptions(document, varSelect, pkg.variables);
-    varSelect.value = modelState.variable;
+    forecastVariableControlsView.renderVariableOptions({
+      variables: pkg.variables,
+      selectedVariable: modelState.variable,
+    });
     syncWindDirectionControl();
     updateLevelInfo(firstVar);
   }
 
   function syncWindDirectionControl() {
-    const control = dom.forecastWindDirectionControl;
-    const toggle = dom.forecastWindDirectionToggle;
-    if (!control || !toggle) return;
-    control.hidden = !isVectorCompositeVariable(modelState?.variable);
-    toggle.checked = modelState?.showWindDirection !== false;
+    forecastVariableControlsView.renderWindDirectionToggle({
+      hidden: !isVectorCompositeVariable(modelState?.variable),
+      checked: modelState?.showWindDirection !== false,
+    });
   }
 
   function applyModelResources(resources) {

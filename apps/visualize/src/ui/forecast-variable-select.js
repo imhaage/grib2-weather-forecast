@@ -42,3 +42,26 @@ export function replaceGroupedVariableOptions(document, select, variables) {
 export function defaultVariableForPackage(pkg) {
   return pkg.variables.find((variable) => variable.group === "Weather maps") ?? pkg.variables[0];
 }
+
+export function createForecastVariableControlsView({
+  document,
+  variableSelect,
+  windDirectionControl,
+  windDirectionToggle,
+}) {
+  function renderVariableOptions({ variables, selectedVariable }) {
+    replaceGroupedVariableOptions(document, variableSelect, variables);
+    variableSelect.value = selectedVariable;
+  }
+
+  function renderWindDirectionToggle({ hidden, checked }) {
+    if (!windDirectionControl || !windDirectionToggle) return;
+    windDirectionControl.hidden = hidden;
+    windDirectionToggle.checked = checked;
+  }
+
+  return {
+    renderVariableOptions,
+    renderWindDirectionToggle,
+  };
+}

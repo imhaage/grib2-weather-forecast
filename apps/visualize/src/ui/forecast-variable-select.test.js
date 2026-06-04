@@ -3,6 +3,7 @@
 import { describe, expect, test } from "vitest";
 import {
   appendGroupedVariableOptions,
+  createForecastVariableControlsView,
   defaultVariableForPackage,
   replaceGroupedVariableOptions,
 } from "./forecast-variable-select.js";
@@ -65,5 +66,35 @@ describe("forecast variable select", () => {
     expect(select.children).toHaveLength(1);
     expect(select.firstElementChild.label).toBe("Weather maps");
     expect(select.querySelector("option")?.textContent).toBe("Temperature");
+  });
+
+  test("renders variable choices and wind direction toggle state", () => {
+    const variableSelect = document.createElement("select");
+    const windDirectionControl = document.createElement("label");
+    const windDirectionToggle = document.createElement("input");
+    windDirectionToggle.type = "checkbox";
+    const view = createForecastVariableControlsView({
+      document,
+      variableSelect,
+      windDirectionControl,
+      windDirectionToggle,
+    });
+
+    view.renderVariableOptions({
+      variables: [
+        { shortName: "t", name: "Temperature", group: "Weather maps" },
+        { shortName: "wind", name: "Wind", group: "Weather maps" },
+      ],
+      selectedVariable: "wind",
+    });
+    view.renderWindDirectionToggle({ hidden: false, checked: true });
+
+    expect(variableSelect.value).toBe("wind");
+    expect([...variableSelect.querySelectorAll("option")].map((option) => option.value)).toEqual([
+      "t",
+      "wind",
+    ]);
+    expect(windDirectionControl.hidden).toBe(false);
+    expect(windDirectionToggle.checked).toBe(true);
   });
 });
