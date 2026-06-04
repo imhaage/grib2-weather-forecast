@@ -15,6 +15,7 @@ import { createForecastLegendInitializerService } from "../services/forecast-leg
 import { createForecastMapPresentationService } from "../services/forecast-map-presentation-service.js";
 import { createForecastPackageResourceService } from "../services/forecast-package-resource-service.js";
 import { createForecastPresentationQueueService } from "../services/forecast-presentation-queue-service.js";
+import { createForecastResourceLoadService } from "../services/forecast-resource-load-service.js";
 import { createForecastResourceRefreshService } from "../services/forecast-resource-refresh-service.js";
 import { createForecastVariableSelectionService } from "../services/forecast-variable-selection-service.js";
 import {
@@ -409,6 +410,11 @@ export function createForecastRunController({
     fetchResources: dataGouvResourceService.fetchResources,
     isRefreshActive: isModelResourceRefreshActive,
   });
+  const forecastResourceLoadService = createForecastResourceLoadService({
+    fetchPackageResources: forecastPackageResourceService.fetchPackageResources,
+    isRefreshActive: isModelResourceRefreshActive,
+    setStatus: forecastDownloadView.setStatus,
+  });
 
   function proxyUrl(url) {
     return dataGouvResourceService.proxyResourceUrl(url);
@@ -447,20 +453,12 @@ export function createForecastRunController({
 
     forecastHourControlView.reset();
 
-    forecastDownloadView.setStatus("Fetching file list…");
-
-    let resources;
-    try {
-      resources = await forecastPackageResourceService.fetchPackageResources(
-        packageKey,
-        downloadKey,
-      );
-      if (!isModelResourceRefreshActive(downloadKey) || !resources) return;
-    } catch (error) {
-      if (!isModelResourceRefreshActive(downloadKey)) return;
-      forecastDownloadView.setStatus(`API error: ${error.message}`);
-      return;
-    }
+    const resources = await forecastResourceLoadService.loadPackageResources({
+      packageKey,
+      downloadKey,
+      loadingStatus: "Fetching file list…",
+    });
+    if (!isModelResourceRefreshActive(downloadKey) || !resources) return;
 
     const session = prepareModelDownloadSession({
       packageKey,
@@ -483,19 +481,11 @@ export function createForecastRunController({
     const pkg = PACKAGES[packageKey];
     const previousResources = downloadKey.state.resources;
 
-    forecastDownloadView.setStatus("Checking latest files…");
-    let resources;
-    try {
-      resources = await forecastPackageResourceService.fetchPackageResources(
-        packageKey,
-        downloadKey,
-      );
-    } catch (error) {
-      if (isModelResourceRefreshActive(downloadKey)) {
-        forecastDownloadView.setStatus(`API error: ${error.message}`);
-      }
-      return null;
-    }
+    const resources = await forecastResourceLoadService.loadPackageResources({
+      packageKey,
+      downloadKey,
+      loadingStatus: "Checking latest files…",
+    });
     if (!isModelResourceRefreshActive(downloadKey) || !resources) return null;
 
     const session = prepareModelDownloadSession({
