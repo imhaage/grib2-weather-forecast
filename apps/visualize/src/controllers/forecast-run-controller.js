@@ -3,14 +3,9 @@ import {
   formatModelPackageSubtitle as formatPackageModelSubtitle,
 } from "../domain/forecast-package-labels.js";
 import { buildHourList, createModelState, markBlockAvailable } from "../domain/forecast-state.js";
-import { findPackageVariable, MODEL_INFO, PACKAGES } from "../domain/model-packages.js";
+import { MODEL_INFO, PACKAGES } from "../domain/model-packages.js";
 import { formatRunSummary } from "../domain/resources.js";
-import {
-  defaultPaletteFor,
-  parameterDescriptionFor,
-  variableKeyFor,
-} from "../domain/variable-metadata.js";
-import { isVectorCompositeVariable } from "../domain/wind-composite-variable.js";
+import { defaultPaletteFor } from "../domain/variable-metadata.js";
 import { createDataGouvResourceService } from "../services/data-gouv-resource-service.js";
 import { createForecastAnimationService } from "../services/forecast-animation-service.js";
 import { createForecastAvailableBlockService } from "../services/forecast-available-block-service.js";
@@ -20,6 +15,7 @@ import { createForecastLegendInitializerService } from "../services/forecast-leg
 import { createForecastMapPresentationService } from "../services/forecast-map-presentation-service.js";
 import { createForecastPresentationQueueService } from "../services/forecast-presentation-queue-service.js";
 import { createForecastResourceRefreshService } from "../services/forecast-resource-refresh-service.js";
+import { createForecastVariableSelectionService } from "../services/forecast-variable-selection-service.js";
 import {
   deleteObsoleteCachedGribBlocks,
   readCachedGribBlock,
@@ -128,6 +124,12 @@ export function createForecastRunController({
     applyDefaultPalette,
     formatModelPackageSubtitle,
     showColorScale: mapPresentation.showColorScale,
+    updateLevelInfo,
+    updateParamInfo,
+  });
+  const forecastVariableSelectionService = createForecastVariableSelectionService({
+    applyDefaultPalette,
+    formatModelPackageSubtitle,
     updateLevelInfo,
     updateParamInfo,
   });
@@ -257,22 +259,21 @@ export function createForecastRunController({
 
   function configureModelVariableControls(pkg) {
     const firstVar = defaultVariableForPackage(pkg);
-    modelState.variable = variableKeyFor(firstVar);
-    modelState.showWindDirection = true;
-    applyDefaultPalette(variableKeyFor(firstVar));
+    const selectedVariable = forecastVariableSelectionService.selectInitialVariable(
+      modelState,
+      firstVar,
+    );
     forecastVariableControlsView.renderVariableOptions({
       variables: pkg.variables,
-      selectedVariable: modelState.variable,
+      selectedVariable,
     });
     syncWindDirectionControl();
-    updateLevelInfo(firstVar);
   }
 
   function syncWindDirectionControl() {
-    forecastVariableControlsView.renderWindDirectionToggle({
-      hidden: !isVectorCompositeVariable(modelState?.variable),
-      checked: modelState?.showWindDirection !== false,
-    });
+    forecastVariableControlsView.renderWindDirectionToggle(
+      forecastVariableSelectionService.windDirectionControlState(modelState),
+    );
   }
 
   function applyModelResources(resources) {
@@ -531,20 +532,8 @@ export function createForecastRunController({
 
   async function handleVariableChange(varKey) {
     if (!modelState) return;
-    modelState.variable = varKey;
-    const varDef = findPackageVariable(modelState.packageKey, varKey);
-    const shortName = varDef?.shortName ?? varKey;
-    applyDefaultPalette(varKey);
+    forecastVariableSelectionService.selectVariable(modelState, varKey);
     syncWindDirectionControl();
-
-    if (varDef) {
-      updateParamInfo(
-        varDef.name,
-        parameterDescriptionFor(shortName),
-        formatModelPackageSubtitle(modelState.packageKey),
-      );
-      updateLevelInfo(varDef);
-    }
 
     await refreshCurrentModelVisuals();
   }
