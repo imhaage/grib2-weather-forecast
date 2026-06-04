@@ -69,4 +69,28 @@ describe("forecast download session service", () => {
       ["02H", "missing"],
     ]);
   });
+
+  test("detects current and stale in-memory blocks", () => {
+    const service = createForecastDownloadSessionService();
+    const modelState = { availableBlocks: new Set(["01H", "02H"]) };
+
+    expect(
+      service.isBlockInMemoryCurrent(modelState, {
+        block: { key: "01H", filesize: 10, runId: "2026-05-04T06:00:00Z" },
+        previousBlock: { key: "01H", filesize: 10, runId: "2026-05-04T09:00:00Z" },
+      }),
+    ).toBe(true);
+    expect(
+      service.isBlockInMemoryStale(modelState, {
+        block: { key: "02H", runId: "2026-05-04T09:00:00Z" },
+        previousBlock: { key: "02H", runId: "2026-05-04T06:00:00Z" },
+      }),
+    ).toBe(true);
+    expect(
+      service.isBlockInMemoryCurrent(modelState, {
+        block: { key: "03H", filesize: 10, runId: "2026-05-04T06:00:00Z" },
+        previousBlock: { key: "03H", filesize: 10, runId: "2026-05-04T09:00:00Z" },
+      }),
+    ).toBe(false);
+  });
 });

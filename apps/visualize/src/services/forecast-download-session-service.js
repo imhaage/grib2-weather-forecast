@@ -1,3 +1,5 @@
+import { runTimeValue } from "../domain/resources.js";
+
 export function createForecastDownloadSessionService({ missingStatus = "missing" } = {}) {
   function createSession({ packageKey, pkg, resources, runSummary, downloadKey }) {
     return {
@@ -36,11 +38,30 @@ export function createForecastDownloadSessionService({ missingStatus = "missing"
     }
   }
 
+  function isBlockInMemoryCurrent(modelState, { block, previousBlock }) {
+    return Boolean(
+      previousBlock &&
+        modelState.availableBlocks.has(block.key) &&
+        previousBlock.filesize === block.filesize &&
+        runTimeValue(previousBlock.runId) >= runTimeValue(block.runId),
+    );
+  }
+
+  function isBlockInMemoryStale(modelState, { block, previousBlock }) {
+    return Boolean(
+      previousBlock &&
+        modelState.availableBlocks.has(block.key) &&
+        runTimeValue(previousBlock.runId) < runTimeValue(block.runId),
+    );
+  }
+
   return {
     createSession,
     downloadStatus,
     fileCountStatus,
     incrementAvailableCount,
+    isBlockInMemoryCurrent,
+    isBlockInMemoryStale,
     refreshStatus,
     resetResourceStatuses,
   };

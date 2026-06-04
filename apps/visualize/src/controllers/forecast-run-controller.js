@@ -10,7 +10,7 @@ import {
   markBlockAvailable,
 } from "../domain/forecast-state.js";
 import { findPackageVariable, MODEL_INFO, PACKAGES } from "../domain/model-packages.js";
-import { formatRunSummary, runTimeValue } from "../domain/resources.js";
+import { formatRunSummary } from "../domain/resources.js";
 import { displayUnitsFor } from "../domain/unit-transforms.js";
 import {
   defaultPaletteFor,
@@ -284,20 +284,17 @@ export function createForecastRunController({
   }
 
   function isModelBlockInMemoryCurrent(block, previousBlock) {
-    return Boolean(
-      previousBlock &&
-        modelState.availableBlocks.has(block.key) &&
-        previousBlock.filesize === block.filesize &&
-        runTimeValue(previousBlock.runId) >= runTimeValue(block.runId),
-    );
+    return forecastDownloadSessionService.isBlockInMemoryCurrent(modelState, {
+      block,
+      previousBlock,
+    });
   }
 
   function isModelBlockInMemoryStale(block, previousBlock) {
-    return Boolean(
-      previousBlock &&
-        modelState.availableBlocks.has(block.key) &&
-        runTimeValue(previousBlock.runId) < runTimeValue(block.runId),
-    );
+    return forecastDownloadSessionService.isBlockInMemoryStale(modelState, {
+      block,
+      previousBlock,
+    });
   }
 
   function updateAvailableFileCount(session) {
