@@ -41,4 +41,18 @@ describe("forecast download session service", () => {
     expect(service.incrementAvailableCount(session)).toBe(1);
     expect(service.fileCountStatus(session)).toBe("1 / 2 files");
   });
+
+  test("marks every resource as missing in state and block status map", () => {
+    const service = createForecastDownloadSessionService({ missingStatus: "missing" });
+    const resources = [{ key: "01H" }, { key: "02H", status: "ready" }];
+    const modelState = { blockStatus: new Map() };
+
+    service.resetResourceStatuses(resources, modelState);
+
+    expect(resources.map((resource) => resource.status)).toEqual(["missing", "missing"]);
+    expect([...modelState.blockStatus.entries()]).toEqual([
+      ["01H", "missing"],
+      ["02H", "missing"],
+    ]);
+  });
 });

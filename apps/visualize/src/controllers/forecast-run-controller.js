@@ -79,7 +79,9 @@ export function createForecastRunController({
     formatRunSummary,
     formatSize: fmtSize,
   });
-  const forecastDownloadSessionService = createForecastDownloadSessionService();
+  const forecastDownloadSessionService = createForecastDownloadSessionService({
+    missingStatus: BLOCK_STATUS.MISSING,
+  });
   const forecastWarmupView = createForecastWarmupView({
     root: dom.cacheWarmup,
     bar: dom.cacheWarmupBar,
@@ -478,11 +480,22 @@ export function createForecastRunController({
   }
 
   function resetResourceStatuses(resources) {
-    for (const resource of resources) {
-      resource.status = BLOCK_STATUS.MISSING;
-      modelState?.blockStatus?.set(resource.key, BLOCK_STATUS.MISSING);
-    }
+    forecastDownloadSessionService.resetResourceStatuses(resources, modelState);
     updateDataStatusSummary();
+  }
+
+  function prepareModelDownloadSession({ packageKey, pkg, resources, downloadKey }) {
+    applyModelResources(resources);
+    const runSummary = formatRunSummary(resources);
+    forecastDownloadView.renderItems(resources);
+    resetResourceStatuses(resources);
+    return forecastDownloadSessionService.createSession({
+      packageKey,
+      pkg,
+      resources,
+      runSummary,
+      downloadKey,
+    });
   }
 
   async function startDownload(packageKey) {
@@ -507,21 +520,15 @@ export function createForecastRunController({
       return;
     }
 
-    applyModelResources(resources);
-    const runSummary = formatRunSummary(resources);
-
-    forecastDownloadView.setStatus(
-      `Downloading ${resources.length} ${packageKey} files (${runSummary})…`,
-    );
-    forecastDownloadView.renderItems(resources);
-    resetResourceStatuses(resources);
-    const session = forecastDownloadSessionService.createSession({
+    const session = prepareModelDownloadSession({
       packageKey,
       pkg,
       resources,
-      runSummary,
       downloadKey,
     });
+    forecastDownloadView.setStatus(
+      `Downloading ${resources.length} ${packageKey} files (${session.runSummary})…`,
+    );
     updateWarmupProgress();
 
     const latestReady = await forecastBlockRefreshService.refreshBlocksToLatest(session);
@@ -548,21 +555,15 @@ export function createForecastRunController({
     }
     if (!isModelResourceRefreshActive(downloadKey) || !resources) return null;
 
-    applyModelResources(resources);
-    const runSummary = formatRunSummary(resources);
-    forecastDownloadView.setStatus(
-      `Checking ${resources.length} ${packageKey} files (${runSummary})…`,
-    );
-    forecastDownloadView.renderItems(resources);
-    resetResourceStatuses(resources);
-
-    const session = forecastDownloadSessionService.createSession({
+    const session = prepareModelDownloadSession({
       packageKey,
       pkg,
       resources,
-      runSummary,
       downloadKey,
     });
+    forecastDownloadView.setStatus(
+      `Checking ${resources.length} ${packageKey} files (${session.runSummary})…`,
+    );
     const latestReady = await forecastBlockRefreshService.refreshBlocksToLatest(session, {
       previousResources,
     });
