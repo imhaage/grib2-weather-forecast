@@ -113,6 +113,21 @@ export function createMapRendererService({
       return Boolean(map?.getSource("grib2"));
     },
 
+    getViewportBounds() {
+      const bounds = map?.getBounds?.();
+      if (!bounds) return null;
+      return {
+        west: bounds.getWest(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        north: bounds.getNorth(),
+      };
+    },
+
+    getZoom() {
+      return map?.getZoom?.() ?? 0;
+    },
+
     fitBounds(bounds, options) {
       map?.fitBounds(bounds, options);
     },

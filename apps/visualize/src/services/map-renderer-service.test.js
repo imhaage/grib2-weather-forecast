@@ -8,6 +8,13 @@ class FakeMap {
     this.fitBounds = vi.fn();
     this.addControl = vi.fn();
     this.on = vi.fn();
+    this.getBounds = vi.fn(() => ({
+      getEast: () => 5,
+      getNorth: () => 53,
+      getSouth: () => 49,
+      getWest: () => 0,
+    }));
+    this.getZoom = vi.fn(() => 8);
     mapInstances.push(this);
   }
 
@@ -57,5 +64,14 @@ describe("map renderer service", () => {
 
     expect(mapInstances[0].on).toHaveBeenCalledWith("moveend", callback);
     expect(mapInstances[0].on).toHaveBeenCalledWith("zoomend", callback);
+  });
+
+  test("exposes normalized viewport bounds and zoom", async () => {
+    const service = createService();
+
+    await service.init();
+
+    expect(service.getViewportBounds()).toEqual({ west: 0, south: 49, east: 5, north: 53 });
+    expect(service.getZoom()).toBe(8);
   });
 });

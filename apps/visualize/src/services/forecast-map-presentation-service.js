@@ -39,18 +39,11 @@ export function createForecastMapPresentationService({
 
   function mapBoundsForSymbols() {
     if (getMapBounds) return getMapBounds();
-    const bounds = mapRenderer.map?.getBounds?.();
-    if (!bounds) return null;
-    return {
-      west: bounds.getWest(),
-      south: bounds.getSouth(),
-      east: bounds.getEast(),
-      north: bounds.getNorth(),
-    };
+    return mapRenderer.getViewportBounds?.() ?? null;
   }
 
   function mapZoomForSymbols() {
-    return getMapZoom ? getMapZoom() : (mapRenderer.map?.getZoom?.() ?? 0);
+    return getMapZoom ? getMapZoom() : (mapRenderer.getZoom?.() ?? 0);
   }
 
   function updateParamInfo(name, description, subtitle) {

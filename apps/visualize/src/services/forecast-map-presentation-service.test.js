@@ -161,6 +161,41 @@ describe("forecast map presentation service", () => {
     );
   });
 
+  test("uses map renderer viewport accessors instead of the raw map instance", async () => {
+    const { mapRenderer, modelState, service } = createService({
+      getMapBounds: undefined,
+      getMapZoom: undefined,
+    });
+    Object.defineProperty(mapRenderer, "map", {
+      get() {
+        throw new Error("presentation service should not access raw MapLibre map");
+      },
+    });
+    mapRenderer.getViewportBounds = vi.fn(() => ({ west: 0, south: 49, east: 5, north: 53 }));
+    mapRenderer.getZoom = vi.fn(() => 8);
+    modelState.variable = "wind";
+    const entry = createEntry({
+      vectorUValues: new Float32Array([0, 0, 0, 0]),
+      vectorVValues: new Float32Array([-4, -4, -4, -4]),
+      grid: {
+        ni: 2,
+        nj: 2,
+        latitudeOfFirstPoint: 51,
+        latitudeOfLastPoint: 50,
+        longitudeOfFirstPoint: 1,
+        longitudeOfLastPoint: 2,
+        di: 1,
+        dj: 1,
+      },
+    });
+
+    await service.presentBitmapEntry(1, entry, { values: new Float32Array([4, 4, 4, 4]) });
+
+    expect(mapRenderer.getViewportBounds).toHaveBeenCalled();
+    expect(mapRenderer.getZoom).toHaveBeenCalled();
+    expect(mapRenderer.updateWindSymbols).toHaveBeenCalled();
+  });
+
   test("clears wind symbols when direction display is disabled", async () => {
     const { mapRenderer, modelState, service } = createService();
     modelState.variable = "wind";
