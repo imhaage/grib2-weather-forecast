@@ -29,6 +29,7 @@ import {
 import { createModelBlockService } from "../services/model-block-service.js";
 import { BLOCK_STATUS, createDataStatusSummaryView } from "../ui/data-status-summary.js";
 import { createForecastDownloadView } from "../ui/forecast-download-view.js";
+import { createForecastHourControlView } from "../ui/forecast-hour-control-view.js";
 import {
   createForecastVariableControlsView,
   defaultVariableForPackage,
@@ -92,6 +93,9 @@ export function createForecastRunController({
   const dataStatusSummaryView = createDataStatusSummaryView({
     document,
     container: dom.dataStatusSummary,
+  });
+  const forecastHourControlView = createForecastHourControlView({
+    slider: dom.forecastSlider,
   });
   const mapPresenter = createForecastMapPresentationService({
     formatForecastValidTimeLabel,
@@ -281,9 +285,7 @@ export function createForecastRunController({
   function applyModelResources(resources) {
     modelState.resources = resources;
     modelState.hourList = buildHourList(resources);
-    const slider = dom.forecastSlider;
-    slider.max = modelState.hourList.length - 1;
-    if (Number(slider.value) > Number(slider.max)) slider.value = slider.max;
+    forecastHourControlView.renderHourList(modelState.hourList);
   }
 
   function isModelBlockInMemoryCurrent(block, previousBlock) {
@@ -367,7 +369,7 @@ export function createForecastRunController({
   }
 
   async function refreshMapForAvailableModelBlock(block, session) {
-    const currentIdx = Number.parseInt(session.slider.value, 10);
+    const currentIdx = forecastHourControlView.selectedIndex();
     const currentHour = modelState.hourList[currentIdx];
     if (session.availableCount === 1) {
       mapRenderer.setVisible(true);
@@ -487,7 +489,6 @@ export function createForecastRunController({
       resources,
       runSummary,
       downloadKey,
-      slider: dom.forecastSlider,
       availableCount: 0,
       legendInitialized: false,
     };
@@ -501,8 +502,7 @@ export function createForecastRunController({
 
     configureModelVariableControls(pkg);
 
-    const slider = dom.forecastSlider;
-    slider.value = 0;
+    forecastHourControlView.reset();
 
     forecastDownloadView.setStatus("Fetching file list…");
 
@@ -585,7 +585,7 @@ export function createForecastRunController({
     setRendering(false);
     invalidateBitmapCache();
     const capturedRenderGeneration = animationService.currentRenderGeneration;
-    await showHour(Number.parseInt(dom.forecastSlider.value, 10));
+    await showHour(forecastHourControlView.selectedIndex());
     const session = await refreshCurrentModelResourcesToLatest(downloadKey);
     if (
       session &&
@@ -625,7 +625,7 @@ export function createForecastRunController({
 
   function onForecastSliderInput() {
     if (!modelState) return;
-    showHour(Number.parseInt(dom.forecastSlider.value, 10));
+    showHour(forecastHourControlView.selectedIndex());
   }
 
   function resetModelState() {
