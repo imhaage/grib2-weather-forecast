@@ -1,5 +1,9 @@
 import { fmtRefTime, iterateGRIB2Messages } from "grib2-decoder";
 import {
+  formatForecastValidTimeLabel as formatPackageForecastValidTimeLabel,
+  formatModelPackageSubtitle as formatPackageModelSubtitle,
+} from "../domain/forecast-package-labels.js";
+import {
   buildHourList,
   createModelState,
   blockForHour as findBlockForHour,
@@ -206,25 +210,17 @@ export function createForecastRunController({
     setCurrentPalette(palette);
   }
 
-  function getModelPackageLabelParts(packageKey) {
-    const pkg = PACKAGES[packageKey];
-    if (!pkg) return null;
-    const modelTitle = MODEL_INFO[pkg.model]?.title ?? pkg.model;
-    const packageName = packageKey.replace(`${pkg.model}_`, "");
-    return { modelTitle, packageName };
-  }
-
   function formatModelPackageSubtitle(packageKey) {
-    const parts = getModelPackageLabelParts(packageKey);
-    if (!parts) return packageKey;
-    return `${parts.modelTitle} ${parts.packageName}`;
+    return formatPackageModelSubtitle(PACKAGES, MODEL_INFO, packageKey);
   }
 
   function formatForecastValidTimeLabel(timeLabel) {
-    if (!modelState) return timeLabel;
-    const parts = getModelPackageLabelParts(modelState.packageKey);
-    if (!parts) return `${modelState.packageKey} : ${timeLabel}`;
-    return `${parts.modelTitle} - ${parts.packageName} : ${timeLabel}`;
+    return formatPackageForecastValidTimeLabel(
+      PACKAGES,
+      MODEL_INFO,
+      modelState?.packageKey ?? null,
+      timeLabel,
+    );
   }
 
   function beginModelResourceRefresh() {
