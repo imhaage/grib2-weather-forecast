@@ -34,6 +34,23 @@ function isInsideBounds(lng, lat, bounds) {
   return lng >= bounds.west && lng <= bounds.east && lat >= bounds.south && lat <= bounds.north;
 }
 
+function blockFitsGrid(grid, startRowFromNorth, startCol, stride) {
+  return startRowFromNorth + stride <= grid.nj && startCol + stride <= grid.ni;
+}
+
+function blockFitsBounds(grid, bounds, startRowFromNorth, startCol, stride, northLat) {
+  const westLng = grid.longitudeOfFirstPoint + startCol * grid.di;
+  const eastLng = grid.longitudeOfFirstPoint + (startCol + stride - 1) * grid.di;
+  const northBlockLat = latitudeForRowFromNorth(grid, startRowFromNorth, northLat);
+  const southBlockLat = latitudeForRowFromNorth(grid, startRowFromNorth + stride - 1, northLat);
+  return (
+    westLng >= bounds.west &&
+    eastLng <= bounds.east &&
+    southBlockLat >= bounds.south &&
+    northBlockLat <= bounds.north
+  );
+}
+
 function aggregateVectorBlock({
   grid,
   vectorUValues,
@@ -51,8 +68,9 @@ function aggregateVectorBlock({
   let lngSum = 0;
   let latSum = 0;
   let count = 0;
-  const endRowFromNorth = Math.min(grid.nj, startRowFromNorth + stride);
-  const endCol = Math.min(grid.ni, startCol + stride);
+  const endRowFromNorth = startRowFromNorth + stride;
+  const endCol = startCol + stride;
+  const expectedCount = stride * stride;
 
   for (let rowFromNorth = startRowFromNorth; rowFromNorth < endRowFromNorth; rowFromNorth += 1) {
     const lat = latitudeForRowFromNorth(grid, rowFromNorth, northLat);
@@ -80,7 +98,7 @@ function aggregateVectorBlock({
     }
   }
 
-  if (count === 0) return null;
+  if (count !== expectedCount) return null;
   return {
     u: uSum / count,
     v: vSum / count,
@@ -126,6 +144,13 @@ export function buildWindSymbolFeatures({
 
   for (let rowFromNorth = 0; rowFromNorth < grid.nj; rowFromNorth += stride) {
     for (let col = 0; col < grid.ni; col += stride) {
+      if (
+        !blockFitsGrid(grid, rowFromNorth, col, stride) ||
+        !blockFitsBounds(grid, bounds, rowFromNorth, col, stride, northLat)
+      ) {
+        continue;
+      }
+
       const vector = aggregateVectorBlock({
         grid,
         vectorUValues,
