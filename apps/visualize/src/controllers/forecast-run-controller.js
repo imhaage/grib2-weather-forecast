@@ -25,6 +25,7 @@ import { createForecastBlockRefreshService } from "../services/forecast-block-re
 import { createForecastDownloadSessionService } from "../services/forecast-download-session-service.js";
 import { createForecastMapPresentationService } from "../services/forecast-map-presentation-service.js";
 import { createForecastPresentationQueueService } from "../services/forecast-presentation-queue-service.js";
+import { createForecastResourceRefreshService } from "../services/forecast-resource-refresh-service.js";
 import {
   deleteObsoleteCachedGribBlocks,
   readCachedGribBlock,
@@ -86,6 +87,7 @@ export function createForecastRunController({
   const forecastDownloadSessionService = createForecastDownloadSessionService({
     missingStatus: BLOCK_STATUS.MISSING,
   });
+  const forecastResourceRefreshService = createForecastResourceRefreshService();
   const forecastWarmupView = createForecastWarmupView({
     root: dom.cacheWarmup,
     bar: dom.cacheWarmupBar,
@@ -224,20 +226,11 @@ export function createForecastRunController({
   }
 
   function beginModelResourceRefresh() {
-    if (!modelState) return null;
-    modelState.resourceRefreshId = (modelState.resourceRefreshId ?? 0) + 1;
-    return {
-      state: modelState,
-      refreshId: modelState.resourceRefreshId,
-    };
+    return forecastResourceRefreshService.begin(modelState);
   }
 
   function isModelResourceRefreshActive(downloadKey) {
-    return Boolean(
-      downloadKey &&
-        modelState === downloadKey.state &&
-        modelState.resourceRefreshId === downloadKey.refreshId,
-    );
+    return forecastResourceRefreshService.isActive(modelState, downloadKey);
   }
 
   function setBlockStatus(block, status) {
