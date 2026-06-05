@@ -1,4 +1,34 @@
-export function makeBitmapCacheEntryFromWorker(renderEntry, { keepValues = false } = {}) {
+interface ForecastWorkerBitmapEntry {
+  bitmap?: unknown;
+  values?: unknown;
+  vectorComposite?: unknown;
+  vectorUValues?: unknown;
+  vectorVValues?: unknown;
+  dataMin?: unknown;
+  dataMax?: unknown;
+  dataMean?: unknown;
+  dataCount?: unknown;
+  unitTransform?: unknown;
+  renderMin?: unknown;
+  range?: unknown;
+  staticScale?: unknown;
+  isLog?: unknown;
+  displayUnits?: unknown;
+  isFallback?: unknown;
+  isobars?: unknown;
+  grid?: unknown;
+  product?: unknown;
+  header?: unknown;
+}
+
+interface BitmapCacheEntryOptions {
+  keepValues?: boolean;
+}
+
+export function makeBitmapCacheEntryFromWorker(
+  renderEntry: ForecastWorkerBitmapEntry,
+  { keepValues = false }: BitmapCacheEntryOptions = {},
+) {
   return {
     bitmap: renderEntry.bitmap,
     values: keepValues ? renderEntry.values : undefined,

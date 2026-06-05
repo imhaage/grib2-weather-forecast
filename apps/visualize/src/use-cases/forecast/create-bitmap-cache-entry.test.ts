@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { makeBitmapCacheEntryFromWorker } from "./forecast-bitmap-cache-entry-service.js";
+import { makeBitmapCacheEntryFromWorker } from "./create-bitmap-cache-entry";
 
-describe("forecast bitmap cache entry service", () => {
+describe("forecast bitmap cache entry use case", () => {
   test("copies vector component values and optionally keeps rendered values", () => {
     const values = new Float32Array([1, 2]);
     const vectorUValues = new Float32Array([1, 2]);

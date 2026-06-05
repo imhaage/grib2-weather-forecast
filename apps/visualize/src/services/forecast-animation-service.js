@@ -1,6 +1,6 @@
+import { makeBitmapCacheEntryFromWorker } from "../use-cases/forecast/create-bitmap-cache-entry";
 import { createAnimationCacheService } from "./animation-cache-service.js";
 import { resolveAnimationWarmupProgress } from "./forecast-animation-warmup-progress-service.js";
-import { makeBitmapCacheEntryFromWorker } from "./forecast-bitmap-cache-entry-service.js";
 import { createForecastHourRenderQueueService } from "./forecast-hour-render-queue-service.js";
 import { createForecastHourWorkerRenderService } from "./forecast-hour-worker-render-service.js";
 import { createForecastPrerenderBlockService } from "./forecast-prerender-block-service.js";
