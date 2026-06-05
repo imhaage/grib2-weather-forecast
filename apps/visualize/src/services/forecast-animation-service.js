@@ -3,6 +3,7 @@ import { createAnimationCacheService } from "./animation-cache-service.js";
 import { resolveAnimationWarmupProgress } from "./forecast-animation-warmup-progress-service.js";
 import { makeBitmapCacheEntryFromWorker } from "./forecast-bitmap-cache-entry-service.js";
 import { createForecastRenderRequest } from "./forecast-render-request-service.js";
+import { createForecastTooltipHydrationService } from "./forecast-tooltip-hydration-service.js";
 
 function fmtHourLabel(hour) {
   return `+${String(hour).padStart(2, "0")}H`;
@@ -31,13 +32,21 @@ export function createForecastAnimationService({
   let isDecoding = false;
   let pendingHourIdx = null;
   let currentRenderGeneration = 0;
-  let tooltipHydrateTimer = null;
-  let tooltipHydrateToken = 0;
   const animationCache = createAnimationCacheService();
   const perfStats = {
     lastRenderMs: null,
     lastDecodeMs: null,
   };
+  const tooltipHydrationService = createForecastTooltipHydrationService({
+    decodeValues: decodeModelHourValuesViaWorker,
+    getCachedEntry: animationCache.getHour,
+    getCurrentRenderGeneration: () => currentRenderGeneration,
+    getCurrentState: currentState,
+    isPlayerPlaying,
+    makeGridState,
+    setGridState,
+    updateIsobarOverlay,
+  });
 
   function currentState() {
     return getModelState();
@@ -47,9 +56,7 @@ export function createForecastAnimationService({
     const modelState = currentState();
     if (modelState) modelState.animationCacheStatus = "waiting";
     animationCache.clear();
-    tooltipHydrateToken++;
-    if (tooltipHydrateTimer !== null) clearTimeout(tooltipHydrateTimer);
-    tooltipHydrateTimer = null;
+    tooltipHydrationService.invalidate();
     currentRenderGeneration++;
     updateWarmupProgress();
     notifyDiagnostics();
@@ -146,47 +153,12 @@ export function createForecastAnimationService({
     return result;
   }
 
-  async function hydrateTooltipValues(idx, hour, token, capturedState, capturedRenderGeneration) {
-    const data = await decodeModelHourValuesViaWorker(idx, hour);
-    if (
-      !data ||
-      currentState() !== capturedState ||
-      currentRenderGeneration !== capturedRenderGeneration ||
-      tooltipHydrateToken !== token ||
-      capturedState.currentHour !== hour
-    ) {
-      return;
-    }
-
-    const cachedEntry = animationCache.getHour(hour);
-    if (cachedEntry) {
-      const hydratedEntry = {
-        ...cachedEntry,
-        vectorComposite: data.vectorComposite ?? cachedEntry.vectorComposite,
-        vectorUValues: data.vectorUValues ?? cachedEntry.vectorUValues,
-        vectorVValues: data.vectorVValues ?? cachedEntry.vectorVValues,
-      };
-      setGridState(makeGridState(hydratedEntry, data.values));
-      updateIsobarOverlay(cachedEntry, data.values);
-    }
-  }
-
   function queueTooltipValueHydration(idx, hour) {
-    tooltipHydrateToken++;
-    if (tooltipHydrateTimer !== null) clearTimeout(tooltipHydrateTimer);
-    tooltipHydrateTimer = null;
-    if (isPlayerPlaying()) return;
-
-    const token = tooltipHydrateToken;
-    const capturedState = currentState();
-    const capturedRenderGeneration = currentRenderGeneration;
-    tooltipHydrateTimer = setTimeout(() => {
-      tooltipHydrateTimer = null;
-      if (isPlayerPlaying()) return;
-      hydrateTooltipValues(idx, hour, token, capturedState, capturedRenderGeneration).catch(
-        (error) => console.error("hydrateTooltipValues:", error),
-      );
-    }, 140);
+    tooltipHydrationService.queue({
+      hour,
+      hourIndex: idx,
+      renderGeneration: currentRenderGeneration,
+    });
   }
 
   function queueCurrentTooltipValueHydration() {
