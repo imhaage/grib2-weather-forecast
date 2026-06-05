@@ -3,9 +3,8 @@ import { blockForHour } from "../domain/forecast-state.js";
 import { findPackageVariable } from "../domain/model-packages.js";
 import { gradientStopsFor } from "../domain/palettes.js";
 import { parameterDescriptionFor } from "../domain/variable-metadata.js";
-import { isVectorCompositeVariable } from "../domain/wind-composite-variable.js";
-import { buildWindSymbolFeatures } from "../domain/wind-symbol-sampler.js";
 import { createForecastIsobarOverlayService } from "./forecast-isobar-overlay-service.js";
+import { createForecastWindSymbolOverlayService } from "./forecast-wind-symbol-overlay-service.js";
 
 function defaultFormatModelPackageSubtitle(packageKey) {
   return packageKey;
@@ -14,11 +13,6 @@ function defaultFormatModelPackageSubtitle(packageKey) {
 function defaultFormatForecastValidTimeLabel(timeLabel) {
   return timeLabel;
 }
-
-const WIND_SYMBOL_SAMPLING = Object.freeze({
-  referenceZoom: 6,
-  matrixStride: 16,
-});
 
 export function createForecastMapPresentationService({
   formatForecastValidTimeLabel = defaultFormatForecastValidTimeLabel,
@@ -42,6 +36,13 @@ export function createForecastMapPresentationService({
   let lastPresentedEntry = null;
   let lastPresentedValues = null;
   const isobarOverlayService = createForecastIsobarOverlayService({
+    missingValue,
+    renderer: mapRenderer,
+  });
+  const windSymbolOverlayService = createForecastWindSymbolOverlayService({
+    getBounds: mapBoundsForSymbols,
+    getModelState,
+    getZoom: mapZoomForSymbols,
     missingValue,
     renderer: mapRenderer,
   });
@@ -132,37 +133,7 @@ export function createForecastMapPresentationService({
   }
 
   function updateWindSymbolOverlay(entry, values) {
-    const modelState = getModelState();
-    if (
-      !isVectorCompositeVariable(modelState?.variable) ||
-      modelState?.showWindDirection === false ||
-      !values ||
-      !entry.vectorUValues ||
-      !entry.vectorVValues ||
-      !mapRenderer.updateWindSymbols
-    ) {
-      mapRenderer.clearWindSymbols?.();
-      return;
-    }
-
-    const bounds = mapBoundsForSymbols();
-    if (!bounds) {
-      mapRenderer.clearWindSymbols?.();
-      return;
-    }
-
-    const zoom = mapZoomForSymbols();
-    mapRenderer.updateWindSymbols(
-      buildWindSymbolFeatures({
-        grid: entry.grid,
-        vectorUValues: entry.vectorUValues,
-        vectorVValues: entry.vectorVValues,
-        missingValue,
-        bounds,
-        zoom,
-        sampling: WIND_SYMBOL_SAMPLING,
-      }),
-    );
+    windSymbolOverlayService.update(entry, values);
   }
 
   function refreshWindSymbolOverlayForViewport() {
