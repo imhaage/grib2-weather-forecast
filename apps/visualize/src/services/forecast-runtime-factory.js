@@ -8,6 +8,7 @@ import { formatRunSummary } from "../domain/resources.js";
 import { defaultPaletteFor } from "../domain/variable-metadata.js";
 import { BLOCK_STATUS } from "../ui/data-status-summary.js";
 import { createForecastAnimationCacheBuildUseCase } from "../use-cases/forecast/build-animation-cache";
+import { createForecastPackageResourceService } from "../use-cases/forecast/fetch-package-resources";
 import { createForecastLegendInitializerUseCase } from "../use-cases/forecast/initialize-legend";
 import { createForecastResourceLoadUseCase } from "../use-cases/forecast/load-resources";
 import { createForecastDownloadSessionService } from "../use-cases/forecast/manage-download-session";
@@ -22,7 +23,6 @@ import { createDataGouvResourceService } from "./data-gouv-resource-service.js";
 import { createForecastAnimationService } from "./forecast-animation-service.js";
 import { createForecastBlockRefreshService } from "./forecast-block-refresh-service.js";
 import { createForecastMapPresentationService } from "./forecast-map-presentation-service.js";
-import { createForecastPackageResourceService } from "./forecast-package-resource-service.js";
 import { createForecastPresentationQueueService } from "./forecast-presentation-queue-service.js";
 import { createForecastRuntime } from "./forecast-runtime.js";
 import {

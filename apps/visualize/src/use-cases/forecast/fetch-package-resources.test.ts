@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastPackageResourceService } from "./forecast-package-resource-service.js";
+import { createForecastPackageResourceService } from "./fetch-package-resources";
 
-describe("forecast package resource service", () => {
+describe("forecast package resource use case", () => {
   test("fetches resources for a package and filters skipped hour zero resources", async () => {
     const fetchResources = vi.fn(async () => [
       { key: "00H", startHour: 0 },
