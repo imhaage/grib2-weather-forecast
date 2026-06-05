@@ -1,8 +1,9 @@
 import { describe, expect, test, vi } from "vitest";
 import {
   CACHE_LOAD_RESULT,
-  createForecastBlockRefreshService,
-} from "./forecast-block-refresh-service.js";
+  createForecastBlockRefreshUseCase,
+  type ForecastBlockRefreshUseCaseOptions,
+} from "./refresh-blocks";
 
 const BLOCK_STATUS = Object.freeze({
   LOADED_FROM_CACHE: "loaded-from-cache",
@@ -10,8 +11,16 @@ const BLOCK_STATUS = Object.freeze({
   READY: "ready",
 });
 
-function createService(overrides = {}) {
-  const defaults = {
+interface TestOverrides {
+  cache?: Partial<ForecastBlockRefreshUseCaseOptions["cache"]>;
+  lifecycle?: Partial<ForecastBlockRefreshUseCaseOptions["lifecycle"]>;
+  network?: Partial<ForecastBlockRefreshUseCaseOptions["network"]>;
+  presentation?: Partial<ForecastBlockRefreshUseCaseOptions["presentation"]>;
+  status?: Partial<ForecastBlockRefreshUseCaseOptions["status"]>;
+}
+
+function createService(overrides: TestOverrides = {}) {
+  const defaults: Omit<ForecastBlockRefreshUseCaseOptions, "maxParallelDownloads" | "statuses"> = {
     cache: {
       readCachedBlock: vi.fn().mockResolvedValue(null),
       readLatestCachedBlock: vi.fn().mockResolvedValue(null),
@@ -44,16 +53,16 @@ function createService(overrides = {}) {
     presentation: { ...defaults.presentation, ...overrides.presentation },
     status: { ...defaults.status, ...overrides.status },
   };
-  return createForecastBlockRefreshService({
+  return createForecastBlockRefreshUseCase({
     statuses: BLOCK_STATUS,
     maxParallelDownloads: 6,
     ...ports,
   });
 }
 
-describe("forecast block refresh service", () => {
+describe("forecast block refresh use case", () => {
   test("loads cache first, downloads missing blocks before refreshing stale blocks", async () => {
-    const events = [];
+    const events: string[] = [];
     const missingBlock = { key: "01H", url: "https://example.test/missing", filesize: 1 };
     const staleBlock = { key: "02H", url: "https://example.test/stale", filesize: 1 };
     const service = createService({
@@ -93,9 +102,9 @@ describe("forecast block refresh service", () => {
   });
 
   test("returns typed cache load results for current, stale, and missing blocks", async () => {
-    const currentBlock = { key: "01H" };
-    const staleBlock = { key: "02H" };
-    const missingBlock = { key: "03H" };
+    const currentBlock = { key: "01H", url: "https://example.test/01H" };
+    const staleBlock = { key: "02H", url: "https://example.test/02H" };
+    const missingBlock = { key: "03H", url: "https://example.test/03H" };
     const service = createService({
       cache: {
         readCachedBlock: vi.fn(async (_packageKey, block) =>
@@ -155,9 +164,13 @@ describe("forecast block refresh service", () => {
   });
 
   test("presents in-memory stale blocks before refreshing them from network", async () => {
-    const events = [];
+    const events: string[] = [];
     const block = { key: "01H", url: "https://example.test/01H", filesize: 1 };
-    const previousBlock = { key: "01H", runId: "2026-05-22T00:00:00Z" };
+    const previousBlock = {
+      key: "01H",
+      url: "https://example.test/previous",
+      runId: "2026-05-22T00:00:00Z",
+    };
     const service = createService({
       lifecycle: {
         isBlockInMemoryStale: (_block, candidate) => candidate === previousBlock,
@@ -197,7 +210,7 @@ describe("forecast block refresh service", () => {
   });
 
   test("waits for missing block presentation before refreshing stale blocks", async () => {
-    const events = [];
+    const events: string[] = [];
     const missingBlock = { key: "01H", url: "https://example.test/missing", filesize: 1 };
     const staleBlock = { key: "02H", url: "https://example.test/stale", filesize: 1 };
     const service = createService({
@@ -245,23 +258,23 @@ describe("forecast block refresh service", () => {
       { key: "02H", url: "https://example.test/02H", filesize: 1 },
       { key: "03H", url: "https://example.test/03H", filesize: 1 },
     ];
-    const releaseReads = [];
+    const releaseReads: Array<() => void> = [];
     let activeReadCount = 0;
     let maxActiveReadCount = 0;
-    async function waitForPendingReads(count) {
-      for (let attempt = 0; attempt < 10 && releaseReads.length < count; attempt++) {
+    async function waitForPendingReads(count: number) {
+      for (let attempt = 0; attempt < 10 && releaseReads.length < count; attempt += 1) {
         await Promise.resolve();
       }
     }
 
-    const service = createForecastBlockRefreshService({
+    const service = createForecastBlockRefreshUseCase({
       statuses: BLOCK_STATUS,
       maxParallelDownloads: 2,
       cache: {
         readCachedBlock: vi.fn(async () => {
           activeReadCount += 1;
           maxActiveReadCount = Math.max(maxActiveReadCount, activeReadCount);
-          await new Promise((resolve) => releaseReads.push(resolve));
+          await new Promise<void>((resolve) => releaseReads.push(resolve));
           activeReadCount -= 1;
           return new Uint8Array([1]);
         }),
@@ -299,7 +312,7 @@ describe("forecast block refresh service", () => {
     expect(releaseReads).toHaveLength(2);
     expect(maxActiveReadCount).toBe(2);
 
-    releaseReads.shift()();
+    releaseReads.shift()?.();
     await waitForPendingReads(2);
     expect(releaseReads).toHaveLength(2);
     expect(maxActiveReadCount).toBe(2);

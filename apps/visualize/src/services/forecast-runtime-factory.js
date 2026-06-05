@@ -22,6 +22,7 @@ import { createForecastResourceLoadUseCase } from "../use-cases/forecast/load-re
 import { createForecastDownloadSessionService } from "../use-cases/forecast/manage-download-session";
 import { createForecastPresentationQueueService } from "../use-cases/forecast/manage-presentation-queue";
 import { createForecastDownloadPreparationUseCase } from "../use-cases/forecast/prepare-download-session";
+import { createForecastBlockRefreshUseCase } from "../use-cases/forecast/refresh-blocks";
 import { createForecastResourceRefreshUseCase } from "../use-cases/forecast/resource-refresh";
 import { createForecastVariableSelectionUseCase } from "../use-cases/forecast/select-variable";
 import { createForecastInitialDownloadUseCase } from "../use-cases/forecast/start-initial-download";
@@ -29,7 +30,6 @@ import { createForecastAvailableBlockUseCase } from "../use-cases/forecast/store
 import { createForecastResourceUpdateUseCase } from "../use-cases/forecast/update-resources";
 import { createDownloadWorkerClient as createDefaultDownloadWorkerClient } from "../workers/download-worker-client.js";
 import { createForecastAnimationService } from "./forecast-animation-service.js";
-import { createForecastBlockRefreshService } from "./forecast-block-refresh-service.js";
 import { createForecastMapPresentationService } from "./forecast-map-presentation-service.js";
 import { createForecastRuntime } from "./forecast-runtime.js";
 
@@ -331,7 +331,7 @@ export function createForecastRuntimeFactory({
     scheduleLowPriorityWork,
   });
 
-  const forecastBlockRefreshService = createForecastBlockRefreshService({
+  const forecastBlockRefreshService = createForecastBlockRefreshUseCase({
     statuses: BLOCK_STATUS,
     maxParallelDownloads: MAX_PARALLEL_DOWNLOADS,
     cache: {
