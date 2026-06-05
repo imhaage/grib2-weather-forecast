@@ -1,17 +1,31 @@
-function bitmapCacheKey(hour) {
+interface BitmapCacheEntry {
+  bitmap?: {
+    close: () => void;
+  };
+  [key: string]: unknown;
+}
+
+interface PrerenderJob {
+  blockKey: string;
+  renderGeneration: number;
+  state: unknown;
+  queueKey: string;
+}
+
+function bitmapCacheKey(hour: number) {
   return `${hour}`;
 }
 
-function closeBitmapEntry(entry) {
+function closeBitmapEntry(entry: BitmapCacheEntry | undefined) {
   entry?.bitmap?.close();
 }
 
 export function createAnimationCacheService() {
-  let bitmapCache = new Map();
-  let prerenderQueue = [];
-  let queuedPrerenderKeys = new Set();
+  let bitmapCache = new Map<string, BitmapCacheEntry>();
+  let prerenderQueue: PrerenderJob[] = [];
+  let queuedPrerenderKeys = new Set<string>();
   let isPrerendering = false;
-  let idleResolvers = [];
+  let idleResolvers: Array<() => void> = [];
 
   function resolveIdleIfNeeded() {
     if (isPrerendering || prerenderQueue.length > 0) return;
@@ -33,23 +47,23 @@ export function createAnimationCacheService() {
       return isPrerendering;
     },
 
-    keyForHour(hour) {
+    keyForHour(hour: number) {
       return bitmapCacheKey(hour);
     },
 
-    getHour(hour) {
+    getHour(hour: number) {
       return bitmapCache.get(bitmapCacheKey(hour));
     },
 
-    hasHour(hour) {
+    hasHour(hour: number) {
       return bitmapCache.has(bitmapCacheKey(hour));
     },
 
-    setHour(hour, entry) {
+    setHour(hour: number, entry: BitmapCacheEntry) {
       bitmapCache.set(bitmapCacheKey(hour), entry);
     },
 
-    removeHour(hour) {
+    removeHour(hour: number) {
       const key = bitmapCacheKey(hour);
       const entry = bitmapCache.get(key);
       closeBitmapEntry(entry);
@@ -64,7 +78,7 @@ export function createAnimationCacheService() {
       resolveIdleIfNeeded();
     },
 
-    readyCount(hours = []) {
+    readyCount(hours: number[] = []) {
       let count = 0;
       for (const hour of hours) {
         if (this.hasHour(hour)) count++;
@@ -72,11 +86,11 @@ export function createAnimationCacheService() {
       return count;
     },
 
-    isComplete(hours = []) {
+    isComplete(hours: number[] = []) {
       return Boolean(hours.length) && this.readyCount(hours) === hours.length;
     },
 
-    enqueueBlock(blockKey, renderGeneration, state) {
+    enqueueBlock(blockKey: string, renderGeneration: number, state: unknown) {
       const queueKey = `${renderGeneration}:${blockKey}`;
       if (queuedPrerenderKeys.has(queueKey)) return false;
       queuedPrerenderKeys.add(queueKey);
@@ -94,7 +108,7 @@ export function createAnimationCacheService() {
       return prerenderQueue.shift() ?? null;
     },
 
-    completeJob(job) {
+    completeJob(job: PrerenderJob) {
       queuedPrerenderKeys.delete(job.queueKey);
     },
 
@@ -105,7 +119,7 @@ export function createAnimationCacheService() {
 
     waitForIdle() {
       if (!isPrerendering && prerenderQueue.length === 0) return Promise.resolve();
-      return new Promise((resolve) => {
+      return new Promise<void>((resolve) => {
         idleResolvers.push(resolve);
       });
     },
