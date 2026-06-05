@@ -1,54 +1,58 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastIsobarOverlayService } from "./forecast-isobar-overlay-service.js";
+import { createForecastIsobarOverlayUseCase } from "./update-isobar-overlay";
 
-describe("forecast isobar overlay service", () => {
+describe("forecast isobar overlay use case", () => {
   test("clears isobars when the field does not support them", () => {
     const renderer = { clearIsobars: vi.fn(), updateIsobars: vi.fn() };
-    const service = createForecastIsobarOverlayService({
+    const useCase = createForecastIsobarOverlayUseCase({
       generateIsobars: vi.fn(),
       missingValue: 9999,
       renderer,
       supportsIsobars: vi.fn(() => false),
     });
 
-    service.update({ product: { shortName: "t" } }, new Float32Array([1]));
+    useCase.update({ product: { shortName: "t" } }, new Float32Array([1]));
 
     expect(renderer.clearIsobars).toHaveBeenCalled();
     expect(renderer.updateIsobars).not.toHaveBeenCalled();
   });
 
   test("reuses cached isobars when already present on the entry", () => {
-    const isobars = { type: "FeatureCollection" };
+    const isobars = { type: "FeatureCollection", features: [] };
     const renderer = { clearIsobars: vi.fn(), updateIsobars: vi.fn() };
-    const service = createForecastIsobarOverlayService({
+    const useCase = createForecastIsobarOverlayUseCase({
       generateIsobars: vi.fn(),
       missingValue: 9999,
       renderer,
       supportsIsobars: vi.fn(() => true),
     });
 
-    service.update({ isobars, product: { shortName: "msl" } }, null);
+    useCase.update({ isobars, product: { shortName: "msl" } }, null);
 
     expect(renderer.updateIsobars).toHaveBeenCalledWith(isobars);
   });
 
   test("generates and stores isobars for supported fields with values", () => {
-    const isobars = { type: "FeatureCollection" };
-    const entry = {
+    const isobars = { type: "FeatureCollection", features: [] };
+    const entry: {
+      grid: { id: string };
+      isobars?: typeof isobars | null;
+      product: { shortName: string };
+    } = {
       grid: { id: "grid" },
       product: { shortName: "msl" },
     };
     const values = new Float32Array([1013]);
     const renderer = { clearIsobars: vi.fn(), updateIsobars: vi.fn() };
     const generateIsobars = vi.fn(() => isobars);
-    const service = createForecastIsobarOverlayService({
+    const useCase = createForecastIsobarOverlayUseCase({
       generateIsobars,
       missingValue: 9999,
       renderer,
       supportsIsobars: vi.fn(() => true),
     });
 
-    service.update(entry, values);
+    useCase.update(entry, values);
 
     expect(generateIsobars).toHaveBeenCalledWith({
       shortName: "msl",

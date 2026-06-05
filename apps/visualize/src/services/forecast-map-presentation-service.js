@@ -3,7 +3,7 @@ import { blockForHour } from "../domain/forecast-state.js";
 import { findPackageVariable } from "../domain/model-packages.js";
 import { gradientStopsFor } from "../domain/palettes.js";
 import { parameterDescriptionFor } from "../domain/variable-metadata.js";
-import { createForecastIsobarOverlayService } from "./forecast-isobar-overlay-service.js";
+import { createForecastIsobarOverlayUseCase } from "../use-cases/forecast/update-isobar-overlay";
 import { createForecastWindSymbolOverlayService } from "./forecast-wind-symbol-overlay-service.js";
 
 function defaultFormatModelPackageSubtitle(packageKey) {
@@ -35,7 +35,7 @@ export function createForecastMapPresentationService({
   let viewportRefreshRegistered = false;
   let lastPresentedEntry = null;
   let lastPresentedValues = null;
-  const isobarOverlayService = createForecastIsobarOverlayService({
+  const isobarOverlayService = createForecastIsobarOverlayUseCase({
     missingValue,
     renderer: mapRenderer,
   });
