@@ -12,6 +12,7 @@ import { createForecastPackageResourceService } from "../use-cases/forecast/fetc
 import { createForecastLegendInitializerUseCase } from "../use-cases/forecast/initialize-legend";
 import { createForecastResourceLoadUseCase } from "../use-cases/forecast/load-resources";
 import { createForecastDownloadSessionService } from "../use-cases/forecast/manage-download-session";
+import { createForecastPresentationQueueService } from "../use-cases/forecast/manage-presentation-queue";
 import { createForecastDownloadPreparationUseCase } from "../use-cases/forecast/prepare-download-session";
 import { createForecastResourceRefreshUseCase } from "../use-cases/forecast/resource-refresh";
 import { createForecastVariableSelectionUseCase } from "../use-cases/forecast/select-variable";
@@ -23,7 +24,6 @@ import { createDataGouvResourceService } from "./data-gouv-resource-service.js";
 import { createForecastAnimationService } from "./forecast-animation-service.js";
 import { createForecastBlockRefreshService } from "./forecast-block-refresh-service.js";
 import { createForecastMapPresentationService } from "./forecast-map-presentation-service.js";
-import { createForecastPresentationQueueService } from "./forecast-presentation-queue-service.js";
 import { createForecastRuntime } from "./forecast-runtime.js";
 import {
   deleteObsoleteCachedGribBlocks,

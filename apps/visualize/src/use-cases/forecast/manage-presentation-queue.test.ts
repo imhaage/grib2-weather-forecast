@@ -1,9 +1,9 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastPresentationQueueService } from "./forecast-presentation-queue-service.js";
+import { createForecastPresentationQueueService } from "./manage-presentation-queue";
 
-describe("forecast presentation queue service", () => {
+describe("forecast presentation queue use case", () => {
   test("presents ready blocks sequentially through low-priority scheduling", async () => {
-    const events = [];
+    const events: string[] = [];
     const service = createForecastPresentationQueueService({
       readyStatus: "ready",
       isSessionActive: () => true,
@@ -42,14 +42,14 @@ describe("forecast presentation queue service", () => {
   });
 
   test("waits until queued presentation work is idle", async () => {
-    let releaseSchedule;
+    let releaseSchedule: (() => void) | undefined;
     const service = createForecastPresentationQueueService({
       readyStatus: "ready",
       isSessionActive: () => true,
       presentAvailableBlock: vi.fn(),
       scheduleLowPriorityWork: vi.fn(
         () =>
-          new Promise((resolve) => {
+          new Promise<void>((resolve) => {
             releaseSchedule = resolve;
           }),
       ),
@@ -72,7 +72,7 @@ describe("forecast presentation queue service", () => {
     await Promise.resolve();
     expect(idleResolved).toBe(false);
 
-    releaseSchedule();
+    releaseSchedule?.();
     await enqueuePromise;
 
     await expect(idlePromise).resolves.toBe("idle");

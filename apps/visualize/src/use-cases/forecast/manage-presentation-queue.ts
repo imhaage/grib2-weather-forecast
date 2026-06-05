@@ -1,12 +1,36 @@
+interface PresentationJob {
+  block: unknown;
+  buffer: unknown;
+  status: string;
+}
+
+interface PresentationQueue {
+  idleResolvers: Array<() => void>;
+  isPresenting: boolean;
+  jobs: PresentationJob[];
+}
+
+interface CreateForecastPresentationQueueServiceOptions {
+  readyStatus: string;
+  isSessionActive: (session: object) => boolean;
+  presentAvailableBlock: (
+    block: unknown,
+    buffer: unknown,
+    status: string,
+    session: object,
+  ) => Promise<void> | void;
+  scheduleLowPriorityWork: () => Promise<void>;
+}
+
 export function createForecastPresentationQueueService({
   readyStatus,
   isSessionActive,
   presentAvailableBlock,
   scheduleLowPriorityWork,
-}) {
-  const queueBySession = new WeakMap();
+}: CreateForecastPresentationQueueServiceOptions) {
+  const queueBySession = new WeakMap<object, PresentationQueue>();
 
-  function queueForSession(session) {
+  function queueForSession(session: object) {
     let queue = queueBySession.get(session);
     if (!queue) {
       queue = {
@@ -19,17 +43,18 @@ export function createForecastPresentationQueueService({
     return queue;
   }
 
-  function resolveIdle(queue) {
+  function resolveIdle(queue: PresentationQueue) {
     const resolvers = queue.idleResolvers.splice(0);
     for (const resolve of resolvers) resolve();
   }
 
-  async function drainQueue(session, queue) {
+  async function drainQueue(session: object, queue: PresentationQueue) {
     if (queue.isPresenting) return;
     queue.isPresenting = true;
     try {
       while (queue.jobs.length > 0) {
         const job = queue.jobs.shift();
+        if (!job) continue;
         await scheduleLowPriorityWork();
         if (!isSessionActive(session)) return;
         await presentAvailableBlock(job.block, job.buffer, job.status, session);
@@ -40,7 +65,12 @@ export function createForecastPresentationQueueService({
     }
   }
 
-  async function enqueueAvailableBlock(block, buffer, status, session) {
+  async function enqueueAvailableBlock(
+    block: unknown,
+    buffer: unknown,
+    status: string,
+    session: object,
+  ) {
     if (status !== readyStatus) {
       await presentAvailableBlock(block, buffer, status, session);
       return;
@@ -51,12 +81,12 @@ export function createForecastPresentationQueueService({
     await drainQueue(session, queue);
   }
 
-  function waitForIdle(session) {
+  function waitForIdle(session: object) {
     const queue = queueForSession(session);
     if (!queue.isPresenting && queue.jobs.length === 0) {
       return Promise.resolve();
     }
-    return new Promise((resolve) => {
+    return new Promise<void>((resolve) => {
       queue.idleResolvers.push(resolve);
     });
   }
