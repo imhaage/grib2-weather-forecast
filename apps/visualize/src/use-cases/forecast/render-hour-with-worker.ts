@@ -1,5 +1,34 @@
-import { isVectorCompositeVariable } from "../domain/wind-composite-variable.js";
-import { createForecastRenderRequest } from "../use-cases/forecast/create-render-request";
+import { isVectorCompositeVariable } from "../../domain/wind-composite-variable.js";
+import { createForecastRenderRequest } from "./create-render-request";
+
+type ForecastRenderRequest = NonNullable<ReturnType<typeof createForecastRenderRequest>>;
+
+interface RenderedHourResult {
+  bitmap?: {
+    close: () => void;
+  };
+  values?: Float32Array;
+}
+
+interface ModelBlockService {
+  decodeValues: (request: ForecastRenderRequest) => Promise<RenderedHourResult | null>;
+  renderHour: (request: ForecastRenderRequest) => Promise<RenderedHourResult | null>;
+}
+
+interface PerformanceApi {
+  now: () => number;
+}
+
+interface CreateForecastHourWorkerRenderServiceOptions {
+  getCurrentPalette: () => string;
+  getCurrentRenderGeneration: () => number;
+  getModelBlockService: () => ModelBlockService;
+  getModelState: () => Parameters<typeof createForecastRenderRequest>[0]["state"];
+  missingValue: number;
+  notifyDiagnostics: () => void;
+  perfDebug?: boolean;
+  performanceApi?: PerformanceApi;
+}
 
 export function createForecastHourWorkerRenderService({
   getCurrentPalette,
@@ -10,11 +39,11 @@ export function createForecastHourWorkerRenderService({
   notifyDiagnostics,
   perfDebug = false,
   performanceApi = globalThis.performance,
-}) {
-  let lastRenderMs = null;
+}: CreateForecastHourWorkerRenderServiceOptions) {
+  let lastRenderMs: number | null = null;
   const lastDecodeMs = null;
 
-  function requestForHour(hourIndex, hour, { includeValues = false } = {}) {
+  function requestForHour(hourIndex: number, hour: number, { includeValues = false } = {}) {
     const modelState = getModelState();
     const shouldKeepValues = shouldKeepValuesForCurrentVariable();
     return createForecastRenderRequest({
@@ -32,7 +61,7 @@ export function createForecastHourWorkerRenderService({
     return isVectorCompositeVariable(getModelState()?.variable);
   }
 
-  async function renderHour(hourIndex, { includeValues = false } = {}) {
+  async function renderHour(hourIndex: number, { includeValues = false } = {}) {
     const modelState = getModelState();
     const hour = modelState.hourList[hourIndex];
     const request = requestForHour(hourIndex, hour, { includeValues });
@@ -52,7 +81,7 @@ export function createForecastHourWorkerRenderService({
     return result;
   }
 
-  async function decodeValues(hourIndex, hour) {
+  async function decodeValues(hourIndex: number, hour: number) {
     const request = requestForHour(hourIndex, hour, {
       includeValues: false,
     });

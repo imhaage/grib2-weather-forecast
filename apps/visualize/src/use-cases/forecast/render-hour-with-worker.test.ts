@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastHourWorkerRenderService } from "./forecast-hour-worker-render-service.js";
+import { createForecastHourWorkerRenderService } from "./render-hour-with-worker";
 
 function createService(overrides = {}) {
   const modelState = {
@@ -34,7 +34,7 @@ function createService(overrides = {}) {
   };
 }
 
-describe("forecast hour worker render service", () => {
+describe("forecast hour worker render use case", () => {
   test("renders a forecast hour through the model block worker", async () => {
     const { renderHour, service } = createService();
 

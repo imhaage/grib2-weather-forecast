@@ -2,9 +2,9 @@ import { makeBitmapCacheEntryFromWorker } from "../use-cases/forecast/create-bit
 import { createForecastPrerenderQueueDrainService } from "../use-cases/forecast/drain-prerender-queue";
 import { createForecastHourRenderQueueService } from "../use-cases/forecast/manage-hour-render-queue";
 import { createForecastPrerenderBlockService } from "../use-cases/forecast/prerender-block";
+import { createForecastHourWorkerRenderService } from "../use-cases/forecast/render-hour-with-worker";
 import { resolveAnimationWarmupProgress } from "../use-cases/forecast/resolve-animation-warmup-progress";
 import { createAnimationCacheService } from "./animation-cache-service.js";
-import { createForecastHourWorkerRenderService } from "./forecast-hour-worker-render-service.js";
 import { createForecastTooltipHydrationService } from "./forecast-tooltip-hydration-service.js";
 
 function fmtHourLabel(hour) {
