@@ -35,6 +35,7 @@ Keep this list practical. Move items between sections as decisions are made and 
 - Move forecast prerender block orchestration from `services/` to `use-cases/forecast/`.
 - Move forecast hour worker render orchestration from `services/` to `use-cases/forecast/`.
 - Move forecast tooltip hydration orchestration from `services/` to `use-cases/forecast/`.
+- Move data.gouv resource access from `services/` to `adapters/forecast/`.
 
 ## Next
 

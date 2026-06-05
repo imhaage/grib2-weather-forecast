@@ -4,9 +4,9 @@ import {
   parseDataGouvResources,
   proxyDataGouvUrl,
   proxyResourceUrl,
-} from "./data-gouv-resource-service.js";
+} from "./data-gouv-resource-adapter";
 
-describe("data.gouv resource service", () => {
+describe("data.gouv resource adapter", () => {
   test("builds proxied resource URLs", () => {
     expect(proxyResourceUrl("https://example.test/path/file.grib2?x=1", "https://proxy.test")).toBe(
       "https://proxy.test/example.test/path/file.grib2?x=1",
@@ -72,6 +72,7 @@ describe("data.gouv resource service", () => {
   test("fetches proxied dataset resources with injected fetch and surfaces API errors", async () => {
     const fetchImpl = vi.fn(async () => ({
       ok: true,
+      status: 200,
       json: async () => ({
         resources: [
           {
@@ -103,7 +104,11 @@ describe("data.gouv resource service", () => {
       "https://proxy.test/www.data.gouv.fr/api/1/datasets/dataset-1/",
     );
 
-    fetchImpl.mockResolvedValueOnce({ ok: false, status: 503 });
+    fetchImpl.mockResolvedValueOnce({
+      ok: false,
+      status: 503,
+      json: async () => ({ resources: [] }),
+    });
     await expect(service.fetchResources("dataset-1", "SP1")).rejects.toThrow("API 503");
   });
 });

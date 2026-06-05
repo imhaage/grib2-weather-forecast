@@ -1,3 +1,4 @@
+import { createDataGouvResourceService } from "../adapters/forecast/data-gouv-resource-adapter";
 import {
   formatForecastValidTimeLabel as formatPackageForecastValidTimeLabel,
   formatModelPackageSubtitle as formatPackageModelSubtitle,
@@ -20,7 +21,6 @@ import { createForecastInitialDownloadUseCase } from "../use-cases/forecast/star
 import { createForecastAvailableBlockUseCase } from "../use-cases/forecast/store-available-block";
 import { createForecastResourceUpdateUseCase } from "../use-cases/forecast/update-resources";
 import { createDownloadWorkerClient as createDefaultDownloadWorkerClient } from "../workers/download-worker-client.js";
-import { createDataGouvResourceService } from "./data-gouv-resource-service.js";
 import { createForecastAnimationService } from "./forecast-animation-service.js";
 import { createForecastBlockRefreshService } from "./forecast-block-refresh-service.js";
 import { createForecastMapPresentationService } from "./forecast-map-presentation-service.js";
