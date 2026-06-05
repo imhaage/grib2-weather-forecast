@@ -3,6 +3,7 @@ import { createAnimationCacheService } from "./animation-cache-service.js";
 import { resolveAnimationWarmupProgress } from "./forecast-animation-warmup-progress-service.js";
 import { makeBitmapCacheEntryFromWorker } from "./forecast-bitmap-cache-entry-service.js";
 import { createForecastHourRenderQueueService } from "./forecast-hour-render-queue-service.js";
+import { createForecastPrerenderQueueDrainService } from "./forecast-prerender-queue-drain-service.js";
 import { createForecastRenderRequest } from "./forecast-render-request-service.js";
 import { createForecastTooltipHydrationService } from "./forecast-tooltip-hydration-service.js";
 
@@ -46,6 +47,13 @@ export function createForecastAnimationService({
     makeGridState,
     setGridState,
     updateIsobarOverlay,
+  });
+  const prerenderQueueDrainService = createForecastPrerenderQueueDrainService({
+    getCurrentRenderGeneration: () => currentRenderGeneration,
+    getCurrentState: currentState,
+    notifyDiagnostics,
+    prerenderBlock,
+    queue: animationCache,
   });
 
   function currentState() {
@@ -272,26 +280,7 @@ export function createForecastAnimationService({
   }
 
   async function drainPrerenderQueue() {
-    if (!animationCache.beginDrain()) return;
-    notifyDiagnostics();
-    try {
-      let job = animationCache.nextJob();
-      while (job) {
-        notifyDiagnostics();
-        if (currentState() === job.state && currentRenderGeneration === job.renderGeneration) {
-          await prerenderBlock(job.blockKey);
-        }
-        animationCache.completeJob(job);
-        notifyDiagnostics();
-        job = animationCache.nextJob();
-      }
-    } finally {
-      animationCache.endDrain();
-      notifyDiagnostics();
-      if (animationCache.queueLength > 0) {
-        drainPrerenderQueue();
-      }
-    }
+    await prerenderQueueDrainService.drain();
   }
 
   function resetDecoding() {
