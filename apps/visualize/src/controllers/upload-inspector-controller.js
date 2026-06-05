@@ -1,4 +1,5 @@
-import { readFileAsArrayBuffer } from "../services/browser-file-reader-service.js";
+import { createBrowserFileReaderAdapter } from "../adapters/upload-inspector/browser-file-reader-adapter";
+import { inspectUploadedFile } from "../use-cases/upload-inspector/inspect-uploaded-file";
 
 export function createUploadInspectorController({
   centres,
@@ -6,51 +7,80 @@ export function createUploadInspectorController({
   formatRefTime,
   formatSize,
   iterateMessages,
-  readFileAsArrayBuffer: readBuffer = readFileAsArrayBuffer,
+  fileReader = createBrowserFileReaderAdapter(),
+  readFileAsArrayBuffer,
   renderCard,
 }) {
   let fileState = null;
+  const resolvedFileReader = readFileAsArrayBuffer
+    ? { readAsArrayBuffer: readFileAsArrayBuffer }
+    : fileReader;
 
   function setStatus(message, isError = false) {
     dom.status.textContent = message;
     dom.status.classList.toggle("error", isError);
   }
 
-  function reset() {
-    fileState = null;
+  function resetRenderedFile() {
     dom.summary.hidden = true;
     dom.results.hidden = true;
     dom.cards.replaceChildren();
+  }
+
+  function renderInspectionResult(result) {
+    fileState = { messages: result.messages };
+    dom.name.textContent = result.file.name;
+    dom.size.textContent = result.file.sizeLabel;
+    dom.count.textContent = result.summary.messageCount;
+    dom.centre.textContent = result.summary.centreLabel;
+    dom.referenceTime.textContent = result.summary.referenceTimeLabel;
+    dom.summary.hidden = false;
+    dom.cards.replaceChildren(
+      ...result.messages.map((message) => renderCard(dom.cards.ownerDocument, message)),
+    );
+    dom.results.hidden = false;
+    setStatus("");
+  }
+
+  function handleInspectionEvent(event) {
+    switch (event.type) {
+      case "reading":
+        resetRenderedFile();
+        setStatus("Reading file...");
+        break;
+      case "empty":
+        fileState = null;
+        setStatus("No GRIB2 messages found.", true);
+        break;
+      case "ready":
+        renderInspectionResult(event.result);
+        break;
+      case "error":
+        fileState = null;
+        setStatus(`Error: ${event.error.message}`, true);
+        break;
+    }
+  }
+
+  function reset() {
+    fileState = null;
+    resetRenderedFile();
     dom.status.textContent = "";
     dom.status.classList.remove("error");
   }
 
   async function processFile(file) {
-    setStatus("Reading file…");
-    try {
-      const buffer = await readBuffer(file);
-      const messages = [...iterateMessages(buffer)];
-      if (messages.length === 0) {
-        setStatus("No GRIB2 messages found.", true);
-        return;
-      }
-
-      fileState = { messages };
-      const first = messages[0];
-      dom.name.textContent = file.name;
-      dom.size.textContent = formatSize(file.size);
-      dom.count.textContent = messages.length;
-      dom.centre.textContent = centres[first.header.centre] ?? `Centre ${first.header.centre}`;
-      dom.referenceTime.textContent = formatRefTime(first.header);
-      dom.summary.hidden = false;
-      dom.cards.replaceChildren(
-        ...messages.map((message) => renderCard(dom.cards.ownerDocument, message)),
-      );
-      dom.results.hidden = false;
-      setStatus("");
-    } catch (error) {
-      setStatus(`Error: ${error.message}`, true);
-    }
+    await inspectUploadedFile({
+      file,
+      centres,
+      fileReader: resolvedFileReader,
+      messageIterator: { iterateMessages },
+      formatters: {
+        formatFileSize: formatSize,
+        formatReferenceTime: formatRefTime,
+      },
+      emit: handleInspectionEvent,
+    });
   }
 
   function getSelectedMessage(route) {
