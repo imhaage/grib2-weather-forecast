@@ -1,22 +1,10 @@
 import { isVectorCompositeVariable } from "../domain/wind-composite-variable.js";
 import { createAnimationCacheService } from "./animation-cache-service.js";
+import { resolveAnimationWarmupProgress } from "./forecast-animation-warmup-progress-service.js";
 import { createForecastRenderRequest } from "./forecast-render-request-service.js";
 
 function fmtHourLabel(hour) {
   return `+${String(hour).padStart(2, "0")}H`;
-}
-
-function hasPendingDownloads(modelState) {
-  return modelState.resources.some(
-    (block) => block.status === "downloading" || !modelState.availableBlocks.has(block.key),
-  );
-}
-
-function animationWarmupLabel(modelState, { isWaiting, isReady }) {
-  if (isWaiting && hasPendingDownloads(modelState)) return "Animation cache: waiting for downloads";
-  if (isWaiting) return "Preparing animation cache";
-  if (isReady) return "Animation ready";
-  return "Animation cache";
 }
 
 export function makeBitmapCacheEntryFromWorker(renderEntry, { keepValues = false } = {}) {
@@ -119,38 +107,17 @@ export function createForecastAnimationService({
   function updateWarmupProgress() {
     const modelState = currentState();
     if (!modelState?.hourList.length) {
-      renderWarmupProgress({
-        hidden: true,
-        isReady: false,
-        isWaiting: false,
-        label: "Animation cache",
-        percent: 0,
-        ready: 0,
-        total: 0,
-      });
+      const { progress } = resolveAnimationWarmupProgress({ modelState, ready: 0 });
+      renderWarmupProgress(progress);
       syncPlayButtonAvailability();
       return;
     }
 
-    const total = modelState.hourList.length;
     const ready = bitmapCacheReadyCount();
-    const complete = ready === total;
-    if (modelState.animationCacheStatus === "building" && complete) {
-      modelState.animationCacheStatus = "ready";
-    }
-    const isWaiting = modelState.animationCacheStatus === "waiting";
-    const isReady = modelState.animationCacheStatus === "ready";
-    const pct = total ? Math.round((ready / total) * 100) : 0;
+    const { cacheStatus, progress } = resolveAnimationWarmupProgress({ modelState, ready });
+    modelState.animationCacheStatus = cacheStatus;
 
-    renderWarmupProgress({
-      hidden: isReady,
-      isReady,
-      isWaiting,
-      label: animationWarmupLabel(modelState, { isWaiting, isReady }),
-      percent: pct,
-      ready,
-      total,
-    });
+    renderWarmupProgress(progress);
     syncPlayButtonAvailability();
     notifyDiagnostics();
   }
