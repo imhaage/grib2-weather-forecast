@@ -48,6 +48,7 @@ Keep this list practical. Move items between sections as decisions are made and 
 - Move forecast map presentation orchestration from `services/` to `use-cases/forecast/`.
 - Move forecast animation orchestration from `services/` to `use-cases/forecast/`.
 - Move forecast runtime orchestration from `services/` to `use-cases/forecast/`.
+- Move forecast runtime factory from `services/` to `composition/`.
 
 ## Next
 

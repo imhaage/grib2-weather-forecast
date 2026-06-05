@@ -221,7 +221,7 @@ function createController(overrides = {}) {
 async function createControllerWithMockedFactory(api = { startDownload: vi.fn() }) {
   vi.resetModules();
   const createForecastRuntimeFactory = vi.fn(() => api);
-  vi.doMock("../services/forecast-runtime-factory.js", () => ({
+  vi.doMock("../composition/forecast-runtime-factory.js", () => ({
     createForecastRuntimeFactory,
   }));
   const { createForecastRunController: createControllerWithFactory } = await import(
@@ -247,7 +247,7 @@ async function createControllerWithMockedFactory(api = { startDownload: vi.fn() 
     setGridState: vi.fn(),
     setRendering: vi.fn(),
   });
-  vi.doUnmock("../services/forecast-runtime-factory.js");
+  vi.doUnmock("../composition/forecast-runtime-factory.js");
   return { controller, createForecastRuntimeFactory };
 }
 

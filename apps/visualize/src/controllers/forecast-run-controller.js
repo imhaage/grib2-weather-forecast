@@ -1,5 +1,5 @@
+import { createForecastRuntimeFactory } from "../composition/forecast-runtime-factory.js";
 import { formatRunSummary } from "../domain/resources.js";
-import { createForecastRuntimeFactory } from "../services/forecast-runtime-factory.js";
 import { createDataStatusSummaryView } from "../ui/data-status-summary.js";
 import { createForecastDownloadView } from "../ui/forecast-download-view.js";
 import { createForecastHourControlView } from "../ui/forecast-hour-control-view.js";
