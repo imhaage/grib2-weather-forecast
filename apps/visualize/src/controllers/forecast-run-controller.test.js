@@ -218,6 +218,39 @@ function createController(overrides = {}) {
   return { controller, dom, mapPresentation, mapRenderer, state };
 }
 
+async function createControllerWithMockedFactory(api = { startDownload: vi.fn() }) {
+  vi.resetModules();
+  const createForecastRuntimeFactory = vi.fn(() => api);
+  vi.doMock("../services/forecast-runtime-factory.js", () => ({
+    createForecastRuntimeFactory,
+  }));
+  const { createForecastRunController: createControllerWithFactory } = await import(
+    "./forecast-run-controller.js"
+  );
+  const dom = createDom();
+  const mapPresentation = {
+    showColorScale: vi.fn(),
+  };
+  const controller = createControllerWithFactory({
+    document,
+    window,
+    dom,
+    mapRenderer: { setVisible: vi.fn() },
+    mapPresentation,
+    missingValue: -9999,
+    makeGridState: vi.fn(),
+    gridCorners: vi.fn(),
+    initMap: vi.fn(),
+    getCurrentPalette: vi.fn(),
+    getGridState: vi.fn(),
+    setCurrentPalette: vi.fn(),
+    setGridState: vi.fn(),
+    setRendering: vi.fn(),
+  });
+  vi.doUnmock("../services/forecast-runtime-factory.js");
+  return { controller, createForecastRuntimeFactory };
+}
+
 describe("forecast run controller", () => {
   beforeEach(() => {
     vi.mocked(readCachedGribBlock).mockResolvedValue(null);
@@ -227,6 +260,17 @@ describe("forecast run controller", () => {
 
   afterEach(() => {
     vi.clearAllMocks();
+  });
+
+  test("delegates runtime wiring to the forecast runtime factory", async () => {
+    const runtimeApi = {
+      startDownload: vi.fn(),
+    };
+    const { controller, createForecastRuntimeFactory } =
+      await createControllerWithMockedFactory(runtimeApi);
+
+    expect(createForecastRuntimeFactory).toHaveBeenCalledOnce();
+    expect(controller).toBe(runtimeApi);
   });
 
   test("initializes package state and grouped variable controls", async () => {
