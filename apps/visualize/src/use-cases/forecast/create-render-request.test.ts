@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { createForecastRenderRequest } from "./forecast-render-request-service.js";
+import { createForecastRenderRequest } from "./create-render-request";
 
 function createState(overrides = {}) {
   return {
@@ -23,7 +23,7 @@ function createState(overrides = {}) {
   };
 }
 
-describe("forecast render request service", () => {
+describe("forecast render request use case", () => {
   test("returns null when the matching block is not available in memory", () => {
     const request = createForecastRenderRequest({
       state: createState({ availableBlocks: new Set() }),
@@ -74,8 +74,8 @@ describe("forecast render request service", () => {
       missingValue: -1e100,
       includeValues: true,
     });
-    expect(request.lut).toBeInstanceOf(Uint8Array);
-    expect(request.lut).toHaveLength(256 * 3);
+    expect(request?.lut).toBeInstanceOf(Uint8Array);
+    expect(request?.lut).toHaveLength(256 * 3);
   });
 
   test("renders composite wind variables from the matching u and v components", () => {

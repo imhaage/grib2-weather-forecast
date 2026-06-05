@@ -1,13 +1,36 @@
-import { createRenderScaleParams } from "../domain/forecast-field.js";
-import { blockForHour } from "../domain/forecast-state.js";
-import { findPackageVariable } from "../domain/model-packages.js";
-import { buildLUT, LOG_SCALE_FLOOR } from "../domain/palettes.js";
-import { displayUnitsFor, unitTransformFor } from "../domain/unit-transforms.js";
-import { staticScaleFor } from "../domain/variable-metadata.js";
+import { createRenderScaleParams } from "../../domain/forecast-field.js";
+import { blockForHour } from "../../domain/forecast-state.js";
+import { findPackageVariable } from "../../domain/model-packages.js";
+import { buildLUT, LOG_SCALE_FLOOR } from "../../domain/palettes.js";
+import { displayUnitsFor, unitTransformFor } from "../../domain/unit-transforms.js";
+import { staticScaleFor } from "../../domain/variable-metadata.js";
 import {
   componentVariableKeyForVector,
   isVectorCompositeVariable,
-} from "../domain/wind-composite-variable.js";
+} from "../../domain/wind-composite-variable.js";
+
+interface ForecastRenderRequestState {
+  packageKey: string;
+  variable: string;
+  resources: Array<{
+    key: string;
+    startHour: number;
+    endHour: number;
+    [key: string]: unknown;
+  }>;
+  availableBlocks: Set<string>;
+  hourList: number[];
+}
+
+interface CreateForecastRenderRequestOptions {
+  state: ForecastRenderRequestState;
+  hourIndex: number;
+  hour: number;
+  renderGeneration: number;
+  paletteName: string;
+  missingValue: number;
+  includeValues?: boolean;
+}
 
 export function createForecastRenderRequest({
   state,
@@ -17,7 +40,7 @@ export function createForecastRenderRequest({
   paletteName,
   missingValue,
   includeValues = false,
-}) {
+}: CreateForecastRenderRequestOptions) {
   const block = blockForHour(state.resources, hour);
   if (!block || !state.availableBlocks.has(block.key)) return null;
 

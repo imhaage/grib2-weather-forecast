@@ -1,5 +1,5 @@
 import { isVectorCompositeVariable } from "../domain/wind-composite-variable.js";
-import { createForecastRenderRequest } from "./forecast-render-request-service.js";
+import { createForecastRenderRequest } from "../use-cases/forecast/create-render-request";
 
 export function createForecastHourWorkerRenderService({
   getCurrentPalette,
