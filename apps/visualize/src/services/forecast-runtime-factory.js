@@ -9,6 +9,7 @@ import { defaultPaletteFor } from "../domain/variable-metadata.js";
 import { BLOCK_STATUS } from "../ui/data-status-summary.js";
 import { createForecastAnimationCacheBuildUseCase } from "../use-cases/forecast/build-animation-cache";
 import { createForecastLegendInitializerUseCase } from "../use-cases/forecast/initialize-legend";
+import { createForecastDownloadPreparationUseCase } from "../use-cases/forecast/prepare-download-session";
 import { createForecastResourceRefreshUseCase } from "../use-cases/forecast/resource-refresh";
 import { createForecastVariableSelectionUseCase } from "../use-cases/forecast/select-variable";
 import { createForecastInitialDownloadUseCase } from "../use-cases/forecast/start-initial-download";
@@ -17,7 +18,6 @@ import { createDataGouvResourceService } from "./data-gouv-resource-service.js";
 import { createForecastAnimationService } from "./forecast-animation-service.js";
 import { createForecastAvailableBlockService } from "./forecast-available-block-service.js";
 import { createForecastBlockRefreshService } from "./forecast-block-refresh-service.js";
-import { createForecastDownloadPreparationService } from "./forecast-download-preparation-service.js";
 import { createForecastDownloadSessionService } from "./forecast-download-session-service.js";
 import { createForecastMapPresentationService } from "./forecast-map-presentation-service.js";
 import { createForecastPackageResourceService } from "./forecast-package-resource-service.js";
@@ -373,7 +373,7 @@ export function createForecastRuntimeFactory({
     isRefreshActive: isModelResourceRefreshActive,
     setStatus: forecastDownloadView.setStatus,
   });
-  const forecastDownloadPreparationService = createForecastDownloadPreparationService({
+  const forecastDownloadPreparationUseCase = createForecastDownloadPreparationUseCase({
     applyResources: applyModelResources,
     createSession: forecastDownloadSessionService.createSession,
     formatRunSummary,
@@ -383,7 +383,7 @@ export function createForecastRuntimeFactory({
   const forecastResourceUpdateService = createForecastResourceUpdateService({
     isRefreshActive: isModelResourceRefreshActive,
     loadPackageResources: forecastResourceLoadService.loadPackageResources,
-    prepareSession: forecastDownloadPreparationService.prepareSession,
+    prepareSession: forecastDownloadPreparationUseCase.prepareSession,
     refreshBlocksToLatest: forecastBlockRefreshService.refreshBlocksToLatest,
     refreshStatus: forecastDownloadSessionService.refreshStatus,
     setStatus: forecastDownloadView.setStatus,
@@ -392,7 +392,7 @@ export function createForecastRuntimeFactory({
     downloadStatus: forecastDownloadSessionService.downloadStatus,
     isRefreshActive: isModelResourceRefreshActive,
     loadPackageResources: forecastResourceLoadService.loadPackageResources,
-    prepareSession: forecastDownloadPreparationService.prepareSession,
+    prepareSession: forecastDownloadPreparationUseCase.prepareSession,
     refreshBlocksToLatest: forecastBlockRefreshService.refreshBlocksToLatest,
     setStatus: forecastDownloadView.setStatus,
   });

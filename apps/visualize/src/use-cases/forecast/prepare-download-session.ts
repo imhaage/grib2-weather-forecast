@@ -1,11 +1,18 @@
-export function createForecastDownloadPreparationService({
+import type { ForecastDownloadPreparationPorts, ForecastSessionPreparationRequest } from "./ports";
+
+export function createForecastDownloadPreparationUseCase({
   applyResources,
   createSession,
   formatRunSummary,
   renderItems,
   resetResourceStatuses,
-}) {
-  function prepareSession({ packageKey, pkg, resources, downloadKey }) {
+}: ForecastDownloadPreparationPorts) {
+  function prepareSession({
+    packageKey,
+    pkg,
+    resources,
+    downloadKey,
+  }: ForecastSessionPreparationRequest) {
     applyResources(resources);
     const runSummary = formatRunSummary(resources);
     renderItems(resources);

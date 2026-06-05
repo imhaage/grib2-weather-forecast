@@ -68,6 +68,18 @@ export interface ForecastInitialDownloadPorts {
   setStatus(status: string): void;
 }
 
+export interface ForecastDownloadPreparationPorts {
+  applyResources(resources: ForecastResourceLike[]): void;
+  createSession(
+    request: ForecastSessionPreparationRequest & {
+      runSummary: string;
+    },
+  ): ForecastDownloadSessionLike;
+  formatRunSummary(resources: ForecastResourceLike[]): string;
+  renderItems(resources: ForecastResourceLike[]): void;
+  resetResourceStatuses(resources: ForecastResourceLike[]): void;
+}
+
 export interface ForecastVariableDefinition {
   shortName: string;
   varKey?: string;
