@@ -41,6 +41,7 @@ Keep this list practical. Move items between sections as decisions are made and 
 - Move isobar MapLibre layer from `services/` to `adapters/forecast/`.
 - Move GRIB IndexedDB cache from `services/` to `adapters/forecast/`.
 - Move model block worker protocol from `services/` to `adapters/forecast/`.
+- Move MapLibre map renderer from `services/` to `adapters/forecast/`.
 
 ## Next
 

@@ -37,7 +37,7 @@ import {
 	staticScaleFor,
 } from "./src/domain/variable-metadata.js";
 import { clearGribCache } from "./src/adapters/forecast/grib-cache-adapter";
-import { createMapRendererService } from "./src/services/map-renderer-service.js";
+import { createMapLibreMapRendererAdapter } from "./src/adapters/forecast/maplibre-map-renderer-adapter";
 import { createRenderWorkerClient } from "./src/workers/render-worker-client.js";
 import { bindAppEvents } from "./src/ui/app-events.js";
 import { createDom } from "./src/ui/dom.js";
@@ -144,7 +144,7 @@ const storageWarningController = createStorageWarningController({
 	storage: localStorage,
 	updateStorageSize: updateStorageWarningSize,
 });
-const mapRenderer = createMapRendererService({
+const mapRenderer = createMapLibreMapRendererAdapter({
 	canvasHeightForGrid: mercatorCanvasHeight,
 	getGridState: () => gridState,
 	getMapScene: () => dom.mapScene,

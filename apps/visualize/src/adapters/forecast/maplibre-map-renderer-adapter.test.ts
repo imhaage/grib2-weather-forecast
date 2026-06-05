@@ -1,24 +1,33 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-const mapInstances = [];
+const mapInstances: FakeMap[] = [];
 
 class FakeMap {
+  addControl = vi.fn();
+  addLayer = vi.fn();
+  addSource = vi.fn();
+  canvas = { style: {} };
+  fitBounds = vi.fn();
+  getBounds = vi.fn(() => ({
+    getEast: () => 5,
+    getNorth: () => 53,
+    getSouth: () => 49,
+    getWest: () => 0,
+  }));
+  getLayer = vi.fn(() => false);
+  getSource = vi.fn(() => null);
+  getZoom = vi.fn(() => 8);
+  on = vi.fn();
+  removeLayer = vi.fn();
+  removeSource = vi.fn();
+  resize = vi.fn();
+  triggerRepaint = vi.fn();
+
   constructor() {
-    this.canvas = { style: {} };
-    this.fitBounds = vi.fn();
-    this.addControl = vi.fn();
-    this.on = vi.fn();
-    this.getBounds = vi.fn(() => ({
-      getEast: () => 5,
-      getNorth: () => 53,
-      getSouth: () => 49,
-      getWest: () => 0,
-    }));
-    this.getZoom = vi.fn(() => 8);
     mapInstances.push(this);
   }
 
-  once(_event, callback) {
+  once(_event: string, callback: () => void) {
     callback();
   }
 
@@ -35,7 +44,7 @@ vi.mock("maplibre-gl", () => ({
 }));
 
 function createService(overrides = {}) {
-  return createMapRendererService({
+  return createMapLibreMapRendererAdapter({
     canvasHeightForGrid: () => 1,
     getGridState: () => null,
     getMapScene: () => ({ hidden: false }),
@@ -47,14 +56,14 @@ function createService(overrides = {}) {
   });
 }
 
-let createMapRendererService;
+let createMapLibreMapRendererAdapter: typeof import("./maplibre-map-renderer-adapter").createMapLibreMapRendererAdapter;
 
 beforeEach(async () => {
   mapInstances.length = 0;
-  ({ createMapRendererService } = await import("./map-renderer-service.js"));
+  ({ createMapLibreMapRendererAdapter } = await import("./maplibre-map-renderer-adapter"));
 });
 
-describe("map renderer service", () => {
+describe("MapLibre map renderer adapter", () => {
   test("registers viewport settled callbacks on moveend and zoomend", async () => {
     const service = createService();
     const callback = vi.fn();
