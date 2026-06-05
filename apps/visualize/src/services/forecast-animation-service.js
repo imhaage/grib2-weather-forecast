@@ -3,6 +3,7 @@ import { createAnimationCacheService } from "./animation-cache-service.js";
 import { resolveAnimationWarmupProgress } from "./forecast-animation-warmup-progress-service.js";
 import { makeBitmapCacheEntryFromWorker } from "./forecast-bitmap-cache-entry-service.js";
 import { createForecastHourRenderQueueService } from "./forecast-hour-render-queue-service.js";
+import { createForecastPrerenderBlockService } from "./forecast-prerender-block-service.js";
 import { createForecastPrerenderQueueDrainService } from "./forecast-prerender-queue-drain-service.js";
 import { createForecastRenderRequest } from "./forecast-render-request-service.js";
 import { createForecastTooltipHydrationService } from "./forecast-tooltip-hydration-service.js";
@@ -54,6 +55,15 @@ export function createForecastAnimationService({
     notifyDiagnostics,
     prerenderBlock,
     queue: animationCache,
+  });
+  const prerenderBlockService = createForecastPrerenderBlockService({
+    cache: animationCache,
+    getCurrentRenderGeneration: () => currentRenderGeneration,
+    getCurrentState: currentState,
+    keepValuesForCurrentVariable: shouldKeepValuesForCurrentVariable,
+    mapWorkerEntry: makeBitmapCacheEntryFromWorker,
+    renderHour: renderModelHourViaWorker,
+    updateWarmupProgress,
   });
 
   function currentState() {
@@ -218,41 +228,10 @@ export function createForecastAnimationService({
   }
 
   async function prerenderBlock(blockKey) {
-    const capturedState = currentState();
-    const capturedRenderGeneration = currentRenderGeneration;
-    const block = capturedState.resources.find((resource) => resource.key === blockKey);
-    if (!block) return;
-
-    for (let hour = block.startHour; hour <= block.endHour; hour++) {
-      if (currentState() !== capturedState || currentRenderGeneration !== capturedRenderGeneration)
-        return;
-
-      const idx = capturedState.hourList.indexOf(hour);
-      if (idx === -1 || animationCache.hasHour(hour)) continue;
-
-      const entry = await renderModelHourViaWorker(idx);
-      if (!entry) return;
-
-      if (
-        currentState() === capturedState &&
-        currentRenderGeneration === capturedRenderGeneration
-      ) {
-        if (animationCache.hasHour(hour)) {
-          entry.bitmap.close();
-        } else {
-          animationCache.setHour(
-            hour,
-            makeBitmapCacheEntryFromWorker(entry, {
-              keepValues: shouldKeepValuesForCurrentVariable(),
-            }),
-          );
-          updateWarmupProgress();
-        }
-      } else {
-        entry.bitmap.close();
-        return;
-      }
-    }
+    await prerenderBlockService.prerenderBlock(blockKey, {
+      renderGeneration: currentRenderGeneration,
+      state: currentState(),
+    });
   }
 
   function queuePrerenderBlock(blockKey) {
