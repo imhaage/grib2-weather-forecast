@@ -11,6 +11,7 @@ import { createForecastAnimationCacheBuildUseCase } from "../use-cases/forecast/
 import { createForecastLegendInitializerUseCase } from "../use-cases/forecast/initialize-legend";
 import { createForecastResourceRefreshUseCase } from "../use-cases/forecast/resource-refresh";
 import { createForecastVariableSelectionUseCase } from "../use-cases/forecast/select-variable";
+import { createForecastInitialDownloadUseCase } from "../use-cases/forecast/start-initial-download";
 import { createDownloadWorkerClient as createDefaultDownloadWorkerClient } from "../workers/download-worker-client.js";
 import { createDataGouvResourceService } from "./data-gouv-resource-service.js";
 import { createForecastAnimationService } from "./forecast-animation-service.js";
@@ -18,7 +19,6 @@ import { createForecastAvailableBlockService } from "./forecast-available-block-
 import { createForecastBlockRefreshService } from "./forecast-block-refresh-service.js";
 import { createForecastDownloadPreparationService } from "./forecast-download-preparation-service.js";
 import { createForecastDownloadSessionService } from "./forecast-download-session-service.js";
-import { createForecastInitialDownloadService } from "./forecast-initial-download-service.js";
 import { createForecastMapPresentationService } from "./forecast-map-presentation-service.js";
 import { createForecastPackageResourceService } from "./forecast-package-resource-service.js";
 import { createForecastPresentationQueueService } from "./forecast-presentation-queue-service.js";
@@ -388,7 +388,7 @@ export function createForecastRuntimeFactory({
     refreshStatus: forecastDownloadSessionService.refreshStatus,
     setStatus: forecastDownloadView.setStatus,
   });
-  const forecastInitialDownloadService = createForecastInitialDownloadService({
+  const forecastInitialDownloadUseCase = createForecastInitialDownloadUseCase({
     downloadStatus: forecastDownloadSessionService.downloadStatus,
     isRefreshActive: isModelResourceRefreshActive,
     loadPackageResources: forecastResourceLoadService.loadPackageResources,
@@ -406,7 +406,7 @@ export function createForecastRuntimeFactory({
     createDownloadWorkerClient,
     createModelBlockServiceClient,
     createModelState,
-    downloadInitialForecast: forecastInitialDownloadService.startInitialDownload,
+    downloadInitialForecast: forecastInitialDownloadUseCase.startInitialDownload,
     downloadWorkerProxyUrl: dataGouvResourceService.proxyResourceUrl,
     getSelectedHourIndex: forecastHourControlView.selectedIndex,
     getPackage: (packageKey) => PACKAGES[packageKey],

@@ -19,6 +19,7 @@ Keep this list practical. Move items between sections as decisions are made and 
 - Move forecast variable selection from `services/` to `use-cases/forecast/`.
 - Move forecast legend initialization from `services/` to `use-cases/forecast/`.
 - Move forecast resource refresh generation from `services/` to `use-cases/forecast/`.
+- Move forecast initial download orchestration from `services/` to `use-cases/forecast/`.
 
 ## Next
 
@@ -42,7 +43,7 @@ Keep this list practical. Move items between sections as decisions are made and 
 
 ## Questions
 
-- Which forecast workflow should be migrated next: resource loading, resource update, initial download, or map presentation?
+- Which forecast workflow should be migrated next: resource loading, resource update, download preparation, or map presentation?
 - Which forecast ports are stable enough to name now, and which should emerge only during extraction?
 - Should composition live in a dedicated `composition/` folder later, or remain in the current factory until the migration is further along?
 

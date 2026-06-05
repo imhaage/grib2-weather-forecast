@@ -1,12 +1,18 @@
-export function createForecastInitialDownloadService({
+import type { ForecastInitialDownloadPorts, ForecastInitialDownloadRequest } from "./ports";
+
+export function createForecastInitialDownloadUseCase({
   downloadStatus,
   isRefreshActive,
   loadPackageResources,
   prepareSession,
   refreshBlocksToLatest,
   setStatus,
-}) {
-  async function startInitialDownload({ packageKey, pkg, downloadKey }) {
+}: ForecastInitialDownloadPorts) {
+  async function startInitialDownload({
+    packageKey,
+    pkg,
+    downloadKey,
+  }: ForecastInitialDownloadRequest) {
     const resources = await loadPackageResources({
       packageKey,
       downloadKey,

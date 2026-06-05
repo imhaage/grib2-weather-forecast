@@ -26,6 +26,48 @@ export interface ForecastResourceRefreshKey {
   refreshId: number;
 }
 
+export interface ForecastPackageLike {
+  [key: string]: unknown;
+}
+
+export interface ForecastResourceLike {
+  [key: string]: unknown;
+}
+
+export interface ForecastDownloadSessionLike {
+  [key: string]: unknown;
+}
+
+export interface ForecastInitialDownloadRequest {
+  packageKey: string;
+  pkg: ForecastPackageLike;
+  downloadKey: unknown;
+}
+
+export interface ForecastResourceLoadRequest {
+  packageKey: string;
+  downloadKey: unknown;
+  loadingStatus: string;
+}
+
+export interface ForecastSessionPreparationRequest {
+  packageKey: string;
+  pkg: ForecastPackageLike;
+  resources: ForecastResourceLike[];
+  downloadKey: unknown;
+}
+
+export interface ForecastInitialDownloadPorts {
+  downloadStatus(session: ForecastDownloadSessionLike): string;
+  isRefreshActive(downloadKey: unknown): boolean;
+  loadPackageResources(
+    request: ForecastResourceLoadRequest,
+  ): Promise<ForecastResourceLike[] | null>;
+  prepareSession(request: ForecastSessionPreparationRequest): ForecastDownloadSessionLike;
+  refreshBlocksToLatest(session: ForecastDownloadSessionLike): Promise<boolean>;
+  setStatus(status: string): void;
+}
+
 export interface ForecastVariableDefinition {
   shortName: string;
   varKey?: string;

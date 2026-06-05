@@ -1,11 +1,11 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastInitialDownloadService } from "./forecast-initial-download-service.js";
+import { createForecastInitialDownloadUseCase } from "./start-initial-download";
 
-describe("forecast initial download service", () => {
+describe("forecast initial download use case", () => {
   test("loads initial resources, prepares a session, and refreshes blocks", async () => {
     const resources = [{ key: "01H" }];
     const session = { id: "session" };
-    const dependencies = {
+    const ports = {
       isRefreshActive: vi.fn(() => true),
       loadPackageResources: vi.fn(async () => resources),
       prepareSession: vi.fn(() => session),
@@ -13,35 +13,35 @@ describe("forecast initial download service", () => {
       downloadStatus: vi.fn(() => "Downloading 1 AROME_SP1 file..."),
       setStatus: vi.fn(),
     };
-    const service = createForecastInitialDownloadService(dependencies);
+    const useCase = createForecastInitialDownloadUseCase(ports);
     const downloadKey = { id: 1 };
     const pkg = { label: "AROME SP1" };
 
     await expect(
-      service.startInitialDownload({
+      useCase.startInitialDownload({
         packageKey: "AROME_SP1",
         pkg,
         downloadKey,
       }),
     ).resolves.toBe(session);
 
-    expect(dependencies.loadPackageResources).toHaveBeenCalledWith({
+    expect(ports.loadPackageResources).toHaveBeenCalledWith({
       packageKey: "AROME_SP1",
       downloadKey,
       loadingStatus: "Fetching file list…",
     });
-    expect(dependencies.prepareSession).toHaveBeenCalledWith({
+    expect(ports.prepareSession).toHaveBeenCalledWith({
       packageKey: "AROME_SP1",
       pkg,
       resources,
       downloadKey,
     });
-    expect(dependencies.setStatus).toHaveBeenCalledWith("Downloading 1 AROME_SP1 file...");
-    expect(dependencies.refreshBlocksToLatest).toHaveBeenCalledWith(session);
+    expect(ports.setStatus).toHaveBeenCalledWith("Downloading 1 AROME_SP1 file...");
+    expect(ports.refreshBlocksToLatest).toHaveBeenCalledWith(session);
   });
 
   test("returns null when resources are not available anymore", async () => {
-    const service = createForecastInitialDownloadService({
+    const useCase = createForecastInitialDownloadUseCase({
       isRefreshActive: vi.fn(() => false),
       loadPackageResources: vi.fn(async () => [{ key: "01H" }]),
       prepareSession: vi.fn(),
@@ -51,7 +51,7 @@ describe("forecast initial download service", () => {
     });
 
     await expect(
-      service.startInitialDownload({
+      useCase.startInitialDownload({
         packageKey: "AROME_SP1",
         pkg: {},
         downloadKey: { id: 1 },
@@ -60,7 +60,7 @@ describe("forecast initial download service", () => {
   });
 
   test("returns null when latest block refresh does not complete", async () => {
-    const service = createForecastInitialDownloadService({
+    const useCase = createForecastInitialDownloadUseCase({
       isRefreshActive: vi.fn(() => true),
       loadPackageResources: vi.fn(async () => [{ key: "01H" }]),
       prepareSession: vi.fn(() => ({ id: "session" })),
@@ -70,7 +70,7 @@ describe("forecast initial download service", () => {
     });
 
     await expect(
-      service.startInitialDownload({
+      useCase.startInitialDownload({
         packageKey: "AROME_SP1",
         pkg: {},
         downloadKey: { id: 1 },
