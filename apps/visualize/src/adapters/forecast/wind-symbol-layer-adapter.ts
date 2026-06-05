@@ -8,11 +8,32 @@ const WIND_ARROW_VIEWBOX_SIZE = 24;
 const WIND_ARROW_SVG_PATH = "M12 2 L21 22 L13.2 18.2 L12 17.6 L10.8 18.2 L3 22 Z";
 const WIND_SYMBOL_OPACITY = 0.42;
 
+interface MapLibreLike {
+  addImage?: (
+    id: string,
+    image: { width: number; height: number; data: Uint8ClampedArray },
+  ) => void;
+  addLayer: (layer: Record<string, unknown>) => void;
+  addSource: (id: string, source: Record<string, unknown>) => void;
+  getLayer: (id: string) => unknown;
+  getSource: (id: string) => { setData?: (data: unknown) => void } | null | undefined;
+  hasImage?: (id: string) => boolean;
+  removeLayer: (id: string) => void;
+  removeSource: (id: string) => void;
+}
+
 function createArrowIconImageData() {
   const canvas = document.createElement("canvas");
   canvas.width = WIND_ARROW_ICON_SIZE;
   canvas.height = WIND_ARROW_ICON_SIZE;
   const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    return {
+      width: WIND_ARROW_ICON_SIZE,
+      height: WIND_ARROW_ICON_SIZE,
+      data: new Uint8ClampedArray(),
+    };
+  }
   ctx.scale(
     WIND_ARROW_ICON_SIZE / WIND_ARROW_VIEWBOX_SIZE,
     WIND_ARROW_ICON_SIZE / WIND_ARROW_VIEWBOX_SIZE,
@@ -23,19 +44,19 @@ function createArrowIconImageData() {
   return { width: image.width, height: image.height, data: image.data };
 }
 
-function ensureArrowIcon(map) {
+function ensureArrowIcon(map: MapLibreLike) {
   if (!map.hasImage || !map.addImage || map.hasImage(WIND_ARROW_ICON_ID)) return;
   map.addImage(WIND_ARROW_ICON_ID, createArrowIconImageData());
 }
 
-function addWindSymbolSource(map, geojson) {
+function addWindSymbolSource(map: MapLibreLike, geojson: unknown) {
   map.addSource(WIND_SYMBOL_SOURCE_ID, {
     type: "geojson",
     data: geojson,
   });
 }
 
-function addWindArrowLayer(map) {
+function addWindArrowLayer(map: MapLibreLike) {
   map.addLayer({
     id: WIND_ARROW_LAYER_ID,
     type: "symbol",
@@ -55,7 +76,7 @@ function addWindArrowLayer(map) {
   });
 }
 
-function addWindCalmLayer(map) {
+function addWindCalmLayer(map: MapLibreLike) {
   map.addLayer({
     id: WIND_CALM_LAYER_ID,
     type: "circle",
@@ -72,12 +93,12 @@ function addWindCalmLayer(map) {
   });
 }
 
-function removeLayerIfExists(map, layerId) {
+function removeLayerIfExists(map: MapLibreLike, layerId: string) {
   if (map.getLayer(layerId)) map.removeLayer(layerId);
 }
 
-export function createWindSymbolLayerService({ getMap }) {
-  function ensureLayers(map, geojson) {
+export function createWindSymbolLayerService({ getMap }: { getMap: () => MapLibreLike | null }) {
+  function ensureLayers(map: MapLibreLike, geojson: unknown) {
     if (!map.getSource(WIND_SYMBOL_SOURCE_ID)) {
       addWindSymbolSource(map, geojson);
     }
@@ -87,7 +108,7 @@ export function createWindSymbolLayerService({ getMap }) {
   }
 
   return {
-    update(geojson) {
+    update(geojson: unknown) {
       const map = getMap();
       if (!map) return;
       const source = map.getSource(WIND_SYMBOL_SOURCE_ID);

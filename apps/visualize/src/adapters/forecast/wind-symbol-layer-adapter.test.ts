@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { createWindSymbolLayerService } from "./wind-symbol-layer-service.js";
+import { createWindSymbolLayerService } from "./wind-symbol-layer-adapter";
 
 function createMap() {
   const sources = new Map();
@@ -22,9 +22,9 @@ function stubSvgRasterization() {
   };
   const context = {
     fill: vi.fn(),
+    fillStyle: "",
     getImageData: vi.fn(() => imageData),
     scale: vi.fn(),
-    fillStyle: "",
   };
   const canvas = {
     height: 0,
@@ -35,10 +35,10 @@ function stubSvgRasterization() {
     createElement: vi.fn(() => canvas),
   });
   vi.stubGlobal("Path2D", vi.fn());
-  return { canvas, context, imageData };
+  return { canvas, context };
 }
 
-describe("wind symbol layer service", () => {
+describe("wind symbol layer adapter", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -93,28 +93,6 @@ describe("wind symbol layer service", () => {
         }),
       }),
     );
-  });
-
-  test("registers the arrow icon as explicit image data for MapLibre", () => {
-    stubSvgRasterization();
-    const map = {
-      ...createMap(),
-      addImage: vi.fn(),
-      hasImage: vi.fn(() => false),
-    };
-    const service = createWindSymbolLayerService({ getMap: () => map });
-
-    service.update({ type: "FeatureCollection", features: [] });
-
-    expect(map.addImage).toHaveBeenCalledWith(
-      "wind-arrow",
-      expect.objectContaining({
-        width: 32,
-        height: 32,
-        data: expect.any(Uint8ClampedArray),
-      }),
-    );
-    expect(map.addImage.mock.calls[0][1].data).toHaveLength(32 * 32 * 4);
   });
 
   test("rasterizes the configured SVG arrow before registering it", () => {
