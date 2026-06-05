@@ -1,8 +1,8 @@
 import maplibregl from "maplibre-gl";
 
 import { setupMapTooltip } from "../../map-tooltip.js";
+import { createIsobarLayerService } from "../adapters/forecast/isobar-layer-adapter";
 import { createWindSymbolLayerService } from "../adapters/forecast/wind-symbol-layer-adapter";
-import { createIsobarLayerService } from "./isobar-layer-service.js";
 
 export function createMapRendererService({
   canvasHeightForGrid,

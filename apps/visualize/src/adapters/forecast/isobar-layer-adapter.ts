@@ -3,15 +3,29 @@ const ISOBAR_LINE_LAYER_ID = "isobars-line";
 const ISOBAR_LABEL_LAYER_ID = "isobars-label";
 const ISOBAR_COLOR = "#111827";
 
-function hasSource(map) {
+interface MapLibreLike {
+  addLayer: (layer: Record<string, unknown>) => void;
+  addSource: (id: string, source: Record<string, unknown>) => void;
+  getLayer: (id: string) => unknown;
+  getSource: (id: string) => { setData?: (data: unknown) => void } | null | undefined;
+  removeLayer: (id: string) => void;
+  removeSource: (id: string) => void;
+}
+
+interface FeatureCollectionLike {
+  features?: unknown[];
+  [key: string]: unknown;
+}
+
+function hasSource(map: MapLibreLike) {
   return Boolean(map.getSource(ISOBAR_SOURCE_ID));
 }
 
-function hasLayer(map, id) {
+function hasLayer(map: MapLibreLike, id: string) {
   return Boolean(map.getLayer(id));
 }
 
-export function createIsobarLayerService({ getMap }) {
+export function createIsobarLayerService({ getMap }: { getMap: () => MapLibreLike | null }) {
   function remove() {
     const map = getMap();
     if (!map) return;
@@ -20,7 +34,7 @@ export function createIsobarLayerService({ getMap }) {
     if (hasSource(map)) map.removeSource(ISOBAR_SOURCE_ID);
   }
 
-  function addLayers(map) {
+  function addLayers(map: MapLibreLike) {
     map.addLayer({
       id: ISOBAR_LINE_LAYER_ID,
       type: "line",
@@ -50,7 +64,7 @@ export function createIsobarLayerService({ getMap }) {
     });
   }
 
-  function update(geojson) {
+  function update(geojson: FeatureCollectionLike | null | undefined) {
     const map = getMap();
     if (!map) return;
     if (!geojson?.features?.length) {
@@ -58,7 +72,7 @@ export function createIsobarLayerService({ getMap }) {
       return;
     }
     if (hasSource(map)) {
-      map.getSource(ISOBAR_SOURCE_ID).setData(geojson);
+      map.getSource(ISOBAR_SOURCE_ID)?.setData?.(geojson);
       return;
     }
     map.addSource(ISOBAR_SOURCE_ID, {
