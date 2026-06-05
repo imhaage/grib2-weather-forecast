@@ -1,11 +1,19 @@
-export function createForecastAvailableBlockService({
+import type { ForecastAvailableBlockPorts, ForecastAvailableBlockStoreRequest } from "./ports";
+
+export function createForecastAvailableBlockUseCase({
   incrementAvailableCount,
   invalidateBlockRenderCache,
   markBlockAvailable,
   setBlockStatus,
   storeBlock,
-}) {
-  async function storeAvailableBlock({ block, buffer, session, state, status }) {
+}: ForecastAvailableBlockPorts) {
+  async function storeAvailableBlock({
+    block,
+    buffer,
+    session,
+    state,
+    status,
+  }: ForecastAvailableBlockStoreRequest): Promise<boolean> {
     const hadBuffer = state.availableBlocks.has(block.key);
     if (hadBuffer) {
       invalidateBlockRenderCache(block);

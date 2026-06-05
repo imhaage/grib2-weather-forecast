@@ -14,11 +14,11 @@ import { createForecastDownloadPreparationUseCase } from "../use-cases/forecast/
 import { createForecastResourceRefreshUseCase } from "../use-cases/forecast/resource-refresh";
 import { createForecastVariableSelectionUseCase } from "../use-cases/forecast/select-variable";
 import { createForecastInitialDownloadUseCase } from "../use-cases/forecast/start-initial-download";
+import { createForecastAvailableBlockUseCase } from "../use-cases/forecast/store-available-block";
 import { createForecastResourceUpdateUseCase } from "../use-cases/forecast/update-resources";
 import { createDownloadWorkerClient as createDefaultDownloadWorkerClient } from "../workers/download-worker-client.js";
 import { createDataGouvResourceService } from "./data-gouv-resource-service.js";
 import { createForecastAnimationService } from "./forecast-animation-service.js";
-import { createForecastAvailableBlockService } from "./forecast-available-block-service.js";
 import { createForecastBlockRefreshService } from "./forecast-block-refresh-service.js";
 import { createForecastDownloadSessionService } from "./forecast-download-session-service.js";
 import { createForecastMapPresentationService } from "./forecast-map-presentation-service.js";
@@ -272,7 +272,7 @@ export function createForecastRuntimeFactory({
     updateAvailableFileCount(session);
   }
 
-  const forecastAvailableBlockService = createForecastAvailableBlockService({
+  const forecastAvailableBlockUseCase = createForecastAvailableBlockUseCase({
     incrementAvailableCount: forecastDownloadSessionService.incrementAvailableCount,
     invalidateBlockRenderCache: animationService.invalidateBlockRenderCache,
     markBlockAvailable,
@@ -289,7 +289,7 @@ export function createForecastRuntimeFactory({
   }
 
   async function storeAvailableModelBlock(block, buffer, status, session) {
-    const storedInWorker = await forecastAvailableBlockService.storeAvailableBlock({
+    const storedInWorker = await forecastAvailableBlockUseCase.storeAvailableBlock({
       block,
       buffer,
       session,

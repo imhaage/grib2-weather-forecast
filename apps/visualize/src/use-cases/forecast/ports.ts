@@ -115,6 +115,36 @@ export interface ForecastResourceLoadPorts {
   setStatus(status: string): void;
 }
 
+export interface ForecastBlockLike {
+  key: string;
+  [key: string]: unknown;
+}
+
+export interface ForecastAvailableBlockState {
+  availableBlocks: Set<string>;
+}
+
+export interface ForecastAvailableBlockSession {
+  availableCount: number;
+  [key: string]: unknown;
+}
+
+export interface ForecastAvailableBlockStoreRequest {
+  block: ForecastBlockLike;
+  buffer: Uint8Array;
+  session: ForecastAvailableBlockSession;
+  state: ForecastAvailableBlockState;
+  status: string;
+}
+
+export interface ForecastAvailableBlockPorts {
+  incrementAvailableCount(session: ForecastAvailableBlockSession): void;
+  invalidateBlockRenderCache(block: ForecastBlockLike): void;
+  markBlockAvailable(state: ForecastAvailableBlockState, block: ForecastBlockLike): void;
+  setBlockStatus(block: ForecastBlockLike, status: string): void;
+  storeBlock(block: ForecastBlockLike, buffer: Uint8Array): Promise<boolean>;
+}
+
 export interface ForecastVariableDefinition {
   shortName: string;
   varKey?: string;

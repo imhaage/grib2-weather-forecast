@@ -1,12 +1,12 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastAvailableBlockService } from "./forecast-available-block-service.js";
+import { createForecastAvailableBlockUseCase } from "./store-available-block";
 
-describe("forecast available block service", () => {
+describe("forecast available block use case", () => {
   test("stores a new block, marks it available, and increments the session count", async () => {
-    const state = { availableBlocks: new Set() };
+    const state = { availableBlocks: new Set<string>() };
     const session = { availableCount: 0 };
     const block = { key: "01H" };
-    const service = createForecastAvailableBlockService({
+    const useCase = createForecastAvailableBlockUseCase({
       incrementAvailableCount: vi.fn((session) => {
         session.availableCount++;
       }),
@@ -16,7 +16,7 @@ describe("forecast available block service", () => {
       storeBlock: vi.fn(async () => true),
     });
 
-    const stored = await service.storeAvailableBlock({
+    const stored = await useCase.storeAvailableBlock({
       block,
       buffer: new Uint8Array([1]),
       session,
@@ -35,7 +35,7 @@ describe("forecast available block service", () => {
     const state = { availableBlocks: new Set(["01H"]) };
     const session = { availableCount: 1 };
     const block = { key: "01H" };
-    const service = createForecastAvailableBlockService({
+    const useCase = createForecastAvailableBlockUseCase({
       incrementAvailableCount,
       invalidateBlockRenderCache,
       markBlockAvailable: vi.fn(),
@@ -43,7 +43,7 @@ describe("forecast available block service", () => {
       storeBlock: vi.fn(async () => true),
     });
 
-    await service.storeAvailableBlock({
+    await useCase.storeAvailableBlock({
       block,
       buffer: new Uint8Array([1]),
       session,
@@ -56,9 +56,9 @@ describe("forecast available block service", () => {
   });
 
   test("does not mutate state when worker storage fails", async () => {
-    const state = { availableBlocks: new Set() };
+    const state = { availableBlocks: new Set<string>() };
     const session = { availableCount: 0 };
-    const service = createForecastAvailableBlockService({
+    const useCase = createForecastAvailableBlockUseCase({
       incrementAvailableCount: vi.fn(),
       invalidateBlockRenderCache: vi.fn(),
       markBlockAvailable: vi.fn(),
@@ -66,7 +66,7 @@ describe("forecast available block service", () => {
       storeBlock: vi.fn(async () => false),
     });
 
-    const stored = await service.storeAvailableBlock({
+    const stored = await useCase.storeAvailableBlock({
       block: { key: "01H" },
       buffer: new Uint8Array([1]),
       session,
