@@ -80,6 +80,32 @@ export interface ForecastDownloadPreparationPorts {
   resetResourceStatuses(resources: ForecastResourceLike[]): void;
 }
 
+export interface ForecastResourceUpdateState {
+  packageKey: string;
+  resources: ForecastResourceLike[];
+}
+
+export interface ForecastResourceUpdateKey {
+  state: ForecastResourceUpdateState;
+}
+
+export interface ForecastResourceUpdatePorts {
+  isRefreshActive(downloadKey: ForecastResourceUpdateKey): boolean;
+  loadPackageResources(
+    request: ForecastResourceLoadRequest,
+  ): Promise<ForecastResourceLike[] | null>;
+  packages: Record<string, ForecastPackageLike>;
+  prepareSession(request: ForecastSessionPreparationRequest): ForecastDownloadSessionLike;
+  refreshBlocksToLatest(
+    session: ForecastDownloadSessionLike,
+    options: {
+      previousResources: ForecastResourceLike[];
+    },
+  ): Promise<boolean>;
+  refreshStatus(session: ForecastDownloadSessionLike): string;
+  setStatus(status: string): void;
+}
+
 export interface ForecastVariableDefinition {
   shortName: string;
   varKey?: string;

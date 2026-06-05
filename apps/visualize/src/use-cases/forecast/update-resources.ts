@@ -1,6 +1,7 @@
-import { PACKAGES } from "../domain/model-packages.js";
+import { PACKAGES } from "../../domain/model-packages.js";
+import type { ForecastResourceUpdateKey, ForecastResourceUpdatePorts } from "./ports";
 
-export function createForecastResourceUpdateService({
+export function createForecastResourceUpdateUseCase({
   isRefreshActive,
   loadPackageResources,
   packages = PACKAGES,
@@ -8,8 +9,8 @@ export function createForecastResourceUpdateService({
   refreshBlocksToLatest,
   refreshStatus,
   setStatus,
-}) {
-  async function refreshCurrentResourcesToLatest(downloadKey) {
+}: ForecastResourceUpdatePorts) {
+  async function refreshCurrentResourcesToLatest(downloadKey: ForecastResourceUpdateKey) {
     if (!isRefreshActive(downloadKey)) return null;
     const packageKey = downloadKey.state.packageKey;
     const pkg = packages[packageKey];

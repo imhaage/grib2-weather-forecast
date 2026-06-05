@@ -1,12 +1,12 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastResourceUpdateService } from "./forecast-resource-update-service.js";
+import { createForecastResourceUpdateUseCase } from "./update-resources";
 
-describe("forecast resource update service", () => {
+describe("forecast resource update use case", () => {
   test("loads latest resources, prepares a session, and refreshes blocks", async () => {
     const resources = [{ key: "01H" }];
     const previousResources = [{ key: "old-01H" }];
     const session = { id: "session" };
-    const dependencies = {
+    const ports = {
       isRefreshActive: vi.fn(() => true),
       loadPackageResources: vi.fn(async () => resources),
       packages: {
@@ -17,7 +17,7 @@ describe("forecast resource update service", () => {
       refreshStatus: vi.fn(() => "Checking 1 AROME_SP1 file..."),
       setStatus: vi.fn(),
     };
-    const service = createForecastResourceUpdateService(dependencies);
+    const useCase = createForecastResourceUpdateUseCase(ports);
     const downloadKey = {
       state: {
         packageKey: "AROME_SP1",
@@ -25,27 +25,27 @@ describe("forecast resource update service", () => {
       },
     };
 
-    await expect(service.refreshCurrentResourcesToLatest(downloadKey)).resolves.toBe(session);
+    await expect(useCase.refreshCurrentResourcesToLatest(downloadKey)).resolves.toBe(session);
 
-    expect(dependencies.loadPackageResources).toHaveBeenCalledWith({
+    expect(ports.loadPackageResources).toHaveBeenCalledWith({
       packageKey: "AROME_SP1",
       downloadKey,
       loadingStatus: "Checking latest files…",
     });
-    expect(dependencies.prepareSession).toHaveBeenCalledWith({
+    expect(ports.prepareSession).toHaveBeenCalledWith({
       packageKey: "AROME_SP1",
       pkg: { label: "AROME SP1" },
       resources,
       downloadKey,
     });
-    expect(dependencies.setStatus).toHaveBeenCalledWith("Checking 1 AROME_SP1 file...");
-    expect(dependencies.refreshBlocksToLatest).toHaveBeenCalledWith(session, {
+    expect(ports.setStatus).toHaveBeenCalledWith("Checking 1 AROME_SP1 file...");
+    expect(ports.refreshBlocksToLatest).toHaveBeenCalledWith(session, {
       previousResources,
     });
   });
 
   test("returns null when the refresh is no longer active", async () => {
-    const service = createForecastResourceUpdateService({
+    const useCase = createForecastResourceUpdateUseCase({
       isRefreshActive: vi.fn(() => false),
       loadPackageResources: vi.fn(),
       packages: {
@@ -58,14 +58,14 @@ describe("forecast resource update service", () => {
     });
 
     await expect(
-      service.refreshCurrentResourcesToLatest({
+      useCase.refreshCurrentResourcesToLatest({
         state: { packageKey: "AROME_SP1", resources: [] },
       }),
     ).resolves.toBeNull();
   });
 
   test("returns null when latest block refresh does not complete", async () => {
-    const service = createForecastResourceUpdateService({
+    const useCase = createForecastResourceUpdateUseCase({
       isRefreshActive: vi.fn(() => true),
       loadPackageResources: vi.fn(async () => [{ key: "01H" }]),
       packages: {
@@ -78,7 +78,7 @@ describe("forecast resource update service", () => {
     });
 
     await expect(
-      service.refreshCurrentResourcesToLatest({
+      useCase.refreshCurrentResourcesToLatest({
         state: { packageKey: "AROME_SP1", resources: [] },
       }),
     ).resolves.toBeNull();

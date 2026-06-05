@@ -13,6 +13,7 @@ import { createForecastDownloadPreparationUseCase } from "../use-cases/forecast/
 import { createForecastResourceRefreshUseCase } from "../use-cases/forecast/resource-refresh";
 import { createForecastVariableSelectionUseCase } from "../use-cases/forecast/select-variable";
 import { createForecastInitialDownloadUseCase } from "../use-cases/forecast/start-initial-download";
+import { createForecastResourceUpdateUseCase } from "../use-cases/forecast/update-resources";
 import { createDownloadWorkerClient as createDefaultDownloadWorkerClient } from "../workers/download-worker-client.js";
 import { createDataGouvResourceService } from "./data-gouv-resource-service.js";
 import { createForecastAnimationService } from "./forecast-animation-service.js";
@@ -23,7 +24,6 @@ import { createForecastMapPresentationService } from "./forecast-map-presentatio
 import { createForecastPackageResourceService } from "./forecast-package-resource-service.js";
 import { createForecastPresentationQueueService } from "./forecast-presentation-queue-service.js";
 import { createForecastResourceLoadService } from "./forecast-resource-load-service.js";
-import { createForecastResourceUpdateService } from "./forecast-resource-update-service.js";
 import { createForecastRuntime } from "./forecast-runtime.js";
 import {
   deleteObsoleteCachedGribBlocks,
@@ -380,7 +380,7 @@ export function createForecastRuntimeFactory({
     renderItems: forecastDownloadView.renderItems,
     resetResourceStatuses,
   });
-  const forecastResourceUpdateService = createForecastResourceUpdateService({
+  const forecastResourceUpdateUseCase = createForecastResourceUpdateUseCase({
     isRefreshActive: isModelResourceRefreshActive,
     loadPackageResources: forecastResourceLoadService.loadPackageResources,
     prepareSession: forecastDownloadPreparationUseCase.prepareSession,
@@ -412,7 +412,7 @@ export function createForecastRuntimeFactory({
     getPackage: (packageKey) => PACKAGES[packageKey],
     isResourceRefreshActive: isModelResourceRefreshActive,
     mapRenderer,
-    refreshCurrentResourcesToLatest: forecastResourceUpdateService.refreshCurrentResourcesToLatest,
+    refreshCurrentResourcesToLatest: forecastResourceUpdateUseCase.refreshCurrentResourcesToLatest,
     refreshWindSymbolOverlay,
     resetDownloadView: forecastDownloadView.clear,
     resetForecastHourControl: forecastHourControlView.reset,
