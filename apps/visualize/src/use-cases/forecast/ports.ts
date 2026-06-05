@@ -17,6 +17,15 @@ export interface ForecastAnimationCacheBuildPorts {
   waitForPrerenderIdle(): Promise<void>;
 }
 
+export interface ForecastResourceRefreshState {
+  resourceRefreshId?: number;
+}
+
+export interface ForecastResourceRefreshKey {
+  state: ForecastResourceRefreshState;
+  refreshId: number;
+}
+
 export interface ForecastVariableDefinition {
   shortName: string;
   varKey?: string;

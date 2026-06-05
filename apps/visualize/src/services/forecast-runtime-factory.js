@@ -9,6 +9,7 @@ import { defaultPaletteFor } from "../domain/variable-metadata.js";
 import { BLOCK_STATUS } from "../ui/data-status-summary.js";
 import { createForecastAnimationCacheBuildUseCase } from "../use-cases/forecast/build-animation-cache";
 import { createForecastLegendInitializerUseCase } from "../use-cases/forecast/initialize-legend";
+import { createForecastResourceRefreshUseCase } from "../use-cases/forecast/resource-refresh";
 import { createForecastVariableSelectionUseCase } from "../use-cases/forecast/select-variable";
 import { createDownloadWorkerClient as createDefaultDownloadWorkerClient } from "../workers/download-worker-client.js";
 import { createDataGouvResourceService } from "./data-gouv-resource-service.js";
@@ -22,7 +23,6 @@ import { createForecastMapPresentationService } from "./forecast-map-presentatio
 import { createForecastPackageResourceService } from "./forecast-package-resource-service.js";
 import { createForecastPresentationQueueService } from "./forecast-presentation-queue-service.js";
 import { createForecastResourceLoadService } from "./forecast-resource-load-service.js";
-import { createForecastResourceRefreshService } from "./forecast-resource-refresh-service.js";
 import { createForecastResourceUpdateService } from "./forecast-resource-update-service.js";
 import { createForecastRuntime } from "./forecast-runtime.js";
 import {
@@ -111,14 +111,14 @@ export function createForecastRuntimeFactory({
     );
   }
 
-  const forecastResourceRefreshService = createForecastResourceRefreshService();
+  const forecastResourceRefreshUseCase = createForecastResourceRefreshUseCase();
 
   function beginModelResourceRefresh() {
-    return forecastResourceRefreshService.begin(getModelState());
+    return forecastResourceRefreshUseCase.begin(getModelState());
   }
 
   function isModelResourceRefreshActive(downloadKey) {
-    return forecastResourceRefreshService.isActive(getModelState(), downloadKey);
+    return forecastResourceRefreshUseCase.isActive(getModelState(), downloadKey);
   }
 
   function updateDataStatusSummary() {
