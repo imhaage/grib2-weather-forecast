@@ -2,6 +2,7 @@ import { isVectorCompositeVariable } from "../domain/wind-composite-variable.js"
 import { createAnimationCacheService } from "./animation-cache-service.js";
 import { resolveAnimationWarmupProgress } from "./forecast-animation-warmup-progress-service.js";
 import { makeBitmapCacheEntryFromWorker } from "./forecast-bitmap-cache-entry-service.js";
+import { createForecastHourRenderQueueService } from "./forecast-hour-render-queue-service.js";
 import { createForecastRenderRequest } from "./forecast-render-request-service.js";
 import { createForecastTooltipHydrationService } from "./forecast-tooltip-hydration-service.js";
 
@@ -29,10 +30,9 @@ export function createForecastAnimationService({
   syncPlayButtonAvailability,
   updateIsobarOverlay,
 }) {
-  let isDecoding = false;
-  let pendingHourIdx = null;
   let currentRenderGeneration = 0;
   const animationCache = createAnimationCacheService();
+  const hourRenderQueue = createForecastHourRenderQueueService();
   const perfStats = {
     lastRenderMs: null,
     lastDecodeMs: null,
@@ -172,12 +172,7 @@ export function createForecastAnimationService({
 
   async function showHour(idx) {
     const modelState = currentState();
-    if (isDecoding) {
-      pendingHourIdx = idx;
-      return;
-    }
-    isDecoding = true;
-    pendingHourIdx = null;
+    if (!hourRenderQueue.requestRender(idx).shouldRender) return;
     try {
       const hour = modelState.hourList[idx];
       renderForecastHourLabel(fmtHourLabel(hour));
@@ -209,12 +204,8 @@ export function createForecastAnimationService({
       console.error("showHour:", error);
       showUnavailableHour(currentState()?.hourList[idx] ?? idx);
     } finally {
-      isDecoding = false;
-      if (pendingHourIdx !== null) {
-        const next = pendingHourIdx;
-        pendingHourIdx = null;
-        showHour(next);
-      }
+      const next = hourRenderQueue.completeRender();
+      if (next !== null) showHour(next);
     }
   }
 
@@ -304,8 +295,7 @@ export function createForecastAnimationService({
   }
 
   function resetDecoding() {
-    isDecoding = false;
-    pendingHourIdx = null;
+    hourRenderQueue.reset();
   }
 
   function getDiagnostics() {
