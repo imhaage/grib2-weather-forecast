@@ -1,8 +1,8 @@
 export function createForecastHourRenderQueueService() {
   let isRendering = false;
-  let pendingHourIndex = null;
+  let pendingHourIndex: number | null = null;
 
-  function requestRender(hourIndex) {
+  function requestRender(hourIndex: number) {
     if (isRendering) {
       pendingHourIndex = hourIndex;
       return { shouldRender: false };

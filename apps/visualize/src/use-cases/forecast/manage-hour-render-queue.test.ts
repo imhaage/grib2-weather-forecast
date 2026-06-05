@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { createForecastHourRenderQueueService } from "./forecast-hour-render-queue-service.js";
+import { createForecastHourRenderQueueService } from "./manage-hour-render-queue";
 
-describe("forecast hour render queue service", () => {
+describe("forecast hour render queue use case", () => {
   test("starts the first render immediately", () => {
     const service = createForecastHourRenderQueueService();
 
