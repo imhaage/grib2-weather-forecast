@@ -5,6 +5,7 @@ import {
   readLatestCachedGribBlock,
   writeCachedGribBlock,
 } from "../adapters/forecast/grib-cache-adapter";
+import { createModelBlockWorkerAdapter } from "../adapters/forecast/model-block-worker-adapter";
 import {
   formatForecastValidTimeLabel as formatPackageForecastValidTimeLabel,
   formatModelPackageSubtitle as formatPackageModelSubtitle,
@@ -31,7 +32,6 @@ import { createForecastAnimationService } from "./forecast-animation-service.js"
 import { createForecastBlockRefreshService } from "./forecast-block-refresh-service.js";
 import { createForecastMapPresentationService } from "./forecast-map-presentation-service.js";
 import { createForecastRuntime } from "./forecast-runtime.js";
-import { createModelBlockService } from "./model-block-service.js";
 
 const PROXY = "https://grib2-cors-proxy.imh.workers.dev";
 const MAX_PARALLEL_DOWNLOADS = 6;
@@ -47,7 +47,7 @@ export function createForecastRuntimeFactory({
   initMap,
   fetchImpl = fetch,
   createDownloadWorkerClient = createDefaultDownloadWorkerClient,
-  createModelBlockServiceClient = createModelBlockService,
+  createModelBlockServiceClient = createModelBlockWorkerAdapter,
   getCurrentPalette,
   getGridState,
   setCurrentPalette,

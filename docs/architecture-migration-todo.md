@@ -40,6 +40,7 @@ Keep this list practical. Move items between sections as decisions are made and 
 - Move wind symbol MapLibre layer from `services/` to `adapters/forecast/`.
 - Move isobar MapLibre layer from `services/` to `adapters/forecast/`.
 - Move GRIB IndexedDB cache from `services/` to `adapters/forecast/`.
+- Move model block worker protocol from `services/` to `adapters/forecast/`.
 
 ## Next
 

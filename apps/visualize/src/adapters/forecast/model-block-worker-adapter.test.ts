@@ -1,25 +1,32 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { createModelBlockWorkerClient } from "../workers/model-block-worker-client.js";
-import { createModelBlockService } from "./model-block-service.js";
+import { createModelBlockWorkerAdapter } from "./model-block-worker-adapter";
 
-vi.mock("../workers/model-block-worker-client.js", () => ({
-  createModelBlockWorkerClient: vi.fn(),
-}));
-
-describe("model block service", () => {
-  let post;
+describe("model block worker adapter", () => {
+  let post: ReturnType<
+    typeof vi.fn<(message: unknown, transferables?: Transferable[]) => Promise<unknown>>
+  >;
 
   beforeEach(() => {
-    post = vi.fn();
-    vi.mocked(createModelBlockWorkerClient).mockReturnValue({ post });
+    post = vi.fn<(message: unknown, transferables?: Transferable[]) => Promise<unknown>>();
   });
+
+  function createAdapter() {
+    return createModelBlockWorkerAdapter({
+      createWorkerClient: () => ({
+        post: (message, transferables) =>
+          transferables
+            ? Promise.resolve(post(message, transferables))
+            : Promise.resolve(post(message)),
+      }),
+    });
+  }
 
   test("stores blocks through the worker protocol and transfers ownership", async () => {
     post.mockResolvedValue({ ok: true });
-    const service = createModelBlockService();
+    const adapter = createAdapter();
     const buffer = new Uint8Array([1, 2, 3]);
 
-    await expect(service.storeBlock({ key: "01H" }, buffer)).resolves.toBe(true);
+    await expect(adapter.storeBlock({ key: "01H" }, buffer)).resolves.toBe(true);
 
     expect(post).toHaveBeenCalledWith(
       {
@@ -33,27 +40,27 @@ describe("model block service", () => {
 
   test("renders hours by transferring the LUT buffer", async () => {
     post.mockResolvedValue({ bitmap: {}, dataCount: 4 });
-    const service = createModelBlockService();
+    const adapter = createAdapter();
     const request = {
       type: "renderHour",
       lut: new Uint8Array([1, 2, 3]),
     };
 
-    await service.renderHour(request);
+    await adapter.renderHour(request);
 
     expect(post).toHaveBeenCalledWith(request, [request.lut.buffer]);
   });
 
   test("decodes values by reusing render requests with a decodeValues message type", async () => {
     post.mockResolvedValue({ values: new Float32Array([1]) });
-    const service = createModelBlockService();
+    const adapter = createAdapter();
     const request = {
       type: "renderHour",
       blockKey: "01H",
       lut: new Uint8Array([1, 2, 3]),
     };
 
-    await service.decodeValues(request);
+    await adapter.decodeValues(request);
 
     expect(post).toHaveBeenCalledWith({
       ...request,
