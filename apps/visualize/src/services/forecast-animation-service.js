@@ -1,35 +1,11 @@
 import { isVectorCompositeVariable } from "../domain/wind-composite-variable.js";
 import { createAnimationCacheService } from "./animation-cache-service.js";
 import { resolveAnimationWarmupProgress } from "./forecast-animation-warmup-progress-service.js";
+import { makeBitmapCacheEntryFromWorker } from "./forecast-bitmap-cache-entry-service.js";
 import { createForecastRenderRequest } from "./forecast-render-request-service.js";
 
 function fmtHourLabel(hour) {
   return `+${String(hour).padStart(2, "0")}H`;
-}
-
-export function makeBitmapCacheEntryFromWorker(renderEntry, { keepValues = false } = {}) {
-  return {
-    bitmap: renderEntry.bitmap,
-    values: keepValues ? renderEntry.values : undefined,
-    vectorComposite: renderEntry.vectorComposite,
-    vectorUValues: renderEntry.vectorUValues,
-    vectorVValues: renderEntry.vectorVValues,
-    dataMin: renderEntry.dataMin,
-    dataMax: renderEntry.dataMax,
-    mean: renderEntry.dataMean,
-    count: renderEntry.dataCount,
-    unitTransform: renderEntry.unitTransform,
-    renderMin: renderEntry.renderMin,
-    range: renderEntry.range,
-    staticScale: renderEntry.staticScale,
-    isLog: renderEntry.isLog,
-    displayUnits: renderEntry.displayUnits,
-    isFallback: renderEntry.isFallback,
-    isobars: renderEntry.isobars,
-    grid: renderEntry.grid,
-    product: renderEntry.product,
-    header: renderEntry.header,
-  };
 }
 
 export function createForecastAnimationService({

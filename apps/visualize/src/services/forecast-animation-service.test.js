@@ -1,8 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import {
-  createForecastAnimationService,
-  makeBitmapCacheEntryFromWorker,
-} from "./forecast-animation-service.js";
+import { createForecastAnimationService } from "./forecast-animation-service.js";
 
 function createDom() {
   return {
@@ -51,25 +48,6 @@ function createService(overrides = {}) {
 }
 
 describe("forecast animation service", () => {
-  test("copies vector component values and optionally keeps speed values in bitmap cache entries", () => {
-    const values = new Float32Array([1, 2]);
-    const vectorUValues = new Float32Array([1, 2]);
-    const vectorVValues = new Float32Array([3, 4]);
-    const entry = makeBitmapCacheEntryFromWorker(
-      {
-        bitmap: {},
-        values,
-        vectorUValues,
-        vectorVValues,
-      },
-      { keepValues: true },
-    );
-
-    expect(entry.values).toBe(values);
-    expect(entry.vectorUValues).toBe(vectorUValues);
-    expect(entry.vectorVValues).toBe(vectorVValues);
-  });
-
   test("invalidates bitmap cache and exposes render diagnostics", () => {
     const renderWarmupProgress = vi.fn();
     const { modelState, service } = createService({ dom: undefined, renderWarmupProgress });
