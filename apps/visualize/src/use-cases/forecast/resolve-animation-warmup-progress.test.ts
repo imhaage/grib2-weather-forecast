@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { resolveAnimationWarmupProgress } from "./forecast-animation-warmup-progress-service.js";
+import { resolveAnimationWarmupProgress } from "./resolve-animation-warmup-progress";
 
-describe("forecast animation warmup progress service", () => {
+describe("forecast animation warmup progress use case", () => {
   test("hides progress when no forecast hours are available", () => {
     expect(
       resolveAnimationWarmupProgress({

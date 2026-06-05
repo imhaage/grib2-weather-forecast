@@ -26,6 +26,7 @@ Keep this list practical. Move items between sections as decisions are made and 
 - Move forecast available block storage orchestration from `services/` to `use-cases/forecast/`.
 - Move forecast render request construction from `services/` to `use-cases/forecast/`.
 - Move forecast bitmap cache entry mapping from `services/` to `use-cases/forecast/`.
+- Move forecast animation warmup progress resolution from `services/` to `use-cases/forecast/`.
 
 ## Next
 
