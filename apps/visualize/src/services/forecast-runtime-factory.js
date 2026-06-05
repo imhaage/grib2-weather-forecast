@@ -8,6 +8,7 @@ import { formatRunSummary } from "../domain/resources.js";
 import { defaultPaletteFor } from "../domain/variable-metadata.js";
 import { BLOCK_STATUS } from "../ui/data-status-summary.js";
 import { createForecastAnimationCacheBuildUseCase } from "../use-cases/forecast/build-animation-cache";
+import { createForecastVariableSelectionUseCase } from "../use-cases/forecast/select-variable";
 import { createDownloadWorkerClient as createDefaultDownloadWorkerClient } from "../workers/download-worker-client.js";
 import { createDataGouvResourceService } from "./data-gouv-resource-service.js";
 import { createForecastAnimationService } from "./forecast-animation-service.js";
@@ -24,7 +25,6 @@ import { createForecastResourceLoadService } from "./forecast-resource-load-serv
 import { createForecastResourceRefreshService } from "./forecast-resource-refresh-service.js";
 import { createForecastResourceUpdateService } from "./forecast-resource-update-service.js";
 import { createForecastRuntime } from "./forecast-runtime.js";
-import { createForecastVariableSelectionService } from "./forecast-variable-selection-service.js";
 import {
   deleteObsoleteCachedGribBlocks,
   readCachedGribBlock,
@@ -181,7 +181,7 @@ export function createForecastRuntimeFactory({
     updateParamInfo,
   });
 
-  const forecastVariableSelectionService = createForecastVariableSelectionService({
+  const forecastVariableSelectionUseCase = createForecastVariableSelectionUseCase({
     applyDefaultPalette,
     formatModelPackageSubtitle,
     updateLevelInfo,
@@ -190,7 +190,7 @@ export function createForecastRuntimeFactory({
 
   function configureModelVariableControls(pkg) {
     const firstVar = variableControls.defaultVariableForPackage(pkg);
-    const selectedVariable = forecastVariableSelectionService.selectInitialVariable(
+    const selectedVariable = forecastVariableSelectionUseCase.selectInitialVariable(
       getModelState(),
       firstVar,
     );
@@ -203,12 +203,12 @@ export function createForecastRuntimeFactory({
 
   function syncWindDirectionControl() {
     variableControls.renderWindDirectionToggle(
-      forecastVariableSelectionService.windDirectionControlState(getModelState()),
+      forecastVariableSelectionUseCase.windDirectionControlState(getModelState()),
     );
   }
 
   function selectVariable(varKey) {
-    forecastVariableSelectionService.selectVariable(getModelState(), varKey);
+    forecastVariableSelectionUseCase.selectVariable(getModelState(), varKey);
   }
 
   const animationService = createForecastAnimationService({

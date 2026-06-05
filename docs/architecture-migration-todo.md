@@ -16,6 +16,7 @@ Keep this list practical. Move items between sections as decisions are made and 
 - Keep the upload inspector controller public API stable.
 - Create the first forecast use-case boundary with animation cache build.
 - Add minimal strict TypeScript ports for `use-cases/forecast/`.
+- Move forecast variable selection from `services/` to `use-cases/forecast/`.
 
 ## Next
 
@@ -39,7 +40,7 @@ Keep this list practical. Move items between sections as decisions are made and 
 
 ## Questions
 
-- Which forecast workflow should be migrated next: resource loading, resource refresh, map presentation, or variable selection?
+- Which forecast workflow should be migrated next: resource loading, resource refresh, map presentation, or legend initialization?
 - Which forecast ports are stable enough to name now, and which should emerge only during extraction?
 - Should composition live in a dedicated `composition/` folder later, or remain in the current factory until the migration is further along?
 

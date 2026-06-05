@@ -1,16 +1,24 @@
-import { findPackageVariable } from "../domain/model-packages.js";
-import { parameterDescriptionFor, variableKeyFor } from "../domain/variable-metadata.js";
-import { isVectorCompositeVariable } from "../domain/wind-composite-variable.js";
+import { findPackageVariable } from "../../domain/model-packages.js";
+import { parameterDescriptionFor, variableKeyFor } from "../../domain/variable-metadata.js";
+import { isVectorCompositeVariable } from "../../domain/wind-composite-variable.js";
+import type {
+  ForecastVariableDefinition,
+  ForecastVariableSelectionPorts,
+  ForecastVariableSelectionState,
+} from "./ports";
 
-export function createForecastVariableSelectionService({
+export function createForecastVariableSelectionUseCase({
   applyDefaultPalette,
   findPackageVariable: findVariable = findPackageVariable,
   formatModelPackageSubtitle,
   parameterDescriptionFor: describeParameter = parameterDescriptionFor,
   updateLevelInfo,
   updateParamInfo,
-}) {
-  function selectInitialVariable(modelState, variableDefinition) {
+}: ForecastVariableSelectionPorts) {
+  function selectInitialVariable(
+    modelState: ForecastVariableSelectionState,
+    variableDefinition: ForecastVariableDefinition,
+  ): string {
     const variableKey = variableKeyFor(variableDefinition);
     modelState.variable = variableKey;
     modelState.showWindDirection = true;
@@ -19,7 +27,10 @@ export function createForecastVariableSelectionService({
     return variableKey;
   }
 
-  function selectVariable(modelState, variableKey) {
+  function selectVariable(
+    modelState: ForecastVariableSelectionState,
+    variableKey: string,
+  ): ForecastVariableDefinition | undefined {
     modelState.variable = variableKey;
     const variableDefinition = findVariable(modelState.packageKey, variableKey);
     const shortName = variableDefinition?.shortName ?? variableKey;
@@ -37,7 +48,9 @@ export function createForecastVariableSelectionService({
     return variableDefinition;
   }
 
-  function windDirectionControlState(modelState) {
+  function windDirectionControlState(
+    modelState: ForecastVariableSelectionState | null | undefined,
+  ) {
     return {
       hidden: !isVectorCompositeVariable(modelState?.variable),
       checked: modelState?.showWindDirection !== false,

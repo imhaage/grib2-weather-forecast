@@ -1,8 +1,8 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastVariableSelectionService } from "./forecast-variable-selection-service.js";
+import { createForecastVariableSelectionUseCase } from "./select-variable";
 
-function createService(overrides = {}) {
-  const dependencies = {
+function createUseCase(overrides = {}) {
+  const ports = {
     applyDefaultPalette: vi.fn(),
     findPackageVariable: vi.fn(),
     formatModelPackageSubtitle: vi.fn((packageKey) => `${packageKey} subtitle`),
@@ -12,14 +12,14 @@ function createService(overrides = {}) {
     ...overrides,
   };
   return {
-    dependencies,
-    service: createForecastVariableSelectionService(dependencies),
+    ports,
+    useCase: createForecastVariableSelectionUseCase(ports),
   };
 }
 
-describe("forecast variable selection service", () => {
+describe("forecast variable selection use case", () => {
   test("selects the initial package variable and enables wind direction by default", () => {
-    const { dependencies, service } = createService();
+    const { ports, useCase } = createUseCase();
     const modelState = { packageKey: "AROME_SP1", variable: null, showWindDirection: false };
     const variableDefinition = {
       shortName: "wind",
@@ -27,13 +27,13 @@ describe("forecast variable selection service", () => {
       group: "Weather maps",
     };
 
-    const variableKey = service.selectInitialVariable(modelState, variableDefinition);
+    const variableKey = useCase.selectInitialVariable(modelState, variableDefinition);
 
     expect(variableKey).toBe("wind");
     expect(modelState.variable).toBe("wind");
     expect(modelState.showWindDirection).toBe(true);
-    expect(dependencies.applyDefaultPalette).toHaveBeenCalledWith("wind");
-    expect(dependencies.updateLevelInfo).toHaveBeenCalledWith(variableDefinition);
+    expect(ports.applyDefaultPalette).toHaveBeenCalledWith("wind");
+    expect(ports.updateLevelInfo).toHaveBeenCalledWith(variableDefinition);
   });
 
   test("applies a selected package variable and updates presentation metadata", () => {
@@ -43,34 +43,34 @@ describe("forecast variable selection service", () => {
       name: "U wind",
       levelValue: 10,
     };
-    const { dependencies, service } = createService({
+    const { ports, useCase } = createUseCase({
       findPackageVariable: vi.fn(() => variableDefinition),
     });
     const modelState = { packageKey: "AROME_HP1", variable: "r_10" };
 
-    const variableDefinitionFound = service.selectVariable(modelState, "u_10");
+    const variableDefinitionFound = useCase.selectVariable(modelState, "u_10");
 
     expect(variableDefinitionFound).toBe(variableDefinition);
     expect(modelState.variable).toBe("u_10");
-    expect(dependencies.applyDefaultPalette).toHaveBeenCalledWith("u_10");
-    expect(dependencies.updateParamInfo).toHaveBeenCalledWith(
+    expect(ports.applyDefaultPalette).toHaveBeenCalledWith("u_10");
+    expect(ports.updateParamInfo).toHaveBeenCalledWith(
       "U wind",
       "u description",
       "AROME_HP1 subtitle",
     );
-    expect(dependencies.updateLevelInfo).toHaveBeenCalledWith(variableDefinition);
+    expect(ports.updateLevelInfo).toHaveBeenCalledWith(variableDefinition);
   });
 
   test("returns wind direction visibility state for the selected variable", () => {
-    const { service } = createService();
+    const { useCase } = createUseCase();
 
     expect(
-      service.windDirectionControlState({ variable: "wind", showWindDirection: false }),
+      useCase.windDirectionControlState({ variable: "wind", showWindDirection: false }),
     ).toEqual({
       hidden: false,
       checked: false,
     });
-    expect(service.windDirectionControlState({ variable: "t", showWindDirection: true })).toEqual({
+    expect(useCase.windDirectionControlState({ variable: "t", showWindDirection: true })).toEqual({
       hidden: true,
       checked: true,
     });
