@@ -4,7 +4,7 @@ import {
   readCachedGribBlock,
   readLatestCachedGribBlock,
   writeCachedGribBlock,
-} from "../services/grib-cache-service.js";
+} from "../adapters/forecast/grib-cache-adapter";
 import { createForecastRunController } from "./forecast-run-controller.js";
 
 vi.mock("grib2-decoder", async (importOriginal) => {
@@ -27,7 +27,7 @@ vi.mock("grib2-decoder", async (importOriginal) => {
   };
 });
 
-vi.mock("../services/grib-cache-service.js", () => ({
+vi.mock("../adapters/forecast/grib-cache-adapter", () => ({
   deleteObsoleteCachedGribBlocks: vi.fn(async () => true),
   readCachedGribBlock: vi.fn(async () => null),
   readLatestCachedGribBlock: vi.fn(async () => null),

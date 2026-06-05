@@ -1,18 +1,49 @@
 import { describe, expect, test } from "vitest";
-import { createGribCacheService } from "./grib-cache-service.js";
+import {
+  createGribCacheService,
+  type GribCacheRecord,
+  type GribCacheStorage,
+} from "./grib-cache-adapter";
+
+type MemoryRecord = GribCacheRecord;
+
+interface MemoryDbStore {
+  clear: () => void;
+  delete: (id: string) => void;
+  get: (id: string) => MemoryRecord | null;
+  index: () => {
+    getAll: (key: [string, string]) => MemoryRecord[];
+  };
+  put: (record: MemoryRecord) => void;
+}
+
+interface MemoryDb {
+  clear: (storeName: string) => void;
+  get: (storeName: string, id: string) => MemoryRecord | null;
+  getAllFromIndex: (storeName: string, indexName: string, key: [string, string]) => MemoryRecord[];
+  put: (storeName: string, record: MemoryRecord) => void;
+  transaction: () => {
+    done: Promise<void>;
+    objectStore: () => MemoryDbStore;
+  };
+}
 
 function createMemoryStorage() {
-  const records = new Map();
-  const storage = {
-    get(id) {
+  const records = new Map<string, MemoryRecord>();
+  const storage: GribCacheStorage = {
+    get(id: string) {
       return Promise.resolve(records.get(id) ?? null);
     },
-    put(record) {
+    put(record: MemoryRecord) {
       records.set(record.id, record);
       return Promise.resolve(true);
     },
-    findByPackageBlock(packageKey, blockKey, predicate) {
-      let match = null;
+    findByPackageBlock(
+      packageKey: string,
+      blockKey: string,
+      predicate: (record: MemoryRecord) => boolean,
+    ) {
+      let match: MemoryRecord | null = null;
       for (const record of records.values()) {
         if (record.packageKey !== packageKey || record.blockKey !== blockKey) continue;
         if (predicate(record) && (!match || String(record.savedAt) > String(match.savedAt))) {
@@ -21,7 +52,7 @@ function createMemoryStorage() {
       }
       return Promise.resolve(match);
     },
-    deleteObsolete(packageKey, blockKey, currentId) {
+    deleteObsolete(packageKey: string, blockKey: string, currentId: string) {
       for (const record of records.values()) {
         if (
           record.packageKey === packageKey &&
@@ -41,11 +72,11 @@ function createMemoryStorage() {
   return { records, storage };
 }
 
-function bufferFrom(values) {
+function bufferFrom(values: number[]) {
   return new Uint8Array(values).buffer;
 }
 
-describe("grib cache service", () => {
+describe("grib cache adapter", () => {
   test("stores and reads cached GRIB blocks through an injected storage adapter", async () => {
     const { storage } = createMemoryStorage();
     const service = createGribCacheService({ storage });
@@ -89,8 +120,8 @@ describe("grib cache service", () => {
 
     const fallback = await service.readLatestCachedGribBlock("AROME_SP1", block);
 
-    expect([...fallback.buffer]).toEqual([2]);
-    expect(fallback.runId).toBe("2026-05-22T03:00:00Z");
+    expect([...(fallback?.buffer ?? [])]).toEqual([2]);
+    expect(fallback?.runId).toBe("2026-05-22T03:00:00Z");
   });
 
   test("uses a compatible cached block from the same or newer run", async () => {
@@ -149,35 +180,37 @@ describe("grib cache service", () => {
 
 describe("indexeddb grib cache storage", () => {
   test("finds and deletes records through the package/block index", async () => {
-    const records = new Map();
-    const store = {
-      get: (id) => records.get(id) ?? null,
-      put: (record) => {
-        records.set(record.id, record);
+    const records = new Map<string, MemoryRecord>();
+    const store: MemoryDbStore = {
+      clear: () => {
+        records.clear();
       },
+      delete: (id: string) => {
+        records.delete(id);
+      },
+      get: (id: string) => records.get(id) ?? null,
       index: () => ({
-        getAll: ([packageKey, blockKey]) =>
+        getAll: ([packageKey, blockKey]: [string, string]) =>
           [...records.values()].filter(
             (record) => record.packageKey === packageKey && record.blockKey === blockKey,
           ),
       }),
-      delete: (id) => {
-        records.delete(id);
-      },
-      clear: () => {
-        records.clear();
+      put: (record: MemoryRecord) => {
+        records.set(record.id, record);
       },
     };
-    const db = {
-      getAllFromIndex: (_storeName, _indexName, key) => store.index().getAll(key),
-      get: (_storeName, id) => store.get(id),
-      put: (_storeName, record) => store.put(record),
+    const db: MemoryDb = {
+      clear: () => store.clear(),
+      get: (_storeName: string, id: string) => store.get(id),
+      getAllFromIndex: (_storeName: string, _indexName: string, key: [string, string]) =>
+        store.index().getAll(key),
+      put: (_storeName: string, record: MemoryRecord) => store.put(record),
       transaction: () => ({
         done: Promise.resolve(),
         objectStore: () => store,
       }),
     };
-    const { createIndexedDbGribCacheStorage } = await import("./grib-cache-service.js");
+    const { createIndexedDbGribCacheStorage } = await import("./grib-cache-adapter");
     const storage = createIndexedDbGribCacheStorage({ openDb: async () => db });
 
     await storage.put({

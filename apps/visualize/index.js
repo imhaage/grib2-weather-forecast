@@ -36,7 +36,7 @@ import {
 	parameterDescriptionFor,
 	staticScaleFor,
 } from "./src/domain/variable-metadata.js";
-import { clearGribCache } from "./src/services/grib-cache-service.js";
+import { clearGribCache } from "./src/adapters/forecast/grib-cache-adapter";
 import { createMapRendererService } from "./src/services/map-renderer-service.js";
 import { createRenderWorkerClient } from "./src/workers/render-worker-client.js";
 import { bindAppEvents } from "./src/ui/app-events.js";

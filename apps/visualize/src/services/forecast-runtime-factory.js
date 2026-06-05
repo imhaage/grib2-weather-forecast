@@ -1,5 +1,11 @@
 import { createDataGouvResourceService } from "../adapters/forecast/data-gouv-resource-adapter";
 import {
+  deleteObsoleteCachedGribBlocks,
+  readCachedGribBlock,
+  readLatestCachedGribBlock,
+  writeCachedGribBlock,
+} from "../adapters/forecast/grib-cache-adapter";
+import {
   formatForecastValidTimeLabel as formatPackageForecastValidTimeLabel,
   formatModelPackageSubtitle as formatPackageModelSubtitle,
 } from "../domain/forecast-package-labels.js";
@@ -25,12 +31,6 @@ import { createForecastAnimationService } from "./forecast-animation-service.js"
 import { createForecastBlockRefreshService } from "./forecast-block-refresh-service.js";
 import { createForecastMapPresentationService } from "./forecast-map-presentation-service.js";
 import { createForecastRuntime } from "./forecast-runtime.js";
-import {
-  deleteObsoleteCachedGribBlocks,
-  readCachedGribBlock,
-  readLatestCachedGribBlock,
-  writeCachedGribBlock,
-} from "./grib-cache-service.js";
 import { createModelBlockService } from "./model-block-service.js";
 
 const PROXY = "https://grib2-cors-proxy.imh.workers.dev";
