@@ -1,11 +1,10 @@
-import { isVectorCompositeVariable } from "../domain/wind-composite-variable.js";
 import { createAnimationCacheService } from "./animation-cache-service.js";
 import { resolveAnimationWarmupProgress } from "./forecast-animation-warmup-progress-service.js";
 import { makeBitmapCacheEntryFromWorker } from "./forecast-bitmap-cache-entry-service.js";
 import { createForecastHourRenderQueueService } from "./forecast-hour-render-queue-service.js";
+import { createForecastHourWorkerRenderService } from "./forecast-hour-worker-render-service.js";
 import { createForecastPrerenderBlockService } from "./forecast-prerender-block-service.js";
 import { createForecastPrerenderQueueDrainService } from "./forecast-prerender-queue-drain-service.js";
-import { createForecastRenderRequest } from "./forecast-render-request-service.js";
 import { createForecastTooltipHydrationService } from "./forecast-tooltip-hydration-service.js";
 
 function fmtHourLabel(hour) {
@@ -36,11 +35,20 @@ export function createForecastAnimationService({
   const animationCache = createAnimationCacheService();
   const hourRenderQueue = createForecastHourRenderQueueService();
   const perfStats = {
-    lastRenderMs: null,
     lastDecodeMs: null,
   };
+  const hourWorkerRenderService = createForecastHourWorkerRenderService({
+    getCurrentPalette,
+    getCurrentRenderGeneration: () => currentRenderGeneration,
+    getModelBlockService,
+    getModelState: currentState,
+    missingValue,
+    notifyDiagnostics,
+    perfDebug,
+    performanceApi,
+  });
   const tooltipHydrationService = createForecastTooltipHydrationService({
-    decodeValues: decodeModelHourValuesViaWorker,
+    decodeValues: hourWorkerRenderService.decodeValues,
     getCachedEntry: animationCache.getHour,
     getCurrentRenderGeneration: () => currentRenderGeneration,
     getCurrentState: currentState,
@@ -60,9 +68,9 @@ export function createForecastAnimationService({
     cache: animationCache,
     getCurrentRenderGeneration: () => currentRenderGeneration,
     getCurrentState: currentState,
-    keepValuesForCurrentVariable: shouldKeepValuesForCurrentVariable,
+    keepValuesForCurrentVariable: hourWorkerRenderService.shouldKeepValuesForCurrentVariable,
     mapWorkerEntry: makeBitmapCacheEntryFromWorker,
-    renderHour: renderModelHourViaWorker,
+    renderHour: hourWorkerRenderService.renderHour,
     updateWarmupProgress,
   });
 
@@ -123,54 +131,6 @@ export function createForecastAnimationService({
     notifyDiagnostics();
   }
 
-  function modelWorkerRequestForHour(idx, hour, { includeValues = false } = {}) {
-    const modelState = currentState();
-    const shouldKeepValues = isVectorCompositeVariable(modelState?.variable);
-    return createForecastRenderRequest({
-      state: modelState,
-      hourIndex: idx,
-      hour,
-      renderGeneration: currentRenderGeneration,
-      paletteName: getCurrentPalette(),
-      missingValue,
-      includeValues: includeValues || shouldKeepValues,
-    });
-  }
-
-  function shouldKeepValuesForCurrentVariable() {
-    return isVectorCompositeVariable(currentState()?.variable);
-  }
-
-  async function renderModelHourViaWorker(idx, { includeValues = false } = {}) {
-    const modelState = currentState();
-    const hour = modelState.hourList[idx];
-    const request = modelWorkerRequestForHour(idx, hour, { includeValues });
-    if (!request) return null;
-
-    const startedAt = perfDebug ? performanceApi.now() : 0;
-    const result = await getModelBlockService().renderHour(request);
-    if (!result) return null;
-    if (perfDebug) {
-      perfStats.lastRenderMs = performanceApi.now() - startedAt;
-      notifyDiagnostics();
-    }
-    if (currentRenderGeneration !== request.renderGeneration) {
-      result.bitmap?.close();
-      return null;
-    }
-    return result;
-  }
-
-  async function decodeModelHourValuesViaWorker(idx, hour) {
-    const request = modelWorkerRequestForHour(idx, hour, {
-      includeValues: false,
-    });
-    if (!request) return null;
-    const result = await getModelBlockService().decodeValues(request);
-    if (!result?.values || currentRenderGeneration !== request.renderGeneration) return null;
-    return result;
-  }
-
   function queueTooltipValueHydration(idx, hour) {
     tooltipHydrationService.queue({
       hour,
@@ -204,7 +164,7 @@ export function createForecastAnimationService({
       }
 
       modelState.currentHour = hour;
-      const renderEntry = await renderModelHourViaWorker(idx, {
+      const renderEntry = await hourWorkerRenderService.renderHour(idx, {
         includeValues: true,
       });
       if (!renderEntry) {
@@ -213,7 +173,7 @@ export function createForecastAnimationService({
       }
 
       const entry = makeBitmapCacheEntryFromWorker(renderEntry, {
-        keepValues: shouldKeepValuesForCurrentVariable(),
+        keepValues: hourWorkerRenderService.shouldKeepValuesForCurrentVariable(),
       });
       animationCache.setHour(hour, entry);
       updateWarmupProgress();
@@ -271,7 +231,7 @@ export function createForecastAnimationService({
     const totalBitmaps = modelState?.hourList.length ?? 0;
     const readyBitmaps = totalBitmaps ? bitmapCacheReadyCount() : animationCache.size;
     return {
-      lastRenderMs: perfStats.lastRenderMs,
+      lastRenderMs: hourWorkerRenderService.getLastRenderMs(),
       lastDecodeMs: perfStats.lastDecodeMs,
       queueLength: animationCache.queueLength,
       isPrerendering: animationCache.isPrerendering,
