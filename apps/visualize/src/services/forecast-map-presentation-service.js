@@ -4,7 +4,7 @@ import { findPackageVariable } from "../domain/model-packages.js";
 import { gradientStopsFor } from "../domain/palettes.js";
 import { parameterDescriptionFor } from "../domain/variable-metadata.js";
 import { createForecastIsobarOverlayUseCase } from "../use-cases/forecast/update-isobar-overlay";
-import { createForecastWindSymbolOverlayService } from "./forecast-wind-symbol-overlay-service.js";
+import { createForecastWindSymbolOverlayUseCase } from "../use-cases/forecast/update-wind-symbol-overlay";
 
 function defaultFormatModelPackageSubtitle(packageKey) {
   return packageKey;
@@ -39,7 +39,7 @@ export function createForecastMapPresentationService({
     missingValue,
     renderer: mapRenderer,
   });
-  const windSymbolOverlayService = createForecastWindSymbolOverlayService({
+  const windSymbolOverlayService = createForecastWindSymbolOverlayUseCase({
     getBounds: mapBoundsForSymbols,
     getModelState,
     getZoom: mapZoomForSymbols,

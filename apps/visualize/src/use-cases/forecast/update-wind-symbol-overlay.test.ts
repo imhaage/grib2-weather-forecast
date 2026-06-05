@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastWindSymbolOverlayService } from "./forecast-wind-symbol-overlay-service.js";
+import { createForecastWindSymbolOverlayUseCase } from "./update-wind-symbol-overlay";
 
 function createEntry(overrides = {}) {
   return {
@@ -10,11 +10,11 @@ function createEntry(overrides = {}) {
   };
 }
 
-describe("forecast wind symbol overlay service", () => {
+describe("forecast wind symbol overlay use case", () => {
   test("updates wind symbols for visible vector composite fields", () => {
     const renderer = { clearWindSymbols: vi.fn(), updateWindSymbols: vi.fn() };
-    const features = { type: "FeatureCollection" };
-    const service = createForecastWindSymbolOverlayService({
+    const features = { type: "FeatureCollection", features: [] };
+    const useCase = createForecastWindSymbolOverlayUseCase({
       buildFeatures: vi.fn(() => features),
       getBounds: vi.fn(() => ({ west: 0, south: 49, east: 5, north: 53 })),
       getModelState: vi.fn(() => ({ variable: "wind", showWindDirection: true })),
@@ -23,7 +23,7 @@ describe("forecast wind symbol overlay service", () => {
       renderer,
     });
 
-    service.update(createEntry(), new Float32Array([3]));
+    useCase.update(createEntry(), new Float32Array([3]));
 
     expect(renderer.updateWindSymbols).toHaveBeenCalledWith(features);
     expect(renderer.clearWindSymbols).not.toHaveBeenCalled();
@@ -31,7 +31,7 @@ describe("forecast wind symbol overlay service", () => {
 
   test("clears wind symbols when direction display is disabled", () => {
     const renderer = { clearWindSymbols: vi.fn(), updateWindSymbols: vi.fn() };
-    const service = createForecastWindSymbolOverlayService({
+    const useCase = createForecastWindSymbolOverlayUseCase({
       buildFeatures: vi.fn(),
       getBounds: vi.fn(() => ({ west: 0, south: 49, east: 5, north: 53 })),
       getModelState: vi.fn(() => ({ variable: "wind", showWindDirection: false })),
@@ -40,7 +40,7 @@ describe("forecast wind symbol overlay service", () => {
       renderer,
     });
 
-    service.update(createEntry(), new Float32Array([3]));
+    useCase.update(createEntry(), new Float32Array([3]));
 
     expect(renderer.clearWindSymbols).toHaveBeenCalled();
     expect(renderer.updateWindSymbols).not.toHaveBeenCalled();
@@ -48,7 +48,7 @@ describe("forecast wind symbol overlay service", () => {
 
   test("clears wind symbols when map bounds are unavailable", () => {
     const renderer = { clearWindSymbols: vi.fn(), updateWindSymbols: vi.fn() };
-    const service = createForecastWindSymbolOverlayService({
+    const useCase = createForecastWindSymbolOverlayUseCase({
       buildFeatures: vi.fn(),
       getBounds: vi.fn(() => null),
       getModelState: vi.fn(() => ({ variable: "wind", showWindDirection: true })),
@@ -57,7 +57,7 @@ describe("forecast wind symbol overlay service", () => {
       renderer,
     });
 
-    service.update(createEntry(), new Float32Array([3]));
+    useCase.update(createEntry(), new Float32Array([3]));
 
     expect(renderer.clearWindSymbols).toHaveBeenCalled();
     expect(renderer.updateWindSymbols).not.toHaveBeenCalled();

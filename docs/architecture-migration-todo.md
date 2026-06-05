@@ -43,6 +43,7 @@ Keep this list practical. Move items between sections as decisions are made and 
 - Move model block worker protocol from `services/` to `adapters/forecast/`.
 - Move MapLibre map renderer from `services/` to `adapters/forecast/`.
 - Move forecast isobar overlay orchestration from `services/` to `use-cases/forecast/`.
+- Move forecast wind symbol overlay orchestration from `services/` to `use-cases/forecast/`.
 
 ## Next
 
