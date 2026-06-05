@@ -10,6 +10,7 @@ import { BLOCK_STATUS } from "../ui/data-status-summary.js";
 import { createForecastAnimationCacheBuildUseCase } from "../use-cases/forecast/build-animation-cache";
 import { createForecastLegendInitializerUseCase } from "../use-cases/forecast/initialize-legend";
 import { createForecastResourceLoadUseCase } from "../use-cases/forecast/load-resources";
+import { createForecastDownloadSessionService } from "../use-cases/forecast/manage-download-session";
 import { createForecastDownloadPreparationUseCase } from "../use-cases/forecast/prepare-download-session";
 import { createForecastResourceRefreshUseCase } from "../use-cases/forecast/resource-refresh";
 import { createForecastVariableSelectionUseCase } from "../use-cases/forecast/select-variable";
@@ -20,7 +21,6 @@ import { createDownloadWorkerClient as createDefaultDownloadWorkerClient } from 
 import { createDataGouvResourceService } from "./data-gouv-resource-service.js";
 import { createForecastAnimationService } from "./forecast-animation-service.js";
 import { createForecastBlockRefreshService } from "./forecast-block-refresh-service.js";
-import { createForecastDownloadSessionService } from "./forecast-download-session-service.js";
 import { createForecastMapPresentationService } from "./forecast-map-presentation-service.js";
 import { createForecastPackageResourceService } from "./forecast-package-resource-service.js";
 import { createForecastPresentationQueueService } from "./forecast-presentation-queue-service.js";

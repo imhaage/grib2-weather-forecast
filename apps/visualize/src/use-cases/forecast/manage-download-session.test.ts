@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { createForecastDownloadSessionService } from "./forecast-download-session-service.js";
+import { createForecastDownloadSessionService } from "./manage-download-session";
 
-describe("forecast download session service", () => {
+describe("forecast download session use case", () => {
   test("creates a download session with stable resource context", () => {
     const service = createForecastDownloadSessionService();
     const resources = [{ key: "01H" }, { key: "02H" }];
