@@ -1,9 +1,19 @@
 import { fmtRefTime, iterateGRIB2Messages } from "grib2-decoder";
-import { findPackageVariable } from "../domain/model-packages.js";
-import { displayUnitsFor } from "../domain/unit-transforms.js";
-import { parameterDescriptionFor, staticScaleFor } from "../domain/variable-metadata.js";
+import { findPackageVariable } from "../../domain/model-packages.js";
+import { displayUnitsFor } from "../../domain/unit-transforms.js";
+import { parameterDescriptionFor, staticScaleFor } from "../../domain/variable-metadata.js";
+import type {
+  ForecastLegendInitializerPorts,
+  ForecastLegendSession,
+  ForecastLegendState,
+} from "./ports";
 
-export function createForecastLegendInitializerService({
+interface InitializeForecastLegendContext {
+  modelState: ForecastLegendState;
+  session: ForecastLegendSession;
+}
+
+export function createForecastLegendInitializerUseCase({
   applyDefaultPalette,
   displayUnitsFor: displayUnits = displayUnitsFor,
   findPackageVariable: findVariable = findPackageVariable,
@@ -15,8 +25,11 @@ export function createForecastLegendInitializerService({
   staticScaleFor: staticScale = staticScaleFor,
   updateLevelInfo,
   updateParamInfo,
-}) {
-  function initializeFromBlock(buffer, { modelState, session }) {
+}: ForecastLegendInitializerPorts) {
+  function initializeFromBlock(
+    buffer: Uint8Array,
+    { modelState, session }: InitializeForecastLegendContext,
+  ): boolean {
     if (session.legendInitialized) return false;
     session.legendInitialized = true;
 

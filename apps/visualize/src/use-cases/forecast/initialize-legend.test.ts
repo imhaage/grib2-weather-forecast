@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastLegendInitializerService } from "./forecast-legend-initializer-service.js";
+import { createForecastLegendInitializerUseCase } from "./initialize-legend";
 
-describe("forecast legend initializer service", () => {
+describe("forecast legend initializer use case", () => {
   test("initializes the map legend from the first matching GRIB message", () => {
     const session = {
       legendInitialized: false,
@@ -19,7 +19,7 @@ describe("forecast legend initializer service", () => {
       units: "K",
       levelValue: 2,
     };
-    const dependencies = {
+    const ports = {
       applyDefaultPalette: vi.fn(),
       displayUnitsFor: vi.fn(() => "degC"),
       findPackageVariable: vi.fn(() => variableDefinition),
@@ -41,20 +41,20 @@ describe("forecast legend initializer service", () => {
       updateLevelInfo: vi.fn(),
       updateParamInfo: vi.fn(),
     };
-    const service = createForecastLegendInitializerService(dependencies);
+    const useCase = createForecastLegendInitializerUseCase(ports);
 
-    expect(service.initializeFromBlock(new Uint8Array([1]), { modelState, session })).toBe(true);
+    expect(useCase.initializeFromBlock(new Uint8Array([1]), { modelState, session })).toBe(true);
 
     expect(session.legendInitialized).toBe(true);
     expect(modelState.lastRunInfo).toBe("TEST_MODEL · run 2026-06-04 06Z");
-    expect(dependencies.applyDefaultPalette).toHaveBeenCalledWith("temperature");
-    expect(dependencies.updateParamInfo).toHaveBeenCalledWith(
+    expect(ports.applyDefaultPalette).toHaveBeenCalledWith("temperature");
+    expect(ports.updateParamInfo).toHaveBeenCalledWith(
       "Temperature",
       "Air temperature",
       "Test model",
     );
-    expect(dependencies.updateLevelInfo).toHaveBeenCalledWith(variableDefinition);
-    expect(dependencies.showColorScale).toHaveBeenCalledWith(-10, 40, "degC", {
+    expect(ports.updateLevelInfo).toHaveBeenCalledWith(variableDefinition);
+    expect(ports.showColorScale).toHaveBeenCalledWith(-10, 40, "degC", {
       isLog: false,
     });
   });
@@ -66,10 +66,10 @@ describe("forecast legend initializer service", () => {
         product: { shortName: "t", name: "Temperature" },
       };
     });
-    const service = createForecastLegendInitializerService({
+    const useCase = createForecastLegendInitializerUseCase({
       applyDefaultPalette: vi.fn(),
       displayUnitsFor: vi.fn(),
-      findPackageVariable: vi.fn(() => ({ shortName: "t", units: "K" })),
+      findPackageVariable: vi.fn(() => ({ shortName: "t", name: "Temperature", units: "K" })),
       formatModelPackageSubtitle: vi.fn(() => "Test model"),
       formatRefTime: vi.fn(() => "run"),
       iterateMessages,
@@ -82,7 +82,7 @@ describe("forecast legend initializer service", () => {
     const session = { legendInitialized: true, packageKey: "TEST_MODEL" };
 
     expect(
-      service.initializeFromBlock(new Uint8Array([1]), {
+      useCase.initializeFromBlock(new Uint8Array([1]), {
         modelState: { packageKey: "TEST_MODEL", variable: "temperature" },
         session,
       }),

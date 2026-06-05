@@ -8,6 +8,7 @@ import { formatRunSummary } from "../domain/resources.js";
 import { defaultPaletteFor } from "../domain/variable-metadata.js";
 import { BLOCK_STATUS } from "../ui/data-status-summary.js";
 import { createForecastAnimationCacheBuildUseCase } from "../use-cases/forecast/build-animation-cache";
+import { createForecastLegendInitializerUseCase } from "../use-cases/forecast/initialize-legend";
 import { createForecastVariableSelectionUseCase } from "../use-cases/forecast/select-variable";
 import { createDownloadWorkerClient as createDefaultDownloadWorkerClient } from "../workers/download-worker-client.js";
 import { createDataGouvResourceService } from "./data-gouv-resource-service.js";
@@ -17,7 +18,6 @@ import { createForecastBlockRefreshService } from "./forecast-block-refresh-serv
 import { createForecastDownloadPreparationService } from "./forecast-download-preparation-service.js";
 import { createForecastDownloadSessionService } from "./forecast-download-session-service.js";
 import { createForecastInitialDownloadService } from "./forecast-initial-download-service.js";
-import { createForecastLegendInitializerService } from "./forecast-legend-initializer-service.js";
 import { createForecastMapPresentationService } from "./forecast-map-presentation-service.js";
 import { createForecastPackageResourceService } from "./forecast-package-resource-service.js";
 import { createForecastPresentationQueueService } from "./forecast-presentation-queue-service.js";
@@ -173,7 +173,7 @@ export function createForecastRuntimeFactory({
     updateParamInfo,
   } = mapPresenter;
 
-  const forecastLegendInitializerService = createForecastLegendInitializerService({
+  const forecastLegendInitializerUseCase = createForecastLegendInitializerUseCase({
     applyDefaultPalette,
     formatModelPackageSubtitle,
     showColorScale: mapPresentation.showColorScale,
@@ -304,7 +304,7 @@ export function createForecastRuntimeFactory({
 
   async function presentAvailableModelBlock(block, buffer, status, session) {
     if (!isModelResourceRefreshActive(session.downloadKey)) return;
-    forecastLegendInitializerService.initializeFromBlock(buffer, {
+    forecastLegendInitializerUseCase.initializeFromBlock(buffer, {
       modelState: getModelState(),
       session,
     });

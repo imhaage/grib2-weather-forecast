@@ -21,6 +21,7 @@ export interface ForecastVariableDefinition {
   shortName: string;
   varKey?: string;
   name: string;
+  units?: string;
   levelValue?: number | null;
   [key: string]: unknown;
 }
@@ -39,6 +40,57 @@ export interface ForecastVariableSelectionPorts {
   ): ForecastVariableDefinition | undefined;
   formatModelPackageSubtitle(packageKey: string | null | undefined): string;
   parameterDescriptionFor?(shortName: string): string;
+  updateLevelInfo(variableDefinition: ForecastVariableDefinition | undefined): void;
+  updateParamInfo(name: string, description: string, subtitle: string): void;
+}
+
+export interface ForecastLegendState {
+  packageKey: string;
+  variable: string;
+  lastRunInfo?: string | null;
+}
+
+export interface ForecastLegendSession {
+  legendInitialized?: boolean;
+  packageKey: string;
+}
+
+export interface ForecastLegendMessage {
+  header: unknown;
+  product?: {
+    shortName?: string;
+    name: string;
+    units?: string;
+    levelValue?: number | null;
+  };
+}
+
+export interface ForecastStaticScale {
+  min: number;
+  max: number;
+  log?: boolean;
+}
+
+export interface ForecastLegendInitializerPorts {
+  applyDefaultPalette(variableKey: string): void;
+  displayUnitsFor(shortName: string, units: string | undefined): string;
+  findPackageVariable(
+    packageKey: string,
+    variableKey: string,
+  ): ForecastVariableDefinition | undefined;
+  formatModelPackageSubtitle(packageKey: string): string;
+  formatRefTime(header: unknown): string;
+  iterateMessages(buffer: Uint8Array): Iterable<ForecastLegendMessage>;
+  parameterDescriptionFor(shortName: string): string;
+  showColorScale(
+    min: number,
+    max: number,
+    units: string,
+    options: {
+      isLog: boolean;
+    },
+  ): void;
+  staticScaleFor(shortName: string): ForecastStaticScale | null | undefined;
   updateLevelInfo(variableDefinition: ForecastVariableDefinition | undefined): void;
   updateParamInfo(name: string, description: string, subtitle: string): void;
 }
