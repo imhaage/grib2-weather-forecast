@@ -1,20 +1,137 @@
 import { fmtRefTime, fmtValidTime } from "grib2-decoder";
-import { blockForHour } from "../domain/forecast-state.js";
-import { findPackageVariable } from "../domain/model-packages.js";
-import { gradientStopsFor } from "../domain/palettes.js";
-import { parameterDescriptionFor } from "../domain/variable-metadata.js";
-import { createForecastIsobarOverlayUseCase } from "../use-cases/forecast/update-isobar-overlay";
-import { createForecastWindSymbolOverlayUseCase } from "../use-cases/forecast/update-wind-symbol-overlay";
+import { blockForHour } from "../../domain/forecast-state.js";
+import { findPackageVariable } from "../../domain/model-packages.js";
+import { gradientStopsFor } from "../../domain/palettes.js";
+import { parameterDescriptionFor } from "../../domain/variable-metadata.js";
+import { createForecastIsobarOverlayUseCase } from "./update-isobar-overlay";
+import { createForecastWindSymbolOverlayUseCase } from "./update-wind-symbol-overlay";
 
-function defaultFormatModelPackageSubtitle(packageKey) {
+function defaultFormatModelPackageSubtitle(packageKey: string) {
   return packageKey;
 }
 
-function defaultFormatForecastValidTimeLabel(timeLabel) {
+function defaultFormatForecastValidTimeLabel(timeLabel: string) {
   return timeLabel;
 }
 
-export function createForecastMapPresentationService({
+type MapCorner = [number, number];
+
+interface ForecastProduct {
+  forecastTime?: number;
+  name?: string;
+  pdtNumber?: number;
+  shortName: string;
+  timeUnit?: number;
+  [key: string]: unknown;
+}
+
+interface ForecastEntry {
+  bitmap: unknown;
+  count?: number;
+  dataMax: number;
+  dataMin: number;
+  displayUnits?: string | null;
+  grid: unknown;
+  header: unknown;
+  isLog?: boolean;
+  isobars?: Record<string, unknown> | null;
+  mean?: number;
+  product: ForecastProduct;
+  range: number;
+  renderMin: number;
+  staticScale?: boolean;
+  values?: Float32Array | null;
+  vectorUValues?: Float32Array | null;
+  vectorVValues?: Float32Array | null;
+}
+
+interface ForecastBlock {
+  key: string;
+  startHour?: number;
+  endHour?: number;
+  runId?: string | null;
+  [key: string]: unknown;
+}
+
+interface ForecastModelState {
+  hourList?: number[];
+  lastRunInfo?: string;
+  packageKey: string;
+  resources?: ForecastBlock[];
+  showWindDirection?: boolean;
+  variable?: string | null;
+}
+
+interface ForecastSession {
+  availableCount: number;
+  downloadKey: unknown;
+  pkg: {
+    bounds: unknown;
+  };
+}
+
+interface MapPresentationPort {
+  clearStats: () => void;
+  hideColorScale: () => void;
+  hideUnavailable: () => void;
+  setColorScaleGradient: (stops: Array<{ color: string; position: number }>) => void;
+  setForecastValidTime: (label: string) => void;
+  showColorScale: (
+    min: number,
+    max: number,
+    units: string | null | undefined,
+    options: { isLog?: boolean },
+  ) => void;
+  showUnavailable: () => void;
+  updateLevelInfo: (varDef: unknown) => void;
+  updateParamInfo: (name: string | undefined, description: string | null, subtitle: string) => void;
+  updateStats: (
+    min: number,
+    max: number,
+    mean: number | undefined,
+    count: number | undefined,
+    units: string | null | undefined,
+  ) => void;
+}
+
+interface MapRendererPort {
+  clearIsobars: () => void;
+  clearLayer: () => void;
+  clearWindSymbols?: () => void;
+  drawBitmap: (bitmap: unknown) => void;
+  ensureHeatCanvas: (grid: unknown) => { canvas: unknown; canvasChanged: boolean };
+  fitBounds: (bounds: unknown, options?: unknown) => void;
+  getViewportBounds?: () => { east: number; north: number; south: number; west: number } | null;
+  getZoom?: () => number;
+  hasLayer: () => boolean;
+  onViewportSettled?: (callback: () => void) => void;
+  setLayer: (canvas: unknown, corners: MapCorner[]) => void;
+  setVisible: (visible: boolean) => void;
+  triggerRepaint: () => void;
+  updateIsobars: (geojson: Record<string, unknown> | null | undefined) => void;
+  updateWindSymbols?: (geojson: unknown) => void;
+}
+
+export interface CreateForecastMapPresentationUseCaseOptions {
+  formatForecastValidTimeLabel?: (label: string) => string;
+  formatModelPackageSubtitle?: (packageKey: string) => string;
+  formatRefTime?: (header: unknown) => string;
+  formatValidTime?: (header: unknown, product: ForecastProduct) => string;
+  getCurrentPalette: () => string;
+  getMapBounds?: () => { east: number; north: number; south: number; west: number } | null;
+  getMapZoom?: () => number;
+  getModelState: () => ForecastModelState | null;
+  gridCorners: (grid: unknown) => MapCorner[];
+  initMap: () => Promise<unknown>;
+  makeGridState: (entry: ForecastEntry, values: Float32Array | null) => unknown;
+  mapPresentation: MapPresentationPort;
+  mapRenderer: MapRendererPort;
+  missingValue: number;
+  onMapViewportSettled?: (callback: () => void) => void;
+  setGridState: (gridState: unknown) => void;
+}
+
+export function createForecastMapPresentationUseCase({
   formatForecastValidTimeLabel = defaultFormatForecastValidTimeLabel,
   formatModelPackageSubtitle = defaultFormatModelPackageSubtitle,
   formatRefTime = fmtRefTime,
@@ -31,10 +148,10 @@ export function createForecastMapPresentationService({
   missingValue,
   onMapViewportSettled,
   setGridState,
-}) {
+}: CreateForecastMapPresentationUseCaseOptions) {
   let viewportRefreshRegistered = false;
-  let lastPresentedEntry = null;
-  let lastPresentedValues = null;
+  let lastPresentedEntry: ForecastEntry | null = null;
+  let lastPresentedValues: Float32Array | null | undefined = null;
   const isobarOverlayService = createForecastIsobarOverlayUseCase({
     missingValue,
     renderer: mapRenderer,
@@ -47,6 +164,12 @@ export function createForecastMapPresentationService({
     renderer: mapRenderer,
   });
 
+  function modelStateOrThrow() {
+    const modelState = getModelState();
+    if (!modelState) throw new Error("Forecast model state is required");
+    return modelState;
+  }
+
   function mapBoundsForSymbols() {
     if (getMapBounds) return getMapBounds();
     return mapRenderer.getViewportBounds?.() ?? null;
@@ -56,15 +179,15 @@ export function createForecastMapPresentationService({
     return getMapZoom ? getMapZoom() : (mapRenderer.getZoom?.() ?? 0);
   }
 
-  function updateParamInfo(name, description, subtitle) {
+  function updateParamInfo(name: string | undefined, description: string | null, subtitle: string) {
     mapPresentation.updateParamInfo(name, description, subtitle);
   }
 
-  function updateLevelInfo(varDef) {
+  function updateLevelInfo(varDef: unknown) {
     mapPresentation.updateLevelInfo(varDef);
   }
 
-  function updateStatsAndColorScale(entry) {
+  function updateStatsAndColorScale(entry: ForecastEntry) {
     mapPresentation.updateStats(
       entry.dataMin,
       entry.dataMax,
@@ -79,7 +202,7 @@ export function createForecastMapPresentationService({
     });
   }
 
-  function selectedVariableDefinition(product) {
+  function selectedVariableDefinition(product: ForecastProduct) {
     const modelState = getModelState();
     return findPackageVariable(modelState?.packageKey, modelState?.variable) ?? product;
   }
@@ -107,7 +230,7 @@ export function createForecastMapPresentationService({
     hideMapUnavailable();
   }
 
-  function fmtUnavailableValidTime(hour) {
+  function fmtUnavailableValidTime(hour: number) {
     const modelState = getModelState();
     const block = blockForHour(modelState?.resources ?? [], hour);
     const runId = block?.runId;
@@ -119,7 +242,7 @@ export function createForecastMapPresentationService({
     return `+${String(hour).padStart(2, "0")}H`;
   }
 
-  function showUnavailableHour(hour) {
+  function showUnavailableHour(hour: number) {
     clearMapLayer();
     clearStats();
     mapPresentation.setForecastValidTime(
@@ -128,11 +251,11 @@ export function createForecastMapPresentationService({
     showMapUnavailable();
   }
 
-  function updateIsobarOverlay(entry, values) {
+  function updateIsobarOverlay(entry: ForecastEntry, values: Float32Array | null | undefined) {
     isobarOverlayService.update(entry, values);
   }
 
-  function updateWindSymbolOverlay(entry, values) {
+  function updateWindSymbolOverlay(entry: ForecastEntry, values: Float32Array | null | undefined) {
     windSymbolOverlayService.update(entry, values);
   }
 
@@ -149,8 +272,12 @@ export function createForecastMapPresentationService({
     viewportRefreshRegistered = true;
   }
 
-  async function presentBitmapEntry(hour, entry, { values } = {}) {
-    const modelState = getModelState();
+  async function presentBitmapEntry(
+    hour: number,
+    entry: ForecastEntry,
+    { values }: { values?: Float32Array | null } = {},
+  ) {
+    const modelState = modelStateOrThrow();
     const { grid, product, header } = entry;
     hideMapUnavailable();
 
@@ -164,7 +291,11 @@ export function createForecastMapPresentationService({
       min: entry.renderMin,
       max: entry.renderMin + entry.range,
     };
-    const stops = gradientStopsFor(getCurrentPalette(), scaleRange).map((stop) => ({
+    const paletteStops = gradientStopsFor(getCurrentPalette(), scaleRange) as Array<{
+      color: string;
+      position: number;
+    }>;
+    const stops = paletteStops.map((stop) => ({
       color: stop.color,
       position: stop.position,
     }));
@@ -207,9 +338,17 @@ export function createForecastMapPresentationService({
   }
 
   async function presentAvailableBlock(
-    block,
-    session,
-    { isRefreshActive, selectedHourIndex, showHour },
+    block: ForecastBlock,
+    session: ForecastSession,
+    {
+      isRefreshActive,
+      selectedHourIndex,
+      showHour,
+    }: {
+      isRefreshActive: (downloadKey: unknown) => boolean;
+      selectedHourIndex: () => number;
+      showHour: (index: number) => Promise<unknown>;
+    },
   ) {
     const currentIndex = selectedHourIndex();
     const currentHour = getModelState()?.hourList?.[currentIndex];

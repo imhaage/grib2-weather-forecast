@@ -22,6 +22,7 @@ import { createForecastResourceLoadUseCase } from "../use-cases/forecast/load-re
 import { createForecastDownloadSessionService } from "../use-cases/forecast/manage-download-session";
 import { createForecastPresentationQueueService } from "../use-cases/forecast/manage-presentation-queue";
 import { createForecastDownloadPreparationUseCase } from "../use-cases/forecast/prepare-download-session";
+import { createForecastMapPresentationUseCase } from "../use-cases/forecast/present-map";
 import { createForecastBlockRefreshUseCase } from "../use-cases/forecast/refresh-blocks";
 import { createForecastResourceRefreshUseCase } from "../use-cases/forecast/resource-refresh";
 import { createForecastVariableSelectionUseCase } from "../use-cases/forecast/select-variable";
@@ -30,7 +31,6 @@ import { createForecastAvailableBlockUseCase } from "../use-cases/forecast/store
 import { createForecastResourceUpdateUseCase } from "../use-cases/forecast/update-resources";
 import { createDownloadWorkerClient as createDefaultDownloadWorkerClient } from "../workers/download-worker-client.js";
 import { createForecastAnimationService } from "./forecast-animation-service.js";
-import { createForecastMapPresentationService } from "./forecast-map-presentation-service.js";
 import { createForecastRuntime } from "./forecast-runtime.js";
 
 const PROXY = "https://grib2-cors-proxy.imh.workers.dev";
@@ -149,7 +149,7 @@ export function createForecastRuntimeFactory({
     forecastHourControlView.renderHourList(modelState.hourList);
   }
 
-  const mapPresenter = createForecastMapPresentationService({
+  const mapPresenter = createForecastMapPresentationUseCase({
     formatForecastValidTimeLabel,
     formatModelPackageSubtitle,
     getCurrentPalette,
