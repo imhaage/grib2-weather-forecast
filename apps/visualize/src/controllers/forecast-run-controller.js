@@ -7,6 +7,7 @@ import { MODEL_INFO, PACKAGES } from "../domain/model-packages.js";
 import { formatRunSummary } from "../domain/resources.js";
 import { defaultPaletteFor } from "../domain/variable-metadata.js";
 import { createDataGouvResourceService } from "../services/data-gouv-resource-service.js";
+import { createForecastAnimationCacheBuildService } from "../services/forecast-animation-cache-build-service.js";
 import { createForecastAnimationService } from "../services/forecast-animation-service.js";
 import { createForecastAvailableBlockService } from "../services/forecast-available-block-service.js";
 import { createForecastBlockRefreshService } from "../services/forecast-block-refresh-service.js";
@@ -163,11 +164,18 @@ export function createForecastRunController({
     isAnimationCacheReadyForPlayback,
     isBitmapCacheComplete,
     queueCurrentTooltipValueHydration,
-    queuePrerenderForAllBlocks,
     showHour,
     updateWarmupProgress,
     waitForPrerenderIdle,
   } = animationService;
+  const forecastAnimationCacheBuildService = createForecastAnimationCacheBuildService({
+    getModelState: () => modelState,
+    isBitmapCacheComplete,
+    isRefreshActive: isModelResourceRefreshActive,
+    queuePrerenderForAllBlocks: animationService.queuePrerenderForAllBlocks,
+    updateWarmupProgress,
+    waitForPrerenderIdle,
+  });
 
   function scheduleLowPriorityWork() {
     if ("requestIdleCallback" in window) {
@@ -353,17 +361,6 @@ export function createForecastRunController({
     completeModelDownloadIfReady(session);
   }
 
-  async function buildAnimationCacheAfterNetworkSettles(session) {
-    if (!isModelResourceRefreshActive(session.downloadKey)) return;
-    modelState.animationCacheStatus = "building";
-    updateWarmupProgress();
-    queuePrerenderForAllBlocks();
-    await waitForPrerenderIdle();
-    if (!isModelResourceRefreshActive(session.downloadKey)) return;
-    modelState.animationCacheStatus = isBitmapCacheComplete() ? "ready" : "waiting";
-    updateWarmupProgress();
-  }
-
   async function writeCachedModelBlock(packageKey, block, buffer) {
     const cacheWriteSucceeded = await writeCachedGribBlock(packageKey, block, buffer);
     if (cacheWriteSucceeded) updateStorageWarningSizeIfOpen?.();
@@ -473,7 +470,7 @@ export function createForecastRunController({
     if (!session) return;
     updateWarmupProgress();
 
-    await buildAnimationCacheAfterNetworkSettles(session);
+    await forecastAnimationCacheBuildService.buildAfterNetworkSettles(session);
   }
 
   async function refreshCurrentModelResourcesToLatest(downloadKey) {
@@ -494,7 +491,7 @@ export function createForecastRunController({
       animationService.currentRenderGeneration === capturedRenderGeneration &&
       isModelResourceRefreshActive(downloadKey)
     ) {
-      await buildAnimationCacheAfterNetworkSettles(session);
+      await forecastAnimationCacheBuildService.buildAfterNetworkSettles(session);
     }
   }
 
