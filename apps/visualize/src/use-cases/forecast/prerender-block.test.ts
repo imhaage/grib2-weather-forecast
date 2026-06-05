@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastPrerenderBlockService } from "./forecast-prerender-block-service.js";
+import { createForecastPrerenderBlockService } from "./prerender-block";
 
-describe("forecast prerender block service", () => {
+describe("forecast prerender block use case", () => {
   test("renders missing hours from a block into the bitmap cache", async () => {
     const state = {
       hourList: [1, 2],

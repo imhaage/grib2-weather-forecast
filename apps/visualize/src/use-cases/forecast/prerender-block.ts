@@ -1,3 +1,40 @@
+interface ForecastBlock {
+  endHour: number;
+  key: string;
+  startHour: number;
+}
+
+interface ForecastPrerenderState {
+  hourList: number[];
+  resources: ForecastBlock[];
+}
+
+interface RenderedHourEntry {
+  bitmap: {
+    close: () => void;
+  };
+}
+
+interface ForecastBitmapCache {
+  hasHour: (hour: number) => boolean;
+  setHour: (hour: number, entry: unknown) => void;
+}
+
+interface CreateForecastPrerenderBlockServiceOptions {
+  cache: ForecastBitmapCache;
+  getCurrentRenderGeneration: () => number;
+  getCurrentState: () => unknown;
+  keepValuesForCurrentVariable: () => boolean;
+  mapWorkerEntry: (entry: RenderedHourEntry, options: { keepValues: boolean }) => unknown;
+  renderHour: (hourIndex: number) => Promise<RenderedHourEntry | null | undefined>;
+  updateWarmupProgress: () => void;
+}
+
+interface PrerenderBlockOptions {
+  renderGeneration: number;
+  state: ForecastPrerenderState;
+}
+
 export function createForecastPrerenderBlockService({
   cache,
   getCurrentRenderGeneration,
@@ -6,8 +43,11 @@ export function createForecastPrerenderBlockService({
   mapWorkerEntry,
   renderHour,
   updateWarmupProgress,
-}) {
-  async function prerenderBlock(blockKey, { renderGeneration, state }) {
+}: CreateForecastPrerenderBlockServiceOptions) {
+  async function prerenderBlock(
+    blockKey: string,
+    { renderGeneration, state }: PrerenderBlockOptions,
+  ) {
     const block = state.resources.find((resource) => resource.key === blockKey);
     if (!block) return;
 
