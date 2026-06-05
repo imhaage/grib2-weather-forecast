@@ -1,11 +1,11 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastTooltipHydrationService } from "./forecast-tooltip-hydration-service.js";
+import { createForecastTooltipHydrationService } from "./hydrate-tooltip-values";
 
 function createService(overrides = {}) {
   let timerId = 0;
-  const scheduled = new Map();
+  const scheduled = new Map<number, () => Promise<void> | void>();
   const dependencies = {
-    clearTimer: vi.fn((id) => scheduled.delete(id)),
+    clearTimer: vi.fn((id: number) => scheduled.delete(id)),
     decodeValues: vi.fn(async () => ({
       values: new Float32Array([1, 2]),
       vectorUValues: new Float32Array([3, 4]),
@@ -21,7 +21,7 @@ function createService(overrides = {}) {
     makeGridState: vi.fn((entry, values) => ({ entry, values })),
     onError: vi.fn(),
     setGridState: vi.fn(),
-    setTimer: vi.fn((callback) => {
+    setTimer: vi.fn((callback: () => Promise<void> | void) => {
       timerId++;
       scheduled.set(timerId, callback);
       return timerId;
@@ -39,7 +39,7 @@ function createService(overrides = {}) {
   };
 }
 
-describe("forecast tooltip hydration service", () => {
+describe("forecast tooltip hydration use case", () => {
   test("hydrates cached entries after the debounce delay", async () => {
     const state = { currentHour: 1 };
     const { dependencies, runNextTimer, service } = createService({
