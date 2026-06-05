@@ -72,7 +72,7 @@ export function createForecastRuntimeFactory({
   }
 
   function getModelBlockService() {
-    return runtime.internals.getModelBlockService();
+    return runtime.runtimePorts.getModelBlockService();
   }
 
   function scheduleLowPriorityWork() {
@@ -217,7 +217,7 @@ export function createForecastRuntimeFactory({
     getSelectedHourIndex: forecastHourControlView.selectedIndex,
     getModelBlockService,
     getModelState,
-    isPlayerPlaying: () => runtime.internals.isPlayerPlaying(),
+    isPlayerPlaying: () => runtime.runtimePorts.isPlayerPlaying(),
     makeGridState,
     missingValue,
     notifyDiagnostics,
@@ -227,7 +227,7 @@ export function createForecastRuntimeFactory({
     renderWarmupProgress: forecastWarmupView.render,
     setGridState,
     showUnavailableHour,
-    syncPlayButtonAvailability: () => runtime.internals.syncPlayButtonAvailability(),
+    syncPlayButtonAvailability: () => runtime.runtimePorts.syncPlayButtonAvailability(),
     updateIsobarOverlay,
   });
 
@@ -346,7 +346,7 @@ export function createForecastRuntimeFactory({
       isBlockInMemoryStale: isModelBlockInMemoryStale,
     },
     network: {
-      downloadFile: (...args) => runtime.internals.downloadFileProg(...args),
+      downloadFile: (...args) => runtime.runtimePorts.downloadFileWithProgress(...args),
     },
     presentation: {
       enqueueAvailableBlock: forecastPresentationQueueService.enqueueAvailableBlock,

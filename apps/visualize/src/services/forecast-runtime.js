@@ -55,7 +55,7 @@ export function createForecastRuntime({
     return new Uint8Array(result.buffer);
   }
 
-  async function downloadFileProg(url, filesize, onProgress) {
+  async function downloadFileWithProgress(url, filesize, onProgress) {
     return downloadFileInWorker(downloadWorkerProxyUrl(url), filesize, onProgress);
   }
 
@@ -161,8 +161,8 @@ export function createForecastRuntime({
     startDownload,
   };
 
-  const internals = {
-    downloadFileProg,
+  const runtimePorts = {
+    downloadFileWithProgress,
     getModelBlockService,
     isPlayerPlaying,
     syncPlayButtonAvailability,
@@ -170,6 +170,6 @@ export function createForecastRuntime({
 
   return {
     api,
-    internals,
+    runtimePorts,
   };
 }
