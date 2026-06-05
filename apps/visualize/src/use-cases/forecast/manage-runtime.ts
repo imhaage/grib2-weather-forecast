@@ -1,4 +1,68 @@
-export function createForecastRuntime({
+interface ForecastAnimationPlayer {
+  isPlaying: () => boolean;
+  stopPlayer: () => void;
+  syncPlayButtonAvailability: () => void;
+}
+
+interface ForecastAnimationService {
+  currentRenderGeneration: number;
+  getDiagnostics: () => unknown;
+  invalidateBitmapCache: () => void;
+  isAnimationCacheReadyForPlayback: () => boolean;
+  isBitmapCacheComplete: () => boolean;
+  queueCurrentTooltipValueHydration: () => void;
+  resetDecoding: () => void;
+  showHour: (index: number) => Promise<unknown> | unknown;
+  updateWarmupProgress: () => void;
+}
+
+interface ForecastRuntimeModelState {
+  packageKey?: string;
+  showWindDirection?: boolean;
+  [key: string]: unknown;
+}
+
+interface DownloadWorkerClient {
+  post: (
+    message: { filesize?: number | null; url: string },
+    transferables?: Transferable[],
+    options?: { onProgress?: (progress: { loaded: number; total: number }) => void },
+  ) => Promise<{ buffer?: ArrayBuffer } | null>;
+}
+
+export interface CreateForecastRuntimeUseCaseOptions {
+  animationService: ForecastAnimationService;
+  buildAnimationCacheAfterNetworkSettles: (session: unknown) => Promise<unknown>;
+  beginResourceRefresh: () => unknown;
+  configureModelVariableControls: (pkg: unknown) => void;
+  createModelBlockServiceClient: () => unknown;
+  createModelState: (packageKey: string) => ForecastRuntimeModelState;
+  createDownloadWorkerClient: () => DownloadWorkerClient;
+  downloadInitialForecast: (request: {
+    packageKey: string;
+    pkg: unknown;
+    downloadKey: unknown;
+  }) => Promise<unknown | null>;
+  downloadWorkerProxyUrl: (url: string) => string;
+  getSelectedHourIndex: () => number;
+  getPackage: (packageKey: string) => unknown;
+  isResourceRefreshActive: (downloadKey: unknown) => boolean;
+  mapRenderer: {
+    setVisible: (visible: boolean) => void;
+  };
+  refreshCurrentResourcesToLatest: (downloadKey: unknown) => Promise<unknown | null>;
+  refreshWindSymbolOverlay: () => void;
+  resetDownloadView: () => void;
+  resetForecastHourControl: () => void;
+  resetRuntimePresentation: () => void;
+  selectVariable: (varKey: string) => void;
+  setRendering: (rendering: boolean) => void;
+  setGridState: (gridState: unknown) => void;
+  syncWindDirectionControl: () => void;
+  waitForNextFrame: () => Promise<unknown>;
+}
+
+export function createForecastRuntimeUseCase({
   animationService,
   buildAnimationCacheAfterNetworkSettles,
   beginResourceRefresh,
@@ -22,8 +86,13 @@ export function createForecastRuntime({
   setGridState,
   syncWindDirectionControl,
   waitForNextFrame,
-}) {
-  const runtimeState = {
+}: CreateForecastRuntimeUseCaseOptions) {
+  const runtimeState: {
+    animationPlayer: ForecastAnimationPlayer | null;
+    downloadWorkerClient: DownloadWorkerClient | null;
+    modelBlockService: unknown;
+    modelState: ForecastRuntimeModelState | null;
+  } = {
     modelState: null,
     modelBlockService: null,
     downloadWorkerClient: null,
@@ -46,16 +115,24 @@ export function createForecastRuntime({
     runtimeState.downloadWorkerClient = createDownloadWorkerClient();
   }
 
-  async function downloadFileInWorker(url, filesize, onProgress) {
+  async function downloadFileInWorker(
+    url: string,
+    filesize: number | null | undefined,
+    onProgress: (loaded: number, total: number) => void,
+  ) {
     initDownloadWorker();
-    const result = await runtimeState.downloadWorkerClient.post({ url, filesize }, [], {
+    const result = await runtimeState.downloadWorkerClient?.post({ url, filesize }, [], {
       onProgress: ({ loaded, total }) => onProgress(loaded, total),
     });
     if (!result?.buffer) throw new Error("Download failed");
     return new Uint8Array(result.buffer);
   }
 
-  async function downloadFileWithProgress(url, filesize, onProgress) {
+  async function downloadFileWithProgress(
+    url: string,
+    filesize: number | null | undefined,
+    onProgress: (loaded: number, total: number) => void,
+  ) {
     return downloadFileInWorker(downloadWorkerProxyUrl(url), filesize, onProgress);
   }
 
@@ -71,7 +148,7 @@ export function createForecastRuntime({
     return Boolean(runtimeState.animationPlayer?.isPlaying());
   }
 
-  async function startDownload(packageKey) {
+  async function startDownload(packageKey: string) {
     const pkg = getPackage(packageKey);
     runtimeState.modelState = createModelState(packageKey);
     mapRenderer.setVisible(false);
@@ -109,14 +186,14 @@ export function createForecastRuntime({
     }
   }
 
-  async function handleVariableChange(varKey) {
+  async function handleVariableChange(varKey: string) {
     if (!runtimeState.modelState) return;
     selectVariable(varKey);
     syncWindDirectionControl();
     await refreshCurrentModelVisuals();
   }
 
-  function setWindDirectionVisible(visible) {
+  function setWindDirectionVisible(visible: boolean) {
     if (!runtimeState.modelState) return;
     runtimeState.modelState.showWindDirection = Boolean(visible);
     syncWindDirectionControl();
@@ -152,7 +229,7 @@ export function createForecastRuntime({
     queueCurrentTooltipValueHydration: animationService.queueCurrentTooltipValueHydration,
     refreshCurrentModelVisuals,
     resetModelState,
-    setAnimationPlayer(player) {
+    setAnimationPlayer(player: ForecastAnimationPlayer) {
       runtimeState.animationPlayer = player;
       animationService.updateWarmupProgress();
     },

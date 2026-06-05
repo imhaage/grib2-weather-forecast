@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastRuntime } from "./forecast-runtime.js";
+import { createForecastRuntimeUseCase } from "./manage-runtime";
 
 function createRuntime(overrides = {}) {
   const ports = {
@@ -45,7 +45,7 @@ function createRuntime(overrides = {}) {
     waitForNextFrame: vi.fn(async () => {}),
     ...overrides,
   };
-  const runtime = createForecastRuntime(ports);
+  const runtime = createForecastRuntimeUseCase(ports);
 
   return {
     ports,
@@ -57,7 +57,7 @@ function createRuntime(overrides = {}) {
   };
 }
 
-describe("forecast runtime", () => {
+describe("forecast runtime use case", () => {
   test("exposes api and explicit factory-facing runtime ports", () => {
     const { runtime } = createRuntime();
 
@@ -68,7 +68,7 @@ describe("forecast runtime", () => {
       isPlayerPlaying: expect.any(Function),
       syncPlayButtonAvailability: expect.any(Function),
     });
-    expect(runtime.internals).toBeUndefined();
+    expect("internals" in runtime).toBe(false);
   });
 
   test("setAnimationPlayer updates warmup progress", async () => {
@@ -91,7 +91,7 @@ describe("forecast runtime", () => {
 
     runtime.api.setWindDirectionVisible(false);
 
-    expect(runtime.api.getModelState().showWindDirection).toBe(false);
+    expect(runtime.api.getModelState()?.showWindDirection).toBe(false);
     expect(ports.syncWindDirectionControl).toHaveBeenCalledOnce();
     expect(ports.refreshWindSymbolOverlay).toHaveBeenCalledOnce();
   });

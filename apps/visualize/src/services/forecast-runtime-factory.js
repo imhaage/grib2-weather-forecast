@@ -22,6 +22,7 @@ import { createForecastResourceLoadUseCase } from "../use-cases/forecast/load-re
 import { createForecastAnimationUseCase } from "../use-cases/forecast/manage-animation";
 import { createForecastDownloadSessionService } from "../use-cases/forecast/manage-download-session";
 import { createForecastPresentationQueueService } from "../use-cases/forecast/manage-presentation-queue";
+import { createForecastRuntimeUseCase } from "../use-cases/forecast/manage-runtime";
 import { createForecastDownloadPreparationUseCase } from "../use-cases/forecast/prepare-download-session";
 import { createForecastMapPresentationUseCase } from "../use-cases/forecast/present-map";
 import { createForecastBlockRefreshUseCase } from "../use-cases/forecast/refresh-blocks";
@@ -31,7 +32,6 @@ import { createForecastInitialDownloadUseCase } from "../use-cases/forecast/star
 import { createForecastAvailableBlockUseCase } from "../use-cases/forecast/store-available-block";
 import { createForecastResourceUpdateUseCase } from "../use-cases/forecast/update-resources";
 import { createDownloadWorkerClient as createDefaultDownloadWorkerClient } from "../workers/download-worker-client.js";
-import { createForecastRuntime } from "./forecast-runtime.js";
 
 const PROXY = "https://grib2-cors-proxy.imh.workers.dev";
 const MAX_PARALLEL_DOWNLOADS = 6;
@@ -397,7 +397,7 @@ export function createForecastRuntimeFactory({
     setStatus: forecastDownloadView.setStatus,
   });
 
-  runtime = createForecastRuntime({
+  runtime = createForecastRuntimeUseCase({
     animationService,
     beginResourceRefresh: beginModelResourceRefresh,
     buildAnimationCacheAfterNetworkSettles:
