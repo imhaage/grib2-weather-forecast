@@ -1,11 +1,11 @@
 import { fmtRefTime, fmtValidTime } from "grib2-decoder";
 import { blockForHour } from "../domain/forecast-state.js";
-import { generateIsobars, supportsIsobars } from "../domain/isobars.js";
 import { findPackageVariable } from "../domain/model-packages.js";
 import { gradientStopsFor } from "../domain/palettes.js";
 import { parameterDescriptionFor } from "../domain/variable-metadata.js";
 import { isVectorCompositeVariable } from "../domain/wind-composite-variable.js";
 import { buildWindSymbolFeatures } from "../domain/wind-symbol-sampler.js";
+import { createForecastIsobarOverlayService } from "./forecast-isobar-overlay-service.js";
 
 function defaultFormatModelPackageSubtitle(packageKey) {
   return packageKey;
@@ -41,6 +41,10 @@ export function createForecastMapPresentationService({
   let viewportRefreshRegistered = false;
   let lastPresentedEntry = null;
   let lastPresentedValues = null;
+  const isobarOverlayService = createForecastIsobarOverlayService({
+    missingValue,
+    renderer: mapRenderer,
+  });
 
   function mapBoundsForSymbols() {
     if (getMapBounds) return getMapBounds();
@@ -124,25 +128,7 @@ export function createForecastMapPresentationService({
   }
 
   function updateIsobarOverlay(entry, values) {
-    if (!supportsIsobars(entry.product.shortName)) {
-      mapRenderer.clearIsobars();
-      return;
-    }
-    if (entry.isobars) {
-      mapRenderer.updateIsobars(entry.isobars);
-      return;
-    }
-    if (!values) {
-      mapRenderer.clearIsobars();
-      return;
-    }
-    entry.isobars = generateIsobars({
-      shortName: entry.product.shortName,
-      grid: entry.grid,
-      values,
-      missingValue,
-    });
-    mapRenderer.updateIsobars(entry.isobars);
+    isobarOverlayService.update(entry, values);
   }
 
   function updateWindSymbolOverlay(entry, values) {
