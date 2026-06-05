@@ -9,6 +9,7 @@ import { defaultPaletteFor } from "../domain/variable-metadata.js";
 import { BLOCK_STATUS } from "../ui/data-status-summary.js";
 import { createForecastAnimationCacheBuildUseCase } from "../use-cases/forecast/build-animation-cache";
 import { createForecastLegendInitializerUseCase } from "../use-cases/forecast/initialize-legend";
+import { createForecastResourceLoadUseCase } from "../use-cases/forecast/load-resources";
 import { createForecastDownloadPreparationUseCase } from "../use-cases/forecast/prepare-download-session";
 import { createForecastResourceRefreshUseCase } from "../use-cases/forecast/resource-refresh";
 import { createForecastVariableSelectionUseCase } from "../use-cases/forecast/select-variable";
@@ -23,7 +24,6 @@ import { createForecastDownloadSessionService } from "./forecast-download-sessio
 import { createForecastMapPresentationService } from "./forecast-map-presentation-service.js";
 import { createForecastPackageResourceService } from "./forecast-package-resource-service.js";
 import { createForecastPresentationQueueService } from "./forecast-presentation-queue-service.js";
-import { createForecastResourceLoadService } from "./forecast-resource-load-service.js";
 import { createForecastRuntime } from "./forecast-runtime.js";
 import {
   deleteObsoleteCachedGribBlocks,
@@ -368,7 +368,7 @@ export function createForecastRuntimeFactory({
     fetchResources: dataGouvResourceService.fetchResources,
     isRefreshActive: isModelResourceRefreshActive,
   });
-  const forecastResourceLoadService = createForecastResourceLoadService({
+  const forecastResourceLoadUseCase = createForecastResourceLoadUseCase({
     fetchPackageResources: forecastPackageResourceService.fetchPackageResources,
     isRefreshActive: isModelResourceRefreshActive,
     setStatus: forecastDownloadView.setStatus,
@@ -382,7 +382,7 @@ export function createForecastRuntimeFactory({
   });
   const forecastResourceUpdateUseCase = createForecastResourceUpdateUseCase({
     isRefreshActive: isModelResourceRefreshActive,
-    loadPackageResources: forecastResourceLoadService.loadPackageResources,
+    loadPackageResources: forecastResourceLoadUseCase.loadPackageResources,
     prepareSession: forecastDownloadPreparationUseCase.prepareSession,
     refreshBlocksToLatest: forecastBlockRefreshService.refreshBlocksToLatest,
     refreshStatus: forecastDownloadSessionService.refreshStatus,
@@ -391,7 +391,7 @@ export function createForecastRuntimeFactory({
   const forecastInitialDownloadUseCase = createForecastInitialDownloadUseCase({
     downloadStatus: forecastDownloadSessionService.downloadStatus,
     isRefreshActive: isModelResourceRefreshActive,
-    loadPackageResources: forecastResourceLoadService.loadPackageResources,
+    loadPackageResources: forecastResourceLoadUseCase.loadPackageResources,
     prepareSession: forecastDownloadPreparationUseCase.prepareSession,
     refreshBlocksToLatest: forecastBlockRefreshService.refreshBlocksToLatest,
     setStatus: forecastDownloadView.setStatus,

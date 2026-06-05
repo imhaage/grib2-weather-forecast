@@ -22,6 +22,7 @@ Keep this list practical. Move items between sections as decisions are made and 
 - Move forecast initial download orchestration from `services/` to `use-cases/forecast/`.
 - Move forecast download session preparation from `services/` to `use-cases/forecast/`.
 - Move forecast resource update orchestration from `services/` to `use-cases/forecast/`.
+- Move forecast resource loading from `services/` to `use-cases/forecast/`.
 
 ## Next
 
@@ -41,11 +42,12 @@ Keep this list practical. Move items between sections as decisions are made and 
 - Convert migrated `services/` files to strict TypeScript as they move.
 - Remove `services/` once all remaining files have a clear target layer.
 - Review `BLOCK_STATUS` ownership so application code does not import status constants from UI modules.
+- Review forecast status wording so user-facing strings do not live in use cases long term.
 - Decide whether some passive UI views should later be grouped by feature.
 
 ## Questions
 
-- Which forecast workflow should be migrated next: resource loading, block refresh, available block storage, or map presentation?
+- Which forecast workflow should be migrated next: block refresh, available block storage, or map presentation?
 - Which forecast ports are stable enough to name now, and which should emerge only during extraction?
 - Should composition live in a dedicated `composition/` folder later, or remain in the current factory until the migration is further along?
 

@@ -106,6 +106,15 @@ export interface ForecastResourceUpdatePorts {
   setStatus(status: string): void;
 }
 
+export interface ForecastResourceLoadPorts {
+  fetchPackageResources(
+    packageKey: string,
+    downloadKey: unknown,
+  ): Promise<ForecastResourceLike[] | null>;
+  isRefreshActive(downloadKey: unknown): boolean;
+  setStatus(status: string): void;
+}
+
 export interface ForecastVariableDefinition {
   shortName: string;
   varKey?: string;

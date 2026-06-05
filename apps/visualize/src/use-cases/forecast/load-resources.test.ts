@@ -1,18 +1,18 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastResourceLoadService } from "./forecast-resource-load-service.js";
+import { createForecastResourceLoadUseCase } from "./load-resources";
 
-describe("forecast resource load service", () => {
+describe("forecast resource load use case", () => {
   test("loads package resources with the provided loading status", async () => {
     const resources = [{ key: "01H" }];
     const setStatus = vi.fn();
-    const service = createForecastResourceLoadService({
+    const useCase = createForecastResourceLoadUseCase({
       fetchPackageResources: vi.fn(async () => resources),
       isRefreshActive: vi.fn(() => true),
       setStatus,
     });
 
     await expect(
-      service.loadPackageResources({
+      useCase.loadPackageResources({
         packageKey: "AROME_SP1",
         downloadKey: { id: 1 },
         loadingStatus: "Fetching file list...",
@@ -24,7 +24,7 @@ describe("forecast resource load service", () => {
 
   test("reports API errors only while the refresh is active", async () => {
     const setStatus = vi.fn();
-    const service = createForecastResourceLoadService({
+    const useCase = createForecastResourceLoadUseCase({
       fetchPackageResources: vi.fn(async () => {
         throw new Error("network down");
       }),
@@ -33,7 +33,7 @@ describe("forecast resource load service", () => {
     });
 
     await expect(
-      service.loadPackageResources({
+      useCase.loadPackageResources({
         packageKey: "AROME_SP1",
         downloadKey: { id: 1 },
         loadingStatus: "Checking latest files...",
@@ -45,7 +45,7 @@ describe("forecast resource load service", () => {
 
   test("does not report API errors after the refresh was superseded", async () => {
     const setStatus = vi.fn();
-    const service = createForecastResourceLoadService({
+    const useCase = createForecastResourceLoadUseCase({
       fetchPackageResources: vi.fn(async () => {
         throw new Error("network down");
       }),
@@ -53,7 +53,7 @@ describe("forecast resource load service", () => {
       setStatus,
     });
 
-    await service.loadPackageResources({
+    await useCase.loadPackageResources({
       packageKey: "AROME_SP1",
       downloadKey: { id: 1 },
       loadingStatus: "Checking latest files...",
