@@ -14,13 +14,14 @@ Keep this list practical. Move items between sections as decisions are made and 
 - Move browser file reading from `services/` to `adapters/upload-inspector/`.
 - Add strict TypeScript ports for `use-cases/upload-inspector/`.
 - Keep the upload inspector controller public API stable.
+- Create the first forecast use-case boundary with animation cache build.
+- Add minimal strict TypeScript ports for `use-cases/forecast/`.
 
 ## Next
 
-- Identify the smallest forecast workflow that can migrate without touching the whole runtime factory.
-- Create `use-cases/forecast/ports.ts` with only the ports needed by that first workflow.
-- Move one cohesive forecast application workflow from `services/` to `use-cases/forecast/`.
-- Move the matching concrete integration from `services/` to `adapters/forecast/`.
+- Identify the next forecast workflow that can migrate without touching the whole runtime factory.
+- Expand `use-cases/forecast/ports.ts` only with ports needed by that next workflow.
+- Move one cohesive forecast integration from `services/` to `adapters/forecast/` when a concrete external dependency is involved.
 - Keep `forecast-run-controller.js` and existing public behavior stable during the migration.
 
 ## Backlog
@@ -38,7 +39,7 @@ Keep this list practical. Move items between sections as decisions are made and 
 
 ## Questions
 
-- Which forecast workflow should be migrated first: resource loading, resource refresh, animation cache build, map presentation, or variable selection?
+- Which forecast workflow should be migrated next: resource loading, resource refresh, map presentation, or variable selection?
 - Which forecast ports are stable enough to name now, and which should emerge only during extraction?
 - Should composition live in a dedicated `composition/` folder later, or remain in the current factory until the migration is further along?
 

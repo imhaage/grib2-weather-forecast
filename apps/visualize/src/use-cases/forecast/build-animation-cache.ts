@@ -1,12 +1,14 @@
-export function createForecastAnimationCacheBuildService({
+import type { ForecastAnimationCacheBuildPorts, ForecastRefreshSession } from "./ports";
+
+export function createForecastAnimationCacheBuildUseCase({
   getModelState,
   isBitmapCacheComplete,
   isRefreshActive,
   queuePrerenderForAllBlocks,
   updateWarmupProgress,
   waitForPrerenderIdle,
-}) {
-  async function buildAfterNetworkSettles(session) {
+}: ForecastAnimationCacheBuildPorts) {
+  async function buildAfterNetworkSettles(session: ForecastRefreshSession): Promise<void> {
     if (!isRefreshActive(session.downloadKey)) return;
     const modelState = getModelState();
     modelState.animationCacheStatus = "building";

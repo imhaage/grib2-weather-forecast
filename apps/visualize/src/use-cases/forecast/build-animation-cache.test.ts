@@ -1,10 +1,11 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastAnimationCacheBuildService } from "./forecast-animation-cache-build-service.js";
+import { createForecastAnimationCacheBuildUseCase } from "./build-animation-cache";
+import type { ForecastAnimationCacheState } from "./ports";
 
-describe("forecast animation cache build service", () => {
+describe("forecast animation cache build use case", () => {
   test("builds the animation cache and marks it ready when complete", async () => {
-    const modelState = { animationCacheStatus: "waiting" };
-    const dependencies = {
+    const modelState: ForecastAnimationCacheState = { animationCacheStatus: "waiting" };
+    const ports = {
       getModelState: vi.fn(() => modelState),
       isBitmapCacheComplete: vi.fn(() => true),
       isRefreshActive: vi.fn(() => true),
@@ -12,19 +13,19 @@ describe("forecast animation cache build service", () => {
       updateWarmupProgress: vi.fn(),
       waitForPrerenderIdle: vi.fn(async () => {}),
     };
-    const service = createForecastAnimationCacheBuildService(dependencies);
+    const useCase = createForecastAnimationCacheBuildUseCase(ports);
 
-    await service.buildAfterNetworkSettles({ downloadKey: { id: 1 } });
+    await useCase.buildAfterNetworkSettles({ downloadKey: { id: 1 } });
 
     expect(modelState.animationCacheStatus).toBe("ready");
-    expect(dependencies.queuePrerenderForAllBlocks).toHaveBeenCalled();
-    expect(dependencies.waitForPrerenderIdle).toHaveBeenCalled();
-    expect(dependencies.updateWarmupProgress).toHaveBeenCalledTimes(2);
+    expect(ports.queuePrerenderForAllBlocks).toHaveBeenCalled();
+    expect(ports.waitForPrerenderIdle).toHaveBeenCalled();
+    expect(ports.updateWarmupProgress).toHaveBeenCalledTimes(2);
   });
 
   test("keeps the animation cache waiting when prerender does not complete", async () => {
-    const modelState = { animationCacheStatus: "waiting" };
-    const service = createForecastAnimationCacheBuildService({
+    const modelState: ForecastAnimationCacheState = { animationCacheStatus: "waiting" };
+    const useCase = createForecastAnimationCacheBuildUseCase({
       getModelState: vi.fn(() => modelState),
       isBitmapCacheComplete: vi.fn(() => false),
       isRefreshActive: vi.fn(() => true),
@@ -33,15 +34,15 @@ describe("forecast animation cache build service", () => {
       waitForPrerenderIdle: vi.fn(async () => {}),
     });
 
-    await service.buildAfterNetworkSettles({ downloadKey: { id: 1 } });
+    await useCase.buildAfterNetworkSettles({ downloadKey: { id: 1 } });
 
     expect(modelState.animationCacheStatus).toBe("waiting");
   });
 
   test("does not update final status after the refresh becomes inactive", async () => {
-    const modelState = { animationCacheStatus: "waiting" };
+    const modelState: ForecastAnimationCacheState = { animationCacheStatus: "waiting" };
     const updateWarmupProgress = vi.fn();
-    const service = createForecastAnimationCacheBuildService({
+    const useCase = createForecastAnimationCacheBuildUseCase({
       getModelState: vi.fn(() => modelState),
       isBitmapCacheComplete: vi.fn(() => true),
       isRefreshActive: vi.fn().mockReturnValueOnce(true).mockReturnValueOnce(false),
@@ -50,7 +51,7 @@ describe("forecast animation cache build service", () => {
       waitForPrerenderIdle: vi.fn(async () => {}),
     });
 
-    await service.buildAfterNetworkSettles({ downloadKey: { id: 1 } });
+    await useCase.buildAfterNetworkSettles({ downloadKey: { id: 1 } });
 
     expect(modelState.animationCacheStatus).toBe("building");
     expect(updateWarmupProgress).toHaveBeenCalledTimes(1);

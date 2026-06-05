@@ -7,9 +7,9 @@ import { MODEL_INFO, PACKAGES } from "../domain/model-packages.js";
 import { formatRunSummary } from "../domain/resources.js";
 import { defaultPaletteFor } from "../domain/variable-metadata.js";
 import { BLOCK_STATUS } from "../ui/data-status-summary.js";
+import { createForecastAnimationCacheBuildUseCase } from "../use-cases/forecast/build-animation-cache";
 import { createDownloadWorkerClient as createDefaultDownloadWorkerClient } from "../workers/download-worker-client.js";
 import { createDataGouvResourceService } from "./data-gouv-resource-service.js";
-import { createForecastAnimationCacheBuildService } from "./forecast-animation-cache-build-service.js";
 import { createForecastAnimationService } from "./forecast-animation-service.js";
 import { createForecastAvailableBlockService } from "./forecast-available-block-service.js";
 import { createForecastBlockRefreshService } from "./forecast-block-refresh-service.js";
@@ -231,7 +231,7 @@ export function createForecastRuntimeFactory({
     updateIsobarOverlay,
   });
 
-  const forecastAnimationCacheBuildService = createForecastAnimationCacheBuildService({
+  const forecastAnimationCacheBuildUseCase = createForecastAnimationCacheBuildUseCase({
     getModelState,
     isBitmapCacheComplete: animationService.isBitmapCacheComplete,
     isRefreshActive: isModelResourceRefreshActive,
@@ -401,7 +401,7 @@ export function createForecastRuntimeFactory({
     animationService,
     beginResourceRefresh: beginModelResourceRefresh,
     buildAnimationCacheAfterNetworkSettles:
-      forecastAnimationCacheBuildService.buildAfterNetworkSettles,
+      forecastAnimationCacheBuildUseCase.buildAfterNetworkSettles,
     configureModelVariableControls,
     createDownloadWorkerClient,
     createModelBlockServiceClient,
