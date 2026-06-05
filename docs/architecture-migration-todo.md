@@ -31,6 +31,7 @@ Keep this list practical. Move items between sections as decisions are made and 
 - Move forecast package resource fetching from `services/` to `use-cases/forecast/`.
 - Move forecast hour render queue management from `services/` to `use-cases/forecast/`.
 - Move forecast presentation queue management from `services/` to `use-cases/forecast/`.
+- Move forecast prerender queue draining from `services/` to `use-cases/forecast/`.
 
 ## Next
 

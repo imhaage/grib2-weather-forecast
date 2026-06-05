@@ -1,10 +1,32 @@
+interface PrerenderQueueJob {
+  blockKey: string;
+  renderGeneration: number;
+  state: unknown;
+}
+
+interface PrerenderQueue {
+  beginDrain: () => boolean;
+  completeJob: (job: PrerenderQueueJob) => void;
+  endDrain: () => void;
+  nextJob: () => PrerenderQueueJob | null;
+  queueLength: number;
+}
+
+interface CreateForecastPrerenderQueueDrainServiceOptions {
+  getCurrentRenderGeneration: () => number;
+  getCurrentState: () => unknown;
+  notifyDiagnostics: () => void;
+  prerenderBlock: (blockKey: string) => Promise<void>;
+  queue: PrerenderQueue;
+}
+
 export function createForecastPrerenderQueueDrainService({
   getCurrentRenderGeneration,
   getCurrentState,
   notifyDiagnostics,
   prerenderBlock,
   queue,
-}) {
+}: CreateForecastPrerenderQueueDrainServiceOptions) {
   async function drain() {
     if (!queue.beginDrain()) return;
     notifyDiagnostics();

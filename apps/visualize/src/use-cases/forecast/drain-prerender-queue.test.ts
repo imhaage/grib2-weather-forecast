@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastPrerenderQueueDrainService } from "./forecast-prerender-queue-drain-service.js";
+import { createForecastPrerenderQueueDrainService } from "./drain-prerender-queue";
 
-function createQueue(jobs) {
+function createQueue(jobs: Array<{ blockKey: string; renderGeneration: number; state: object }>) {
   const queue = [...jobs];
   return {
     beginDrain: vi.fn(() => true),
@@ -14,7 +14,7 @@ function createQueue(jobs) {
   };
 }
 
-describe("forecast prerender queue drain service", () => {
+describe("forecast prerender queue drain use case", () => {
   test("drains queued jobs that still match the active state and render generation", async () => {
     const state = { id: "state" };
     const jobs = [
