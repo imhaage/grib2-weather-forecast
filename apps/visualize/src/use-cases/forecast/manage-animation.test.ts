@@ -1,5 +1,8 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastAnimationService } from "./forecast-animation-service.js";
+import {
+  type CreateForecastAnimationUseCaseOptions,
+  createForecastAnimationUseCase,
+} from "./manage-animation";
 
 function createDom() {
   return {
@@ -12,16 +15,18 @@ function createDom() {
   };
 }
 
-function createService(overrides = {}) {
-  const modelState = {
+function createUseCase(overrides: Partial<CreateForecastAnimationUseCaseOptions> = {}) {
+  const modelState: NonNullable<
+    ReturnType<CreateForecastAnimationUseCaseOptions["getModelState"]>
+  > = {
     animationCacheStatus: "ready",
-    availableBlocks: new Set(),
+    availableBlocks: new Set<string>(),
     hourList: [1, 2],
+    packageKey: "AROME_SP1",
     resources: [],
   };
   const dom = createDom();
-  const service = createForecastAnimationService({
-    dom,
+  const useCase = createForecastAnimationUseCase({
     getCurrentPalette: () => "Temperature",
     getGridState: () => null,
     getSelectedHourIndex: () => Number.parseInt(dom.forecastSlider.value, 10),
@@ -44,15 +49,15 @@ function createService(overrides = {}) {
     updateIsobarOverlay: vi.fn(),
     ...overrides,
   });
-  return { dom, modelState, service };
+  return { dom, modelState, useCase };
 }
 
-describe("forecast animation service", () => {
+describe("forecast animation use case", () => {
   test("invalidates bitmap cache and exposes render diagnostics", () => {
     const renderWarmupProgress = vi.fn();
-    const { modelState, service } = createService({ dom: undefined, renderWarmupProgress });
+    const { modelState, useCase } = createUseCase({ renderWarmupProgress });
 
-    service.invalidateBitmapCache();
+    useCase.invalidateBitmapCache();
 
     expect(modelState.animationCacheStatus).toBe("waiting");
     expect(renderWarmupProgress).toHaveBeenLastCalledWith({
@@ -64,18 +69,21 @@ describe("forecast animation service", () => {
       ready: 0,
       total: 2,
     });
-    expect(service.getDiagnostics().currentRenderGeneration).toBe(1);
-    expect(service.isBitmapCacheComplete()).toBe(false);
+    expect(useCase.getDiagnostics().currentRenderGeneration).toBe(1);
+    expect(useCase.isBitmapCacheComplete()).toBe(false);
   });
 
   test("explains that cache generation waits for pending downloads", () => {
     const renderWarmupProgress = vi.fn();
-    const { modelState, service } = createService({ dom: undefined, renderWarmupProgress });
+    const { modelState, useCase } = createUseCase({ renderWarmupProgress });
     modelState.animationCacheStatus = "waiting";
-    modelState.resources = [{ key: "01H" }, { key: "02H" }];
+    modelState.resources = [
+      { key: "01H", startHour: 1, endHour: 1 },
+      { key: "02H", startHour: 2, endHour: 2 },
+    ];
     modelState.availableBlocks = new Set(["01H"]);
 
-    service.updateWarmupProgress();
+    useCase.updateWarmupProgress();
 
     expect(renderWarmupProgress).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -86,15 +94,15 @@ describe("forecast animation service", () => {
 
   test("keeps waiting for downloads while an available block is updating", () => {
     const renderWarmupProgress = vi.fn();
-    const { modelState, service } = createService({ dom: undefined, renderWarmupProgress });
+    const { modelState, useCase } = createUseCase({ renderWarmupProgress });
     modelState.animationCacheStatus = "waiting";
     modelState.resources = [
-      { key: "01H", status: "loaded-from-cache" },
-      { key: "02H", status: "downloading" },
+      { key: "01H", startHour: 1, endHour: 1, status: "loaded-from-cache" },
+      { key: "02H", startHour: 2, endHour: 2, status: "downloading" },
     ];
     modelState.availableBlocks = new Set(["01H", "02H"]);
 
-    service.updateWarmupProgress();
+    useCase.updateWarmupProgress();
 
     expect(renderWarmupProgress).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -105,8 +113,7 @@ describe("forecast animation service", () => {
 
   test("renders hour labels through an injected view port", async () => {
     const renderForecastHourLabel = vi.fn();
-    const { service } = createService({
-      dom: undefined,
+    const { useCase } = createUseCase({
       getSelectedHourIndex: () => 0,
       getModelBlockService: () => ({
         decodeValues: vi.fn(),
@@ -126,7 +133,7 @@ describe("forecast animation service", () => {
       renderForecastHourLabel,
     });
 
-    await service.showHour(0);
+    await useCase.showHour(0);
 
     expect(renderForecastHourLabel).toHaveBeenCalledWith("+01H");
   });

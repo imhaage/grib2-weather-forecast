@@ -46,6 +46,7 @@ Keep this list practical. Move items between sections as decisions are made and 
 - Move forecast wind symbol overlay orchestration from `services/` to `use-cases/forecast/`.
 - Move forecast block refresh orchestration from `services/` to `use-cases/forecast/`.
 - Move forecast map presentation orchestration from `services/` to `use-cases/forecast/`.
+- Move forecast animation orchestration from `services/` to `use-cases/forecast/`.
 
 ## Next
 

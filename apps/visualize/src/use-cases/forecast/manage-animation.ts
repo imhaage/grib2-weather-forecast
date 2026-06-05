@@ -1,17 +1,85 @@
-import { makeBitmapCacheEntryFromWorker } from "../use-cases/forecast/create-bitmap-cache-entry";
-import { createForecastPrerenderQueueDrainService } from "../use-cases/forecast/drain-prerender-queue";
-import { createForecastTooltipHydrationService } from "../use-cases/forecast/hydrate-tooltip-values";
-import { createAnimationCacheService } from "../use-cases/forecast/manage-animation-cache";
-import { createForecastHourRenderQueueService } from "../use-cases/forecast/manage-hour-render-queue";
-import { createForecastPrerenderBlockService } from "../use-cases/forecast/prerender-block";
-import { createForecastHourWorkerRenderService } from "../use-cases/forecast/render-hour-with-worker";
-import { resolveAnimationWarmupProgress } from "../use-cases/forecast/resolve-animation-warmup-progress";
+import { makeBitmapCacheEntryFromWorker } from "./create-bitmap-cache-entry";
+import { createForecastPrerenderQueueDrainService } from "./drain-prerender-queue";
+import { createForecastTooltipHydrationService } from "./hydrate-tooltip-values";
+import { createAnimationCacheService } from "./manage-animation-cache";
+import { createForecastHourRenderQueueService } from "./manage-hour-render-queue";
+import { createForecastPrerenderBlockService } from "./prerender-block";
+import { createForecastHourWorkerRenderService } from "./render-hour-with-worker";
+import { resolveAnimationWarmupProgress } from "./resolve-animation-warmup-progress";
 
-function fmtHourLabel(hour) {
+function fmtHourLabel(hour: number) {
   return `+${String(hour).padStart(2, "0")}H`;
 }
 
-export function createForecastAnimationService({
+interface ForecastBlock {
+  endHour: number;
+  key: string;
+  startHour: number;
+  [key: string]: unknown;
+}
+
+interface ForecastAnimationState {
+  animationCacheStatus?: "waiting" | "building" | "ready";
+  availableBlocks: Set<string>;
+  currentHour?: number;
+  hourList: number[];
+  packageKey: string;
+  resources: ForecastBlock[];
+  variable?: string | null;
+  [key: string]: unknown;
+}
+
+interface BitmapCacheEntry {
+  bitmap?: {
+    close: () => void;
+  };
+  values?: Float32Array;
+  [key: string]: unknown;
+}
+
+interface RenderedHourEntry {
+  bitmap?: {
+    close?: () => void;
+  };
+  values?: Float32Array;
+  [key: string]: unknown;
+}
+
+interface ModelBlockService {
+  decodeValues: (request: unknown) => Promise<RenderedHourEntry | null>;
+  renderHour: (request: unknown) => Promise<RenderedHourEntry | null>;
+}
+
+interface PerformanceApi {
+  now: () => number;
+}
+
+export interface CreateForecastAnimationUseCaseOptions {
+  getCurrentPalette: () => string;
+  getGridState: () => { values?: unknown } | null | undefined;
+  getSelectedHourIndex: () => number;
+  getModelBlockService: () => ModelBlockService;
+  getModelState: () => ForecastAnimationState | null;
+  isPlayerPlaying: () => boolean;
+  makeGridState: (entry: BitmapCacheEntry, values?: Float32Array | null) => unknown;
+  missingValue: number;
+  notifyDiagnostics: () => void;
+  perfDebug?: boolean;
+  performanceApi?: PerformanceApi;
+  presentBitmapEntry: (
+    hour: number,
+    entry: BitmapCacheEntry,
+    options?: { values?: Float32Array },
+  ) => Promise<unknown>;
+  renderForecastHourLabel: (label: string) => void;
+  renderWarmupProgress?: (progress: unknown) => void;
+  setGridState: (gridState: unknown) => void;
+  showUnavailableHour: (hour: number) => void;
+  syncPlayButtonAvailability: () => void;
+  updateIsobarOverlay: (entry: BitmapCacheEntry, values?: Float32Array) => void;
+}
+
+export function createForecastAnimationUseCase({
   getCurrentPalette,
   getGridState,
   getSelectedHourIndex,
@@ -30,18 +98,35 @@ export function createForecastAnimationService({
   showUnavailableHour,
   syncPlayButtonAvailability,
   updateIsobarOverlay,
-}) {
+}: CreateForecastAnimationUseCaseOptions) {
   let currentRenderGeneration = 0;
   const animationCache = createAnimationCacheService();
   const hourRenderQueue = createForecastHourRenderQueueService();
   const perfStats = {
     lastDecodeMs: null,
   };
+
+  function currentState() {
+    return getModelState();
+  }
+
+  function requiredCurrentState() {
+    const modelState = currentState();
+    if (!modelState) throw new Error("Forecast model state is required");
+    return modelState;
+  }
+
   const hourWorkerRenderService = createForecastHourWorkerRenderService({
     getCurrentPalette,
     getCurrentRenderGeneration: () => currentRenderGeneration,
-    getModelBlockService,
-    getModelState: currentState,
+    getModelBlockService: getModelBlockService as unknown as () => Parameters<
+      typeof createForecastHourWorkerRenderService
+    >[0]["getModelBlockService"] extends () => infer T
+      ? T
+      : never,
+    getModelState: requiredCurrentState as unknown as Parameters<
+      typeof createForecastHourWorkerRenderService
+    >[0]["getModelState"],
     missingValue,
     notifyDiagnostics,
     perfDebug,
@@ -51,7 +136,7 @@ export function createForecastAnimationService({
     decodeValues: hourWorkerRenderService.decodeValues,
     getCachedEntry: animationCache.getHour,
     getCurrentRenderGeneration: () => currentRenderGeneration,
-    getCurrentState: currentState,
+    getCurrentState: requiredCurrentState,
     isPlayerPlaying,
     makeGridState,
     setGridState,
@@ -62,35 +147,37 @@ export function createForecastAnimationService({
     getCurrentState: currentState,
     notifyDiagnostics,
     prerenderBlock,
-    queue: animationCache,
+    queue: animationCache as unknown as Parameters<
+      typeof createForecastPrerenderQueueDrainService
+    >[0]["queue"],
   });
   const prerenderBlockService = createForecastPrerenderBlockService({
-    cache: animationCache,
+    cache: animationCache as unknown as Parameters<
+      typeof createForecastPrerenderBlockService
+    >[0]["cache"],
     getCurrentRenderGeneration: () => currentRenderGeneration,
     getCurrentState: currentState,
     keepValuesForCurrentVariable: hourWorkerRenderService.shouldKeepValuesForCurrentVariable,
     mapWorkerEntry: makeBitmapCacheEntryFromWorker,
-    renderHour: hourWorkerRenderService.renderHour,
+    renderHour: hourWorkerRenderService.renderHour as unknown as Parameters<
+      typeof createForecastPrerenderBlockService
+    >[0]["renderHour"],
     updateWarmupProgress,
   });
-
-  function currentState() {
-    return getModelState();
-  }
 
   function invalidateBitmapCache() {
     const modelState = currentState();
     if (modelState) modelState.animationCacheStatus = "waiting";
     animationCache.clear();
     tooltipHydrationService.invalidate();
-    currentRenderGeneration++;
+    currentRenderGeneration += 1;
     updateWarmupProgress();
     notifyDiagnostics();
   }
 
-  function invalidateBlockRenderCache(block) {
+  function invalidateBlockRenderCache(block: ForecastBlock | null | undefined) {
     if (!block) return;
-    for (let hour = block.startHour; hour <= block.endHour; hour++) {
+    for (let hour = block.startHour; hour <= block.endHour; hour += 1) {
       animationCache.removeHour(hour);
     }
     updateWarmupProgress();
@@ -124,14 +211,14 @@ export function createForecastAnimationService({
 
     const ready = bitmapCacheReadyCount();
     const { cacheStatus, progress } = resolveAnimationWarmupProgress({ modelState, ready });
-    modelState.animationCacheStatus = cacheStatus;
+    modelState.animationCacheStatus = cacheStatus as ForecastAnimationState["animationCacheStatus"];
 
     renderWarmupProgress(progress);
     syncPlayButtonAvailability();
     notifyDiagnostics();
   }
 
-  function queueTooltipValueHydration(idx, hour) {
+  function queueTooltipValueHydration(idx: number, hour: number) {
     tooltipHydrationService.queue({
       hour,
       hourIndex: idx,
@@ -148,8 +235,8 @@ export function createForecastAnimationService({
     if (animationCache.hasHour(hour)) queueTooltipValueHydration(idx, hour);
   }
 
-  async function showHour(idx) {
-    const modelState = currentState();
+  async function showHour(idx: number) {
+    const modelState = requiredCurrentState();
     if (!hourRenderQueue.requestRender(idx).shouldRender) return;
     try {
       const hour = modelState.hourList[idx];
@@ -174,7 +261,7 @@ export function createForecastAnimationService({
 
       const entry = makeBitmapCacheEntryFromWorker(renderEntry, {
         keepValues: hourWorkerRenderService.shouldKeepValuesForCurrentVariable(),
-      });
+      }) as BitmapCacheEntry;
       animationCache.setHour(hour, entry);
       updateWarmupProgress();
       await presentBitmapEntry(hour, entry, { values: renderEntry.values });
@@ -187,14 +274,16 @@ export function createForecastAnimationService({
     }
   }
 
-  async function prerenderBlock(blockKey) {
+  async function prerenderBlock(blockKey: string) {
+    const state = currentState();
+    if (!state) return;
     await prerenderBlockService.prerenderBlock(blockKey, {
       renderGeneration: currentRenderGeneration,
-      state: currentState(),
+      state,
     });
   }
 
-  function queuePrerenderBlock(blockKey) {
+  function queuePrerenderBlock(blockKey: string) {
     const modelState = currentState();
     if (!modelState?.availableBlocks.has(blockKey)) return;
     const renderGeneration = currentRenderGeneration;

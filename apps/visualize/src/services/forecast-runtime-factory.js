@@ -19,6 +19,7 @@ import { createForecastAnimationCacheBuildUseCase } from "../use-cases/forecast/
 import { createForecastPackageResourceService } from "../use-cases/forecast/fetch-package-resources";
 import { createForecastLegendInitializerUseCase } from "../use-cases/forecast/initialize-legend";
 import { createForecastResourceLoadUseCase } from "../use-cases/forecast/load-resources";
+import { createForecastAnimationUseCase } from "../use-cases/forecast/manage-animation";
 import { createForecastDownloadSessionService } from "../use-cases/forecast/manage-download-session";
 import { createForecastPresentationQueueService } from "../use-cases/forecast/manage-presentation-queue";
 import { createForecastDownloadPreparationUseCase } from "../use-cases/forecast/prepare-download-session";
@@ -30,7 +31,6 @@ import { createForecastInitialDownloadUseCase } from "../use-cases/forecast/star
 import { createForecastAvailableBlockUseCase } from "../use-cases/forecast/store-available-block";
 import { createForecastResourceUpdateUseCase } from "../use-cases/forecast/update-resources";
 import { createDownloadWorkerClient as createDefaultDownloadWorkerClient } from "../workers/download-worker-client.js";
-import { createForecastAnimationService } from "./forecast-animation-service.js";
 import { createForecastRuntime } from "./forecast-runtime.js";
 
 const PROXY = "https://grib2-cors-proxy.imh.workers.dev";
@@ -211,7 +211,7 @@ export function createForecastRuntimeFactory({
     forecastVariableSelectionUseCase.selectVariable(getModelState(), varKey);
   }
 
-  const animationService = createForecastAnimationService({
+  const animationService = createForecastAnimationUseCase({
     getCurrentPalette,
     getGridState,
     getSelectedHourIndex: forecastHourControlView.selectedIndex,
