@@ -15,11 +15,13 @@ export function createModelState(packageKey) {
 
 export function buildHourList(resources) {
   const hourList = [];
+
   for (const resource of resources) {
     for (let hour = resource.startHour; hour <= resource.endHour; hour++) {
       hourList.push(hour);
     }
   }
+
   return hourList;
 }
 

@@ -27,9 +27,18 @@ function animationWarmupLabel(
   modelState: ForecastWarmupModelState,
   { isWaiting, isReady }: { isWaiting: boolean; isReady: boolean },
 ) {
-  if (isWaiting && hasPendingDownloads(modelState)) return "Animation cache: waiting for downloads";
-  if (isWaiting) return "Preparing animation cache";
-  if (isReady) return "Animation ready";
+  if (isWaiting && hasPendingDownloads(modelState)) {
+    return "Animation cache: waiting for downloads";
+  }
+
+  if (isWaiting) {
+    return "Preparing animation cache";
+  }
+
+  if (isReady) {
+    return "Animation ready";
+  }
+
   return "Animation cache";
 }
 

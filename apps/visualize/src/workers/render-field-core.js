@@ -39,7 +39,10 @@ export function renderFieldToImageData({
   for (let py = 0; py < outH; py++) {
     const y = northY - (py / outH) * spanY;
     const lat = latitudeFromWebMercatorY(y);
-    if (lat > northLat + 1e-9 || lat < southLat - 1e-9) continue;
+
+    if (lat > northLat + 1e-9 || lat < southLat - 1e-9) {
+      continue;
+    }
 
     const rowFromNorth = Math.min(Math.max(Math.round((northLat - lat) / dj), 0), nj - 1);
     const row = isStoN ? nj - 1 - rowFromNorth : rowFromNorth;
@@ -48,12 +51,25 @@ export function renderFieldToImageData({
 
     for (let col = 0; col < outW; col++) {
       const raw = values[rowOffset + col];
-      if (raw <= missingValue) continue;
-      const value = applyUnitTransform(unitTransform, raw);
-      if (zeroThreshold > 0 && value <= zeroThreshold) continue;
 
-      if (value < dataMin) dataMin = value;
-      if (value > dataMax) dataMax = value;
+      if (raw <= missingValue) {
+        continue;
+      }
+
+      const value = applyUnitTransform(unitTransform, raw);
+
+      if (zeroThreshold > 0 && value <= zeroThreshold) {
+        continue;
+      }
+
+      if (value < dataMin) {
+        dataMin = value;
+      }
+
+      if (value > dataMax) {
+        dataMax = value;
+      }
+
       dataSum += value;
       dataCount++;
 

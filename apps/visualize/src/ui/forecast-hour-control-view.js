@@ -5,11 +5,16 @@ export function createForecastHourControlView({ hourLabel = null, slider }) {
 
   function renderHourList(hourList) {
     slider.max = String(hourList.length - 1);
-    if (Number(slider.value) > Number(slider.max)) slider.value = slider.max;
+
+    if (Number(slider.value) > Number(slider.max)) {
+      slider.value = slider.max;
+    }
   }
 
   function renderHourLabel(label) {
-    if (hourLabel) hourLabel.textContent = label;
+    if (hourLabel) {
+      hourLabel.textContent = label;
+    }
   }
 
   function reset() {

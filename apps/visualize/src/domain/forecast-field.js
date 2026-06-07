@@ -8,18 +8,23 @@ export function effectiveForecastTime(product, block) {
 
 export function forecastMessageKeys(forecastTime, variable) {
   const simpleKey = `${forecastTime}_${variable.shortName}`;
+
   return variable.levelValue != null
     ? [`${simpleKey}_${variable.levelValue}`, simpleKey]
     : [simpleKey];
 }
 
 export function productMatchesVariable(product, variable) {
-  if (product.shortName !== variable.shortName) return false;
+  if (product.shortName !== variable.shortName) {
+    return false;
+  }
+
   return variable.levelValue == null || product.levelValue === variable.levelValue;
 }
 
 export function computeAccumulationDiff({ currentValues, previousValues, missingValue }) {
   const diff = new Float32Array(currentValues.length);
+
   for (let index = 0; index < currentValues.length; index++) {
     if (currentValues[index] <= missingValue || previousValues[index] <= missingValue) {
       diff[index] = missingValue;
@@ -27,6 +32,7 @@ export function computeAccumulationDiff({ currentValues, previousValues, missing
       diff[index] = Math.max(0, currentValues[index] - previousValues[index]);
     }
   }
+
   return diff;
 }
 
@@ -51,9 +57,13 @@ export function createRenderScaleParams(staticScale, logFloor) {
 }
 
 export function toFloat32Values(values) {
-  if (values instanceof Float32Array) return values;
+  if (values instanceof Float32Array) {
+    return values;
+  }
+
   const out = new Float32Array(values.length);
   out.set(values);
+
   return out;
 }
 

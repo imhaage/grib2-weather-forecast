@@ -11,7 +11,10 @@ export function createForecastResourceUpdateUseCase({
   setStatus,
 }: ForecastResourceUpdatePorts) {
   async function refreshCurrentResourcesToLatest(downloadKey: ForecastResourceUpdateKey) {
-    if (!isRefreshActive(downloadKey)) return null;
+    if (!isRefreshActive(downloadKey)) {
+      return null;
+    }
+
     const packageKey = downloadKey.state.packageKey;
     const pkg = packages[packageKey];
     const previousResources = downloadKey.state.resources;
@@ -21,7 +24,10 @@ export function createForecastResourceUpdateUseCase({
       downloadKey,
       loadingStatus: "Checking latest files…",
     });
-    if (!isRefreshActive(downloadKey) || !resources) return null;
+
+    if (!isRefreshActive(downloadKey) || !resources) {
+      return null;
+    }
 
     const session = prepareSession({
       packageKey,
@@ -33,6 +39,7 @@ export function createForecastResourceUpdateUseCase({
     const latestReady = await refreshBlocksToLatest(session, {
       previousResources,
     });
+
     return latestReady ? session : null;
   }
 

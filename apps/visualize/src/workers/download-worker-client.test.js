@@ -10,6 +10,7 @@ describe("download worker client", () => {
     const remote = {
       download: vi.fn(async (_url, _filesize, progress) => {
         await progress({ loaded: 1, total: 2 });
+
         return { buffer };
       }),
     };

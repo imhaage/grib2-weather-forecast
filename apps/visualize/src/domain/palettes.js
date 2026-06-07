@@ -36,6 +36,7 @@ const LOG_LEGEND_TICKS = [0, 1, 5, 10, 25, 50, 100, 150];
 
 function normalizedDomain(domain, min, max) {
   const range = max - min || 1;
+
   return domain.map((value) => (value - min) / range);
 }
 
@@ -45,11 +46,15 @@ function roundedPercent(value) {
 
 function linearPosition(value, min, max) {
   const range = max - min || 1;
+
   return roundedPercent(Math.min(Math.max(((value - min) / range) * 100, 0), 100));
 }
 
 function logPosition(value, max, logFloor = LOG_SCALE_FLOOR) {
-  if (value <= logFloor) return 0;
+  if (value <= logFloor) {
+    return 0;
+  }
+
   return roundedPercent(
     Math.min(Math.max((Math.log(value / logFloor) / Math.log(max / logFloor)) * 100, 0), 100),
   );
@@ -61,12 +66,17 @@ function uniqueSortedValues(values) {
 
 function genericLinearTicks(min, max) {
   const range = max - min;
-  if (!Number.isFinite(range) || range <= 0) return [min];
+
+  if (!Number.isFinite(range) || range <= 0) {
+    return [min];
+  }
+
   return Array.from({ length: 5 }, (_, index) => min + (range * index) / 4);
 }
 
 export function legendTicksFor({ paletteName, min, max, isLog = false }) {
   const customTicks = PALETTE_LEGEND_TICKS[paletteName] ?? PALETTE_DOMAINS[paletteName];
+
   if (customTicks) {
     return customTicks
       .filter((value) => value >= min && value <= max)
@@ -78,6 +88,7 @@ export function legendTicksFor({ paletteName, min, max, isLog = false }) {
       ...LOG_LEGEND_TICKS.filter((value) => value >= min && value <= max),
       max,
     ]);
+
     return values.map((value) => ({ value, position: logPosition(value, max) }));
   }
 
@@ -90,6 +101,7 @@ export function legendTicksFor({ paletteName, min, max, isLog = false }) {
 export function gradientStopsFor(paletteName, { min = 0, max = 1 } = {}) {
   const colors = PALETTE_COLORS[paletteName];
   const domain = PALETTE_DOMAINS[paletteName];
+
   if (domain) {
     return colors
       .map((color, index) => ({
@@ -98,7 +110,9 @@ export function gradientStopsFor(paletteName, { min = 0, max = 1 } = {}) {
       }))
       .filter((stop) => stop.position >= 0 && stop.position <= 100);
   }
+
   const range = colors.length - 1 || 1;
+
   return colors.map((color, index) => ({
     color,
     position: roundedPercent((index / range) * 100),
@@ -107,6 +121,7 @@ export function gradientStopsFor(paletteName, { min = 0, max = 1 } = {}) {
 
 export function makeScale(paletteName, { min = 0, max = 1 } = {}) {
   const domain = PALETTE_DOMAINS[paletteName];
+
   return chroma
     .scale(PALETTE_COLORS[paletteName])
     .domain(domain ? normalizedDomain(domain, min, max) : [0, 1]);
@@ -115,11 +130,13 @@ export function makeScale(paletteName, { min = 0, max = 1 } = {}) {
 export function buildLUT(paletteName, scaleRange) {
   const sc = makeScale(paletteName, scaleRange);
   const lut = new Uint8Array(256 * 3);
+
   for (let i = 0; i < 256; i++) {
     const [r, g, b] = sc(i / 255).rgb();
     lut[i * 3] = r;
     lut[i * 3 + 1] = g;
     lut[i * 3 + 2] = b;
   }
+
   return lut;
 }

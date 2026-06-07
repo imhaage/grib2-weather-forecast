@@ -166,12 +166,19 @@ export function createForecastMapPresentationUseCase({
 
   function modelStateOrThrow() {
     const modelState = getModelState();
-    if (!modelState) throw new Error("Forecast model state is required");
+
+    if (!modelState) {
+      throw new Error("Forecast model state is required");
+    }
+
     return modelState;
   }
 
   function mapBoundsForSymbols() {
-    if (getMapBounds) return getMapBounds();
+    if (getMapBounds) {
+      return getMapBounds();
+    }
+
     return mapRenderer.getViewportBounds?.() ?? null;
   }
 
@@ -204,6 +211,7 @@ export function createForecastMapPresentationUseCase({
 
   function selectedVariableDefinition(product: ForecastProduct) {
     const modelState = getModelState();
+
     return findPackageVariable(modelState?.packageKey, modelState?.variable) ?? product;
   }
 
@@ -235,10 +243,13 @@ export function createForecastMapPresentationUseCase({
     const block = blockForHour(modelState?.resources ?? [], hour);
     const runId = block?.runId;
     const runTime = runId ? Date.parse(runId) : NaN;
+
     if (!Number.isNaN(runTime)) {
       const valid = new Date(runTime + hour * 60 * 60 * 1000);
+
       return `${valid.toISOString().slice(0, 16).replace("T", " ")} UTC`;
     }
+
     return `+${String(hour).padStart(2, "0")}H`;
   }
 
@@ -260,14 +271,24 @@ export function createForecastMapPresentationUseCase({
   }
 
   function refreshWindSymbolOverlayForViewport() {
-    if (!lastPresentedEntry) return;
+    if (!lastPresentedEntry) {
+      return;
+    }
+
     updateWindSymbolOverlay(lastPresentedEntry, lastPresentedValues);
   }
 
   function ensureViewportRefreshRegistered() {
-    if (viewportRefreshRegistered) return;
+    if (viewportRefreshRegistered) {
+      return;
+    }
+
     const register = onMapViewportSettled ?? mapRenderer.onViewportSettled;
-    if (!register) return;
+
+    if (!register) {
+      return;
+    }
+
     register(refreshWindSymbolOverlayForViewport);
     viewportRefreshRegistered = true;
   }
@@ -304,6 +325,7 @@ export function createForecastMapPresentationUseCase({
     await initMap();
     ensureViewportRefreshRegistered();
     const isFirstLayer = !mapRenderer.hasLayer();
+
     if (isFirstLayer || canvasChanged) {
       mapRenderer.setLayer(canvas, corners);
       mapRenderer.fitBounds(
@@ -314,6 +336,7 @@ export function createForecastMapPresentationUseCase({
         { padding: 20, animate: false },
       );
     }
+
     mapRenderer.triggerRepaint();
     updateIsobarOverlay(entry, values);
     lastPresentedEntry = entry;
@@ -352,18 +375,29 @@ export function createForecastMapPresentationUseCase({
   ) {
     const currentIndex = selectedHourIndex();
     const currentHour = getModelState()?.hourList?.[currentIndex];
+
     if (session.availableCount === 1) {
       mapRenderer.setVisible(true);
       await initMap();
-      if (!isRefreshActive(session.downloadKey)) return false;
+
+      if (!isRefreshActive(session.downloadKey)) {
+        return false;
+      }
+
       mapRenderer.fitBounds(session.pkg.bounds, { padding: 20, animate: false });
       await showHour(currentIndex);
+
       return true;
     }
 
     const currentBlock = blockForHour(getModelState()?.resources ?? [], currentHour);
-    if (currentBlock?.key !== block.key) return false;
+
+    if (currentBlock?.key !== block.key) {
+      return false;
+    }
+
     await showHour(currentIndex);
+
     return true;
   }
 

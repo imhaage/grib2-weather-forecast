@@ -107,11 +107,15 @@ export function createForecastRuntimeUseCase({
     if (!runtimeState.modelBlockService) {
       runtimeState.modelBlockService = createModelBlockServiceClient();
     }
+
     return runtimeState.modelBlockService;
   }
 
   function initDownloadWorker() {
-    if (runtimeState.downloadWorkerClient) return;
+    if (runtimeState.downloadWorkerClient) {
+      return;
+    }
+
     runtimeState.downloadWorkerClient = createDownloadWorkerClient();
   }
 
@@ -124,7 +128,11 @@ export function createForecastRuntimeUseCase({
     const result = await runtimeState.downloadWorkerClient?.post({ url, filesize }, [], {
       onProgress: ({ loaded, total }) => onProgress(loaded, total),
     });
-    if (!result?.buffer) throw new Error("Download failed");
+
+    if (!result?.buffer) {
+      throw new Error("Download failed");
+    }
+
     return new Uint8Array(result.buffer);
   }
 
@@ -162,7 +170,11 @@ export function createForecastRuntimeUseCase({
       pkg,
       downloadKey,
     });
-    if (!session) return;
+
+    if (!session) {
+      return;
+    }
+
     animationService.updateWarmupProgress();
 
     await buildAnimationCacheAfterNetworkSettles(session);
@@ -177,6 +189,7 @@ export function createForecastRuntimeUseCase({
     const capturedRenderGeneration = animationService.currentRenderGeneration;
     await animationService.showHour(getSelectedHourIndex());
     const session = await refreshCurrentResourcesToLatest(downloadKey);
+
     if (
       session &&
       animationService.currentRenderGeneration === capturedRenderGeneration &&
@@ -187,21 +200,30 @@ export function createForecastRuntimeUseCase({
   }
 
   async function handleVariableChange(varKey: string) {
-    if (!runtimeState.modelState) return;
+    if (!runtimeState.modelState) {
+      return;
+    }
+
     selectVariable(varKey);
     syncWindDirectionControl();
     await refreshCurrentModelVisuals();
   }
 
   function setWindDirectionVisible(visible: boolean) {
-    if (!runtimeState.modelState) return;
+    if (!runtimeState.modelState) {
+      return;
+    }
+
     runtimeState.modelState.showWindDirection = Boolean(visible);
     syncWindDirectionControl();
     refreshWindSymbolOverlay();
   }
 
   function onForecastSliderInput() {
-    if (!runtimeState.modelState) return;
+    if (!runtimeState.modelState) {
+      return;
+    }
+
     animationService.showHour(getSelectedHourIndex());
   }
 

@@ -20,6 +20,7 @@ interface DataGouvResourceServiceOptions {
 
 export function proxyResourceUrl(url: string, proxyBaseUrl: string) {
   const parsed = new URL(url);
+
   return `${proxyBaseUrl}/${parsed.hostname}${parsed.pathname}${parsed.search}`;
 }
 
@@ -35,6 +36,7 @@ export function parseDataGouvResources(resources: DataGouvApiResource[], titlePa
       const single = title.match(/__(\d+)H__/);
       const range = title.match(/__(\d+)H(\d+)H__/);
       const runId = extractRunId(`${title} ${resource.url}`);
+
       if (single) {
         return {
           startHour: +single[1],
@@ -46,6 +48,7 @@ export function parseDataGouvResources(resources: DataGouvApiResource[], titlePa
           filesize: resource.filesize,
         };
       }
+
       if (range) {
         return {
           startHour: +range[1],
@@ -57,6 +60,7 @@ export function parseDataGouvResources(resources: DataGouvApiResource[], titlePa
           filesize: resource.filesize,
         };
       }
+
       return null;
     })
     .filter((resource) => resource !== null)
@@ -74,8 +78,13 @@ export function createDataGouvResourceService({
 
     async fetchResources(datasetId: string, titlePattern: string) {
       const response = await fetchImpl(proxyDataGouvUrl(datasetId, proxyBaseUrl));
-      if (!response.ok) throw new Error(`API ${response.status}`);
+
+      if (!response.ok) {
+        throw new Error(`API ${response.status}`);
+      }
+
       const data = await response.json();
+
       return parseDataGouvResources(data.resources, titlePattern);
     },
   };

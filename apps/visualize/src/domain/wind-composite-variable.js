@@ -19,15 +19,29 @@ export function isVectorCompositeVariable(variableKey) {
 
 export function componentVariableKeyForVector(variableKey, component) {
   const composite = VECTOR_COMPOSITES[variableKey];
-  if (!composite) return null;
-  if (component === "u") return composite.uComponent;
-  if (component === "v") return composite.vComponent;
+
+  if (!composite) {
+    return null;
+  }
+
+  if (component === "u") {
+    return composite.uComponent;
+  }
+
+  if (component === "v") {
+    return composite.vComponent;
+  }
+
   return null;
 }
 
 export function vectorCompositeVariableFor(variableKey) {
   const composite = VECTOR_COMPOSITES[variableKey];
-  if (!composite) return null;
+
+  if (!composite) {
+    return null;
+  }
+
   return {
     shortName: composite.shortName,
     name: composite.name,

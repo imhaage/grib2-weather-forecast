@@ -30,14 +30,22 @@ export function createForecastLegendInitializerUseCase({
     buffer: Uint8Array,
     { modelState, session }: InitializeForecastLegendContext,
   ): boolean {
-    if (session.legendInitialized) return false;
+    if (session.legendInitialized) {
+      return false;
+    }
+
     session.legendInitialized = true;
 
     const variableDefinition = findVariable(session.packageKey, modelState.variable);
     const shortName = variableDefinition?.shortName ?? modelState.variable;
+
     for (const message of iterateMessages(buffer)) {
       const product = message.product;
-      if (!product || product.shortName !== shortName) continue;
+
+      if (!product || product.shortName !== shortName) {
+        continue;
+      }
+
       if (
         variableDefinition?.levelValue != null &&
         product.levelValue !== variableDefinition.levelValue
@@ -55,11 +63,13 @@ export function createForecastLegendInitializerUseCase({
       updateLevelInfo(variableDefinition);
 
       const scale = staticScale(shortName);
+
       if (scale && variableDefinition) {
         showColorScale(scale.min, scale.max, displayUnits(shortName, variableDefinition.units), {
           isLog: scale.log ?? false,
         });
       }
+
       return true;
     }
 

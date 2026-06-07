@@ -11,6 +11,7 @@ function createUseCase(overrides = {}) {
     updateParamInfo: vi.fn(),
     ...overrides,
   };
+
   return {
     ports,
     useCase: createForecastVariableSelectionUseCase(ports),

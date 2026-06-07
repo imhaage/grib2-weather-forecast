@@ -17,6 +17,7 @@ export function createForecastDownloadPreparationUseCase({
     const runSummary = formatRunSummary(resources);
     renderItems(resources);
     resetResourceStatuses(resources);
+
     return createSession({
       packageKey,
       pkg,

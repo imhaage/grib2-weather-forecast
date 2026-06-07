@@ -49,6 +49,7 @@ function createUseCase(overrides: Partial<CreateForecastAnimationUseCaseOptions>
     updateIsobarOverlay: vi.fn(),
     ...overrides,
   });
+
   return { dom, modelState, useCase };
 }
 

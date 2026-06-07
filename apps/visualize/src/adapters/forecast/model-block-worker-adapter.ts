@@ -42,6 +42,7 @@ export function createModelBlockWorkerAdapter({
         },
         [buffer.buffer],
       )) as StoreBlockResult | null;
+
       return Boolean(result?.ok);
     },
 

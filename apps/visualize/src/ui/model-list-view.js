@@ -1,15 +1,21 @@
 function groupPackagesByModel(packages) {
   const groups = {};
+
   for (const [key, pkg] of Object.entries(packages)) {
-    if (!groups[pkg.model]) groups[pkg.model] = [];
+    if (!groups[pkg.model]) {
+      groups[pkg.model] = [];
+    }
+
     groups[pkg.model].push({ key, pkg });
   }
+
   return groups;
 }
 
 function createModelMetaElement(info) {
   const meta = document.createElement("div");
   meta.className = "model-meta";
+
   for (const [id, label, value] of [
     ["resolution", "Resolution", info.resolution],
     ["forecast-horizon", "Forecast horizon", info.horizon],
@@ -29,18 +35,26 @@ function createModelMetaElement(info) {
     item.appendChild(val);
     meta.appendChild(item);
   }
+
   return meta;
 }
 
 const HOME_GROUP_ORDER = ["Weather maps", "Component fields"];
 
 function homeVariableGroupsForPackage(pkg) {
-  if (pkg.homeVariableGroups) return pkg.homeVariableGroups;
+  if (pkg.homeVariableGroups) {
+    return pkg.homeVariableGroups;
+  }
 
   const byGroup = new Map();
+
   for (const variable of pkg.variables) {
     const group = variable.group ?? "Component fields";
-    if (!byGroup.has(group)) byGroup.set(group, []);
+
+    if (!byGroup.has(group)) {
+      byGroup.set(group, []);
+    }
+
     byGroup.get(group).push(variable.name);
   }
 
@@ -61,11 +75,13 @@ function createVariableGroupElement(group) {
 
   const vars = document.createElement("ul");
   vars.className = "model-package-var-list";
+
   for (const name of group.names) {
     const li = document.createElement("li");
     li.textContent = name;
     vars.appendChild(li);
   }
+
   groupEl.appendChild(vars);
 
   return groupEl;
@@ -83,9 +99,11 @@ function createModelPackageElement(key, pkg) {
 
   const vars = document.createElement("ul");
   vars.className = "model-package-vars";
+
   for (const group of homeVariableGroupsForPackage(pkg)) {
     vars.appendChild(createVariableGroupElement(group));
   }
+
   pkgEl.appendChild(vars);
 
   const btn = document.createElement("button");
@@ -132,9 +150,11 @@ function createModelSectionElement(modelName, entries, modelInfo) {
 
   const pkgsEl = document.createElement("div");
   pkgsEl.className = "model-packages";
+
   for (const { key, pkg } of entries) {
     pkgsEl.appendChild(createModelPackageElement(key, pkg));
   }
+
   data.appendChild(pkgsEl);
 
   section.appendChild(data);
@@ -144,6 +164,7 @@ function createModelSectionElement(modelName, entries, modelInfo) {
 
 export function renderModelList({ container, packages, modelInfo }) {
   const groups = groupPackagesByModel(packages);
+
   for (const [modelName, entries] of Object.entries(groups)) {
     container.appendChild(createModelSectionElement(modelName, entries, modelInfo));
   }

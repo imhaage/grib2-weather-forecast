@@ -92,6 +92,7 @@ describe("inspect file flow", () => {
         button.dataset.messageIndex = String(message.index);
         button.textContent = "Show on map";
         card.append(button);
+
         return card;
       },
     });
@@ -112,7 +113,10 @@ describe("inspect file flow", () => {
       showDataStatusPanel: vi.fn(),
       showMapView: (route) => {
         const message = uploadInspector.getSelectedMessage(route);
-        if (message) openedMessages.push(message.index);
+
+        if (message) {
+          openedMessages.push(message.index);
+        }
       },
       showTab: (tab) => setHomeTab(document, tab),
       showView,

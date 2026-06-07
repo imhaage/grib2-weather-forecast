@@ -112,7 +112,11 @@ export function createForecastAnimationUseCase({
 
   function requiredCurrentState() {
     const modelState = currentState();
-    if (!modelState) throw new Error("Forecast model state is required");
+
+    if (!modelState) {
+      throw new Error("Forecast model state is required");
+    }
+
     return modelState;
   }
 
@@ -167,7 +171,11 @@ export function createForecastAnimationUseCase({
 
   function invalidateBitmapCache() {
     const modelState = currentState();
-    if (modelState) modelState.animationCacheStatus = "waiting";
+
+    if (modelState) {
+      modelState.animationCacheStatus = "waiting";
+    }
+
     animationCache.clear();
     tooltipHydrationService.invalidate();
     currentRenderGeneration += 1;
@@ -176,16 +184,24 @@ export function createForecastAnimationUseCase({
   }
 
   function invalidateBlockRenderCache(block: ForecastBlock | null | undefined) {
-    if (!block) return;
+    if (!block) {
+      return;
+    }
+
     for (let hour = block.startHour; hour <= block.endHour; hour += 1) {
       animationCache.removeHour(hour);
     }
+
     updateWarmupProgress();
   }
 
   function bitmapCacheReadyCount() {
     const modelState = currentState();
-    if (!modelState) return 0;
+
+    if (!modelState) {
+      return 0;
+    }
+
     return animationCache.readyCount(modelState.hourList);
   }
 
@@ -195,6 +211,7 @@ export function createForecastAnimationUseCase({
 
   function isAnimationCacheReadyForPlayback() {
     const modelState = currentState();
+
     return Boolean(
       modelState && modelState.animationCacheStatus === "ready" && isBitmapCacheComplete(),
     );
@@ -202,10 +219,12 @@ export function createForecastAnimationUseCase({
 
   function updateWarmupProgress() {
     const modelState = currentState();
+
     if (!modelState?.hourList.length) {
       const { progress } = resolveAnimationWarmupProgress({ modelState, ready: 0 });
       renderWarmupProgress(progress);
       syncPlayButtonAvailability();
+
       return;
     }
 
@@ -229,24 +248,37 @@ export function createForecastAnimationUseCase({
   function queueCurrentTooltipValueHydration() {
     const modelState = currentState();
     const currentGridState = getGridState();
-    if (!modelState || currentGridState?.values) return;
+
+    if (!modelState || currentGridState?.values) {
+      return;
+    }
+
     const idx = getSelectedHourIndex();
     const hour = modelState.hourList[idx];
-    if (animationCache.hasHour(hour)) queueTooltipValueHydration(idx, hour);
+
+    if (animationCache.hasHour(hour)) {
+      queueTooltipValueHydration(idx, hour);
+    }
   }
 
   async function showHour(idx: number) {
     const modelState = requiredCurrentState();
-    if (!hourRenderQueue.requestRender(idx).shouldRender) return;
+
+    if (!hourRenderQueue.requestRender(idx).shouldRender) {
+      return;
+    }
+
     try {
       const hour = modelState.hourList[idx];
       renderForecastHourLabel(fmtHourLabel(hour));
 
       const cachedEntry = animationCache.getHour(hour);
+
       if (cachedEntry) {
         modelState.currentHour = hour;
         await presentBitmapEntry(hour, cachedEntry);
         queueTooltipValueHydration(idx, hour);
+
         return;
       }
 
@@ -254,8 +286,10 @@ export function createForecastAnimationUseCase({
       const renderEntry = await hourWorkerRenderService.renderHour(idx, {
         includeValues: true,
       });
+
       if (!renderEntry) {
         showUnavailableHour(hour);
+
         return;
       }
 
@@ -270,13 +304,20 @@ export function createForecastAnimationUseCase({
       showUnavailableHour(currentState()?.hourList[idx] ?? idx);
     } finally {
       const next = hourRenderQueue.completeRender();
-      if (next !== null) showHour(next);
+
+      if (next !== null) {
+        showHour(next);
+      }
     }
   }
 
   async function prerenderBlock(blockKey: string) {
     const state = currentState();
-    if (!state) return;
+
+    if (!state) {
+      return;
+    }
+
     await prerenderBlockService.prerenderBlock(blockKey, {
       renderGeneration: currentRenderGeneration,
       state,
@@ -285,19 +326,32 @@ export function createForecastAnimationUseCase({
 
   function queuePrerenderBlock(blockKey: string) {
     const modelState = currentState();
-    if (!modelState?.availableBlocks.has(blockKey)) return;
+
+    if (!modelState?.availableBlocks.has(blockKey)) {
+      return;
+    }
+
     const renderGeneration = currentRenderGeneration;
     const state = modelState;
     const queued = animationCache.enqueueBlock(blockKey, renderGeneration, state);
-    if (!queued) return;
+
+    if (!queued) {
+      return;
+    }
+
     notifyDiagnostics();
     drainPrerenderQueue();
   }
 
   function queuePrerenderForAllBlocks() {
     const modelState = currentState();
-    if (!modelState) return;
+
+    if (!modelState) {
+      return;
+    }
+
     updateWarmupProgress();
+
     for (const blockKey of modelState.availableBlocks) {
       queuePrerenderBlock(blockKey);
     }
@@ -319,6 +373,7 @@ export function createForecastAnimationUseCase({
     const modelState = currentState();
     const totalBitmaps = modelState?.hourList.length ?? 0;
     const readyBitmaps = totalBitmaps ? bitmapCacheReadyCount() : animationCache.size;
+
     return {
       lastRenderMs: hourWorkerRenderService.getLastRenderMs(),
       lastDecodeMs: perfStats.lastDecodeMs,

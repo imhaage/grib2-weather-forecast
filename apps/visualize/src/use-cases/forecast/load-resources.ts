@@ -15,12 +15,14 @@ export function createForecastResourceLoadUseCase({
     loadingStatus,
   }: ForecastResourceLoadRequest) {
     setStatus(loadingStatus);
+
     try {
       return await fetchPackageResources(packageKey, downloadKey);
     } catch (error) {
       if (isRefreshActive(downloadKey)) {
         setStatus(`API error: ${errorMessage(error)}`);
       }
+
       return null;
     }
   }

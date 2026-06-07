@@ -3,6 +3,7 @@ import { createForecastPrerenderQueueDrainService } from "./drain-prerender-queu
 
 function createQueue(jobs: Array<{ blockKey: string; renderGeneration: number; state: object }>) {
   const queue = [...jobs];
+
   return {
     beginDrain: vi.fn(() => true),
     completeJob: vi.fn(),

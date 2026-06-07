@@ -12,18 +12,24 @@ export function createModelBlockWorkerClient({
   let remote = null;
 
   function ensureRemote() {
-    if (remote) return remote;
+    if (remote) {
+      return remote;
+    }
+
     worker = createWorker();
     remote = comlink.wrap(worker);
+
     return remote;
   }
 
   async function callRemote(methodName, message, transferables = []) {
     try {
       const payload = transferables.length ? comlink.transfer(message, transferables) : message;
+
       return await ensureRemote()[methodName](payload);
     } catch (error) {
       onError(error);
+
       return null;
     }
   }
@@ -39,6 +45,7 @@ export function createModelBlockWorkerClient({
           return callRemote("decodeValues", message, transferables);
         default:
           onError(new Error(`Unknown worker message: ${message.type}`));
+
           return Promise.resolve(null);
       }
     },

@@ -32,6 +32,7 @@ export function createForecastPresentationQueueService({
 
   function queueForSession(session: object) {
     let queue = queueBySession.get(session);
+
     if (!queue) {
       queue = {
         idleResolvers: [],
@@ -40,28 +41,47 @@ export function createForecastPresentationQueueService({
       };
       queueBySession.set(session, queue);
     }
+
     return queue;
   }
 
   function resolveIdle(queue: PresentationQueue) {
     const resolvers = queue.idleResolvers.splice(0);
-    for (const resolve of resolvers) resolve();
+
+    for (const resolve of resolvers) {
+      resolve();
+    }
   }
 
   async function drainQueue(session: object, queue: PresentationQueue) {
-    if (queue.isPresenting) return;
+    if (queue.isPresenting) {
+      return;
+    }
+
     queue.isPresenting = true;
+
     try {
       while (queue.jobs.length > 0) {
         const job = queue.jobs.shift();
-        if (!job) continue;
+
+        if (!job) {
+          continue;
+        }
+
         await scheduleLowPriorityWork();
-        if (!isSessionActive(session)) return;
+
+        if (!isSessionActive(session)) {
+          return;
+        }
+
         await presentAvailableBlock(job.block, job.buffer, job.status, session);
       }
     } finally {
       queue.isPresenting = false;
-      if (queue.jobs.length === 0) resolveIdle(queue);
+
+      if (queue.jobs.length === 0) {
+        resolveIdle(queue);
+      }
     }
   }
 
@@ -73,6 +93,7 @@ export function createForecastPresentationQueueService({
   ) {
     if (status !== readyStatus) {
       await presentAvailableBlock(block, buffer, status, session);
+
       return;
     }
 
@@ -83,9 +104,11 @@ export function createForecastPresentationQueueService({
 
   function waitForIdle(session: object) {
     const queue = queueForSession(session);
+
     if (!queue.isPresenting && queue.jobs.length === 0) {
       return Promise.resolve();
     }
+
     return new Promise<void>((resolve) => {
       queue.idleResolvers.push(resolve);
     });

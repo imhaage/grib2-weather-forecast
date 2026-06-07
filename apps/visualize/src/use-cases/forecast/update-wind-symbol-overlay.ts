@@ -59,6 +59,7 @@ export function createForecastWindSymbolOverlayUseCase({
 
   function update(entry: ForecastEntry, values: Float32Array | null | undefined) {
     const modelState = getModelState();
+
     if (
       !isVectorCompositeVariable(modelState?.variable) ||
       modelState?.showWindDirection === false ||
@@ -68,12 +69,15 @@ export function createForecastWindSymbolOverlayUseCase({
       !renderer.updateWindSymbols
     ) {
       clear();
+
       return;
     }
 
     const bounds = getBounds();
+
     if (!bounds) {
       clear();
+
       return;
     }
 

@@ -1,8 +1,20 @@
 function formatBytes(bytes) {
-  if (!Number.isFinite(bytes)) return null;
-  if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(1)} GB`;
-  if (bytes >= 1_000_000) return `${Math.round(bytes / 1_000_000)} MB`;
-  if (bytes >= 1_000) return `${Math.round(bytes / 1_000)} KB`;
+  if (!Number.isFinite(bytes)) {
+    return null;
+  }
+
+  if (bytes >= 1_000_000_000) {
+    return `${(bytes / 1_000_000_000).toFixed(1)} GB`;
+  }
+
+  if (bytes >= 1_000_000) {
+    return `${Math.round(bytes / 1_000_000)} MB`;
+  }
+
+  if (bytes >= 1_000) {
+    return `${Math.round(bytes / 1_000)} KB`;
+  }
+
   return `${bytes} B`;
 }
 
@@ -28,8 +40,11 @@ function readStorageValue(storage, key) {
 
 function writeStorageValue(storage, key, value) {
   try {
-    if (storage.setItem) storage.setItem(key, value);
-    else storage.set(key, value);
+    if (storage.setItem) {
+      storage.setItem(key, value);
+    } else {
+      storage.set(key, value);
+    }
   } catch {
     // Ignore unavailable storage, such as private browsing restrictions.
   }
@@ -47,8 +62,14 @@ export function createStorageWarningController({ dom, storage = localStorage, up
   function setVisible(visible, { persist = false } = {}) {
     dom.warning.hidden = !visible;
     dom.warningButton.setAttribute("aria-expanded", String(visible));
-    if (persist) writeStorageWarningPreference(storage, visible);
-    if (visible) updateStorageSize();
+
+    if (persist) {
+      writeStorageWarningPreference(storage, visible);
+    }
+
+    if (visible) {
+      updateStorageSize();
+    }
   }
 
   return {

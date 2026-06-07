@@ -24,5 +24,6 @@ export function normalizeDegrees(degrees) {
 export function cardinalDirectionForDegrees(degrees) {
   const normalized = normalizeDegrees(degrees);
   const index = Math.round(normalized / 22.5) % CARDINAL_DIRECTIONS.length;
+
   return CARDINAL_DIRECTIONS[index];
 }

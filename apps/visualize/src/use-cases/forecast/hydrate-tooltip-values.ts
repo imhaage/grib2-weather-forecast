@@ -60,7 +60,10 @@ export function createForecastTooltipHydrationService<TTimer = ReturnType<typeof
   let token = 0;
 
   function clearQueuedTimer() {
-    if (timer !== null) clearTimer(timer);
+    if (timer !== null) {
+      clearTimer(timer);
+    }
+
     timer = null;
   }
 
@@ -77,6 +80,7 @@ export function createForecastTooltipHydrationService<TTimer = ReturnType<typeof
     hydrationToken,
   }: HydrateTooltipValuesOptions) {
     const data = await decodeValues(hourIndex, hour);
+
     if (
       !data ||
       getCurrentState() !== state ||
@@ -88,7 +92,11 @@ export function createForecastTooltipHydrationService<TTimer = ReturnType<typeof
     }
 
     const cachedEntry = getCachedEntry(hour);
-    if (!cachedEntry) return;
+
+    if (!cachedEntry) {
+      return;
+    }
+
     const hydratedEntry = {
       ...cachedEntry,
       vectorComposite: data.vectorComposite ?? cachedEntry.vectorComposite,
@@ -101,13 +109,20 @@ export function createForecastTooltipHydrationService<TTimer = ReturnType<typeof
 
   function queue({ hour, hourIndex, renderGeneration }: QueueTooltipHydrationOptions) {
     invalidate();
-    if (isPlayerPlaying()) return;
+
+    if (isPlayerPlaying()) {
+      return;
+    }
 
     const hydrationToken = token;
     const state = getCurrentState();
     timer = setTimer(() => {
       timer = null;
-      if (isPlayerPlaying()) return;
+
+      if (isPlayerPlaying()) {
+        return;
+      }
+
       hydrate({ hour, hourIndex, renderGeneration, state, hydrationToken }).catch((error) =>
         onError("hydrateTooltipValues:", error),
       );

@@ -9,13 +9,20 @@ export function createForecastAnimationCacheBuildUseCase({
   waitForPrerenderIdle,
 }: ForecastAnimationCacheBuildPorts) {
   async function buildAfterNetworkSettles(session: ForecastRefreshSession): Promise<void> {
-    if (!isRefreshActive(session.downloadKey)) return;
+    if (!isRefreshActive(session.downloadKey)) {
+      return;
+    }
+
     const modelState = getModelState();
     modelState.animationCacheStatus = "building";
     updateWarmupProgress();
     queuePrerenderForAllBlocks();
     await waitForPrerenderIdle();
-    if (!isRefreshActive(session.downloadKey)) return;
+
+    if (!isRefreshActive(session.downloadKey)) {
+      return;
+    }
+
     modelState.animationCacheStatus = isBitmapCacheComplete() ? "ready" : "waiting";
     updateWarmupProgress();
   }

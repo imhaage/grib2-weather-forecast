@@ -42,7 +42,10 @@ export function createForecastRenderRequest({
   includeValues = false,
 }: CreateForecastRenderRequestOptions) {
   const block = blockForHour(state.resources, hour);
-  if (!block || !state.availableBlocks.has(block.key)) return null;
+
+  if (!block || !state.availableBlocks.has(block.key)) {
+    return null;
+  }
 
   const selectedVariable = state.variable;
   const uComponentKey = componentVariableKeyForVector(selectedVariable, "u");

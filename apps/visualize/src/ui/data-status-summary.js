@@ -23,27 +23,34 @@ const DATA_STATUS_SUMMARY_ORDER = [
 
 export function countBlockStatuses(blocks) {
   const counts = Object.fromEntries(Object.values(BLOCK_STATUS).map((status) => [status, 0]));
+
   for (const block of blocks) {
     const status = block.status ?? BLOCK_STATUS.MISSING;
     counts[status] ??= 0;
     counts[status]++;
   }
+
   return counts;
 }
 
 export function createDataStatusSummaryNodes(document, blocks) {
   const counts = countBlockStatuses(blocks);
+
   return DATA_STATUS_SUMMARY_ORDER.map((status) => {
     const item = document.createElement("span");
     item.className = `data-status-count ${status}`;
     item.textContent = `${counts[status]} ${BLOCK_STATUS_LABELS[status]}`;
+
     return item;
   });
 }
 
 export function createDataStatusSummaryView({ document, container }) {
   function render(blocks) {
-    if (!container) return;
+    if (!container) {
+      return;
+    }
+
     container.replaceChildren(...createDataStatusSummaryNodes(document, blocks));
   }
 

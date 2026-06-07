@@ -14,11 +14,13 @@ globalThis.ImageData = class ImageData {
 
 function makeLut() {
   const lut = new Uint8ClampedArray(256 * 3);
+
   for (let index = 0; index < 256; index++) {
     lut[index * 3] = index;
     lut[index * 3 + 1] = 0;
     lut[index * 3 + 2] = 255 - index;
   }
+
   return lut;
 }
 

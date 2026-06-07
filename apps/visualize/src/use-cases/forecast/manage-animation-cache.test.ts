@@ -30,7 +30,11 @@ describe("forecast animation cache use case", () => {
     const firstJob = cache.nextJob();
     expect(firstJob).toMatchObject({ blockKey: "01H", renderGeneration: 1, state });
     expect(firstJob).not.toBeNull();
-    if (!firstJob) throw new Error("Expected a queued prerender job");
+
+    if (!firstJob) {
+      throw new Error("Expected a queued prerender job");
+    }
+
     cache.completeJob(firstJob);
     expect(cache.enqueueBlock("01H", 1, state)).toBe(true);
   });

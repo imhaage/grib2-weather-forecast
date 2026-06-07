@@ -24,6 +24,7 @@ export function createForecastVariableSelectionUseCase({
     modelState.showWindDirection = true;
     applyDefaultPalette(variableKey);
     updateLevelInfo(variableDefinition);
+
     return variableKey;
   }
 

@@ -66,8 +66,13 @@ type OpenGribCacheDb = () => Promise<GribCacheDb | null>;
 let gribCacheDbPromise: Promise<GribCacheDb | null> | null = null;
 
 function openGribCacheDb() {
-  if (typeof indexedDB === "undefined") return Promise.resolve(null);
-  if (gribCacheDbPromise) return gribCacheDbPromise;
+  if (typeof indexedDB === "undefined") {
+    return Promise.resolve(null);
+  }
+
+  if (gribCacheDbPromise) {
+    return gribCacheDbPromise;
+  }
 
   gribCacheDbPromise = openDB(GRIB_CACHE_DB_NAME, GRIB_CACHE_DB_VERSION, {
     upgrade(db, _oldVersion, _newVersion, transaction) {
@@ -86,6 +91,7 @@ function openGribCacheDb() {
     .catch((error) => {
       console.warn("IndexedDB cache unavailable:", error);
       gribCacheDbPromise = null;
+
       return null;
     });
 
@@ -110,6 +116,7 @@ function cachedGribBlockBuffer(record?: GribCacheRecord | null) {
 function copyToArrayBuffer(buffer: Uint8Array) {
   const copy = new Uint8Array(buffer.byteLength);
   copy.set(buffer);
+
   return copy.buffer;
 }
 
@@ -136,14 +143,23 @@ export function createIndexedDbGribCacheStorage({
   return {
     async get(id: string) {
       const db = await openDb();
-      if (!db) return null;
+
+      if (!db) {
+        return null;
+      }
+
       return db.get(GRIB_BLOCK_STORE, id);
     },
 
     async put(record: GribCacheRecord) {
       const db = await openDb();
-      if (!db) return false;
+
+      if (!db) {
+        return false;
+      }
+
       await db.put(GRIB_BLOCK_STORE, record);
+
       return true;
     },
 
@@ -153,23 +169,33 @@ export function createIndexedDbGribCacheStorage({
       predicate: (record: GribCacheRecord) => boolean,
     ) {
       const db = await openDb();
-      if (!db) return null;
+
+      if (!db) {
+        return null;
+      }
+
       let match: GribCacheRecord | null = null;
       const records = await db.getAllFromIndex(GRIB_BLOCK_STORE, "byPackageBlock", [
         packageKey,
         blockKey,
       ]);
+
       for (const record of records) {
         if (predicate(record) && (!match || String(record.savedAt) > String(match.savedAt))) {
           match = record;
         }
       }
+
       return match;
     },
 
     async deleteObsolete(packageKey: string, blockKey: string, currentId: string) {
       const db = await openDb();
-      if (!db) return;
+
+      if (!db) {
+        return;
+      }
+
       const transaction = db.transaction(GRIB_BLOCK_STORE, "readwrite");
       const index = transaction.objectStore(GRIB_BLOCK_STORE).index("byPackageBlock");
       const records = await index.getAll([packageKey, blockKey]);
@@ -185,7 +211,11 @@ export function createIndexedDbGribCacheStorage({
 
     async clear() {
       const db = await openDb();
-      if (!db) return;
+
+      if (!db) {
+        return;
+      }
+
       await db.clear(GRIB_BLOCK_STORE);
     },
   };
@@ -201,14 +231,19 @@ export function createGribCacheService({
       try {
         const record = await storage.get(gribBlockCacheKey(packageKey, block));
         const exactBuffer = cachedGribBlockBuffer(record);
-        if (exactBuffer) return exactBuffer;
+
+        if (exactBuffer) {
+          return exactBuffer;
+        }
 
         const runRecord = await storage.findByPackageBlock(packageKey, block.key, (record) =>
           isUsableCachedGribBlock(record, block),
         );
+
         return cachedGribBlockBuffer(runRecord);
       } catch (error) {
         console.warn("IndexedDB cache read failed:", error);
+
         return null;
       }
     },
@@ -222,9 +257,11 @@ export function createGribCacheService({
           (record) => record.id !== currentId && isOlderCachedGribBlock(record, block),
         );
         const buffer = cachedGribBlockBuffer(latest);
+
         return buffer ? { ...latest, buffer } : null;
       } catch (error) {
         console.warn("IndexedDB stale cache read failed:", error);
+
         return null;
       }
     },
@@ -242,9 +279,11 @@ export function createGribCacheService({
           savedAt: new Date().toISOString(),
           buffer: cacheBuffer,
         };
+
         return storage.put(record);
       } catch (error) {
         console.warn("IndexedDB cache write failed:", error);
+
         return false;
       }
     },

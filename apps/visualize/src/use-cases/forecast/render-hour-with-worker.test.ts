@@ -25,6 +25,7 @@ function createService(overrides = {}) {
     performanceApi: { now: vi.fn(() => 10) },
     ...overrides,
   };
+
   return {
     decodeValues,
     dependencies,

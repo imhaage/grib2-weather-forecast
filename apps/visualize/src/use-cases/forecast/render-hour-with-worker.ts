@@ -46,6 +46,7 @@ export function createForecastHourWorkerRenderService({
   function requestForHour(hourIndex: number, hour: number, { includeValues = false } = {}) {
     const modelState = getModelState();
     const shouldKeepValues = shouldKeepValuesForCurrentVariable();
+
     return createForecastRenderRequest({
       state: modelState,
       hourIndex,
@@ -65,19 +66,29 @@ export function createForecastHourWorkerRenderService({
     const modelState = getModelState();
     const hour = modelState.hourList[hourIndex];
     const request = requestForHour(hourIndex, hour, { includeValues });
-    if (!request) return null;
+
+    if (!request) {
+      return null;
+    }
 
     const startedAt = perfDebug ? performanceApi.now() : 0;
     const result = await getModelBlockService().renderHour(request);
-    if (!result) return null;
+
+    if (!result) {
+      return null;
+    }
+
     if (perfDebug) {
       lastRenderMs = performanceApi.now() - startedAt;
       notifyDiagnostics();
     }
+
     if (getCurrentRenderGeneration() !== request.renderGeneration) {
       result.bitmap?.close();
+
       return null;
     }
+
     return result;
   }
 
@@ -85,9 +96,17 @@ export function createForecastHourWorkerRenderService({
     const request = requestForHour(hourIndex, hour, {
       includeValues: false,
     });
-    if (!request) return null;
+
+    if (!request) {
+      return null;
+    }
+
     const result = await getModelBlockService().decodeValues(request);
-    if (!result?.values || getCurrentRenderGeneration() !== request.renderGeneration) return null;
+
+    if (!result?.values || getCurrentRenderGeneration() !== request.renderGeneration) {
+      return null;
+    }
+
     return result;
   }
 

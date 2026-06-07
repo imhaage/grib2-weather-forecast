@@ -15,9 +15,13 @@ export function createRenderWorkerClient({
   let remote = null;
 
   function ensureRemote() {
-    if (remote) return remote;
+    if (remote) {
+      return remote;
+    }
+
     worker = createWorker();
     remote = comlink.wrap(worker);
+
     return remote;
   }
 
@@ -27,6 +31,7 @@ export function createRenderWorkerClient({
         return await ensureRemote().render(comlink.transfer(message, transfer));
       } catch (error) {
         onError(error);
+
         return null;
       }
     },

@@ -20,7 +20,10 @@ export function bindUploadInspectorEvents({ dom, handlers }) {
     "change",
     () => {
       const file = fileInput.files[0];
-      if (file) handlers.onFileSelected(file);
+
+      if (file) {
+        handlers.onFileSelected(file);
+      }
     },
     { signal },
   );
@@ -44,7 +47,10 @@ export function bindUploadInspectorEvents({ dom, handlers }) {
       event.preventDefault();
       dropZone.classList.remove("over");
       const file = event.dataTransfer?.files[0];
-      if (file) handlers.onFileSelected(file);
+
+      if (file) {
+        handlers.onFileSelected(file);
+      }
     },
     { signal },
   );
@@ -53,7 +59,11 @@ export function bindUploadInspectorEvents({ dom, handlers }) {
     "click",
     (event) => {
       const button = event.target.closest(".btn-grid");
-      if (!button) return;
+
+      if (!button) {
+        return;
+      }
+
       const messageIndex = Number.parseInt(button.dataset.messageIndex, 10);
       handlers.onUploadedVariableOpen({
         messageIndex: Number.isInteger(messageIndex) ? messageIndex : null,

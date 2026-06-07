@@ -28,10 +28,16 @@ export function createAnimationCacheService() {
   let idleResolvers: Array<() => void> = [];
 
   function resolveIdleIfNeeded() {
-    if (isPrerendering || prerenderQueue.length > 0) return;
+    if (isPrerendering || prerenderQueue.length > 0) {
+      return;
+    }
+
     const resolvers = idleResolvers;
     idleResolvers = [];
-    for (const resolve of resolvers) resolve();
+
+    for (const resolve of resolvers) {
+      resolve();
+    }
   }
 
   return {
@@ -71,7 +77,10 @@ export function createAnimationCacheService() {
     },
 
     clear() {
-      for (const entry of bitmapCache.values()) closeBitmapEntry(entry);
+      for (const entry of bitmapCache.values()) {
+        closeBitmapEntry(entry);
+      }
+
       bitmapCache = new Map();
       prerenderQueue = [];
       queuedPrerenderKeys = new Set();
@@ -80,9 +89,13 @@ export function createAnimationCacheService() {
 
     readyCount(hours: number[] = []) {
       let count = 0;
+
       for (const hour of hours) {
-        if (this.hasHour(hour)) count++;
+        if (this.hasHour(hour)) {
+          count++;
+        }
       }
+
       return count;
     },
 
@@ -92,15 +105,24 @@ export function createAnimationCacheService() {
 
     enqueueBlock(blockKey: string, renderGeneration: number, state: unknown) {
       const queueKey = `${renderGeneration}:${blockKey}`;
-      if (queuedPrerenderKeys.has(queueKey)) return false;
+
+      if (queuedPrerenderKeys.has(queueKey)) {
+        return false;
+      }
+
       queuedPrerenderKeys.add(queueKey);
       prerenderQueue.push({ blockKey, renderGeneration, state, queueKey });
+
       return true;
     },
 
     beginDrain() {
-      if (isPrerendering) return false;
+      if (isPrerendering) {
+        return false;
+      }
+
       isPrerendering = true;
+
       return true;
     },
 
@@ -118,7 +140,10 @@ export function createAnimationCacheService() {
     },
 
     waitForIdle() {
-      if (!isPrerendering && prerenderQueue.length === 0) return Promise.resolve();
+      if (!isPrerendering && prerenderQueue.length === 0) {
+        return Promise.resolve();
+      }
+
       return new Promise<void>((resolve) => {
         idleResolvers.push(resolve);
       });

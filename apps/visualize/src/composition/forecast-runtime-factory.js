@@ -81,6 +81,7 @@ export function createForecastRuntimeFactory({
         window.requestIdleCallback(resolve, { timeout: 300 });
       });
     }
+
     return new Promise((resolve) => window.requestAnimationFrame(resolve));
   }
 
@@ -94,7 +95,11 @@ export function createForecastRuntimeFactory({
 
   function applyDefaultPalette(shortName) {
     const palette = defaultPaletteFor(shortName);
-    if (!palette) return;
+
+    if (!palette) {
+      return;
+    }
+
     setCurrentPalette(palette);
   }
 
@@ -123,7 +128,11 @@ export function createForecastRuntimeFactory({
 
   function updateDataStatusSummary() {
     const modelState = getModelState();
-    if (!modelState?.resources.length) return;
+
+    if (!modelState?.resources.length) {
+      return;
+    }
+
     dataStatusSummaryView.render(modelState.resources);
   }
 
@@ -268,7 +277,10 @@ export function createForecastRuntimeFactory({
   }
 
   function completeModelDownloadIfReady(session) {
-    if (session.availableCount !== session.resources.length) return;
+    if (session.availableCount !== session.resources.length) {
+      return;
+    }
+
     updateAvailableFileCount(session);
   }
 
@@ -296,20 +308,30 @@ export function createForecastRuntimeFactory({
       state: getModelState(),
       status,
     });
-    if (!storedInWorker) return;
+
+    if (!storedInWorker) {
+      return;
+    }
 
     setBlockDownloadProgress(block, "100%");
     updateAvailableFileCount(session);
   }
 
   async function presentAvailableModelBlock(block, buffer, status, session) {
-    if (!isModelResourceRefreshActive(session.downloadKey)) return;
+    if (!isModelResourceRefreshActive(session.downloadKey)) {
+      return;
+    }
+
     forecastLegendInitializerUseCase.initializeFromBlock(buffer, {
       modelState: getModelState(),
       session,
     });
     await storeAvailableModelBlock(block, buffer, status, session);
-    if (!isModelResourceRefreshActive(session.downloadKey)) return;
+
+    if (!isModelResourceRefreshActive(session.downloadKey)) {
+      return;
+    }
+
     await presentAvailableMapBlock(block, session, {
       isRefreshActive: isModelResourceRefreshActive,
       selectedHourIndex: forecastHourControlView.selectedIndex,
@@ -320,7 +342,11 @@ export function createForecastRuntimeFactory({
 
   async function writeCachedModelBlock(packageKey, block, buffer) {
     const cacheWriteSucceeded = await writeCachedGribBlock(packageKey, block, buffer);
-    if (cacheWriteSucceeded) updateStorageWarningSizeIfOpen?.();
+
+    if (cacheWriteSucceeded) {
+      updateStorageWarningSizeIfOpen?.();
+    }
+
     return cacheWriteSucceeded;
   }
 

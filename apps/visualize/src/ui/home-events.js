@@ -16,7 +16,10 @@ export function bindHomeEvents({ dom, handlers }) {
     "click",
     (event) => {
       const button = event.target.closest('[data-action="show-package"]');
-      if (button) handlers.onPackageSelect(button.dataset.packageKey);
+
+      if (button) {
+        handlers.onPackageSelect(button.dataset.packageKey);
+      }
     },
     { signal },
   );

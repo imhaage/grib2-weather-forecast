@@ -52,6 +52,7 @@ function createRuntime(overrides = {}) {
     runtime,
     async startDownload(packageKey = "AROME_SP1") {
       await runtime.api.startDownload(packageKey);
+
       return runtime.api.getModelState();
     },
   };

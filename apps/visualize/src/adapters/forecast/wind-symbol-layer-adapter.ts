@@ -27,6 +27,7 @@ function createArrowIconImageData() {
   canvas.width = WIND_ARROW_ICON_SIZE;
   canvas.height = WIND_ARROW_ICON_SIZE;
   const ctx = canvas.getContext("2d");
+
   if (!ctx) {
     return {
       width: WIND_ARROW_ICON_SIZE,
@@ -34,6 +35,7 @@ function createArrowIconImageData() {
       data: new Uint8ClampedArray(),
     };
   }
+
   ctx.scale(
     WIND_ARROW_ICON_SIZE / WIND_ARROW_VIEWBOX_SIZE,
     WIND_ARROW_ICON_SIZE / WIND_ARROW_VIEWBOX_SIZE,
@@ -41,11 +43,15 @@ function createArrowIconImageData() {
   ctx.fillStyle = "#111827";
   ctx.fill(new Path2D(WIND_ARROW_SVG_PATH));
   const image = ctx.getImageData(0, 0, WIND_ARROW_ICON_SIZE, WIND_ARROW_ICON_SIZE);
+
   return { width: image.width, height: image.height, data: image.data };
 }
 
 function ensureArrowIcon(map: MapLibreLike) {
-  if (!map.hasImage || !map.addImage || map.hasImage(WIND_ARROW_ICON_ID)) return;
+  if (!map.hasImage || !map.addImage || map.hasImage(WIND_ARROW_ICON_ID)) {
+    return;
+  }
+
   map.addImage(WIND_ARROW_ICON_ID, createArrowIconImageData());
 }
 
@@ -94,7 +100,9 @@ function addWindCalmLayer(map: MapLibreLike) {
 }
 
 function removeLayerIfExists(map: MapLibreLike, layerId: string) {
-  if (map.getLayer(layerId)) map.removeLayer(layerId);
+  if (map.getLayer(layerId)) {
+    map.removeLayer(layerId);
+  }
 }
 
 export function createWindSymbolLayerService({ getMap }: { getMap: () => MapLibreLike | null }) {
@@ -102,16 +110,28 @@ export function createWindSymbolLayerService({ getMap }: { getMap: () => MapLibr
     if (!map.getSource(WIND_SYMBOL_SOURCE_ID)) {
       addWindSymbolSource(map, geojson);
     }
+
     ensureArrowIcon(map);
-    if (!map.getLayer(WIND_ARROW_LAYER_ID)) addWindArrowLayer(map);
-    if (!map.getLayer(WIND_CALM_LAYER_ID)) addWindCalmLayer(map);
+
+    if (!map.getLayer(WIND_ARROW_LAYER_ID)) {
+      addWindArrowLayer(map);
+    }
+
+    if (!map.getLayer(WIND_CALM_LAYER_ID)) {
+      addWindCalmLayer(map);
+    }
   }
 
   return {
     update(geojson: unknown) {
       const map = getMap();
-      if (!map) return;
+
+      if (!map) {
+        return;
+      }
+
       const source = map.getSource(WIND_SYMBOL_SOURCE_ID);
+
       if (source?.setData) {
         source.setData(geojson);
       } else {
@@ -121,10 +141,17 @@ export function createWindSymbolLayerService({ getMap }: { getMap: () => MapLibr
 
     remove() {
       const map = getMap();
-      if (!map) return;
+
+      if (!map) {
+        return;
+      }
+
       removeLayerIfExists(map, WIND_ARROW_LAYER_ID);
       removeLayerIfExists(map, WIND_CALM_LAYER_ID);
-      if (map.getSource(WIND_SYMBOL_SOURCE_ID)) map.removeSource(WIND_SYMBOL_SOURCE_ID);
+
+      if (map.getSource(WIND_SYMBOL_SOURCE_ID)) {
+        map.removeSource(WIND_SYMBOL_SOURCE_ID);
+      }
     },
   };
 }

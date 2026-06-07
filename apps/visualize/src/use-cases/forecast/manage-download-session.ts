@@ -55,6 +55,7 @@ export function createForecastDownloadSessionService({
 
   function incrementAvailableCount(session: ForecastDownloadSession) {
     session.availableCount++;
+
     return session.availableCount;
   }
 

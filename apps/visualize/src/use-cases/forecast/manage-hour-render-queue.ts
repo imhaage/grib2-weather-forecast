@@ -5,10 +5,13 @@ export function createForecastHourRenderQueueService() {
   function requestRender(hourIndex: number) {
     if (isRendering) {
       pendingHourIndex = hourIndex;
+
       return { shouldRender: false };
     }
+
     isRendering = true;
     pendingHourIndex = null;
+
     return { shouldRender: true };
   }
 
@@ -16,6 +19,7 @@ export function createForecastHourRenderQueueService() {
     isRendering = false;
     const nextHourIndex = pendingHourIndex;
     pendingHourIndex = null;
+
     return nextHourIndex;
   }
 

@@ -53,6 +53,7 @@ function createService(overrides: TestOverrides = {}) {
     presentation: { ...defaults.presentation, ...overrides.presentation },
     status: { ...defaults.status, ...overrides.status },
   };
+
   return createForecastBlockRefreshUseCase({
     statuses: BLOCK_STATUS,
     maxParallelDownloads: 6,
@@ -68,13 +69,17 @@ describe("forecast block refresh use case", () => {
     const service = createService({
       cache: {
         readLatestCachedBlock: vi.fn(async (_packageKey, block) => {
-          if (block.key !== staleBlock.key) return null;
+          if (block.key !== staleBlock.key) {
+            return null;
+          }
+
           return { buffer: new Uint8Array([9]) };
         }),
       },
       network: {
         downloadFile: vi.fn(async (url) => {
           events.push(url.endsWith("missing") ? "download-missing" : "download-stale");
+
           return new Uint8Array([url.endsWith("missing") ? 1 : 2]);
         }),
       },
@@ -141,6 +146,7 @@ describe("forecast block refresh use case", () => {
       network: {
         downloadFile: vi.fn(async () => {
           active = false;
+
           return new Uint8Array([1]);
         }),
       },
@@ -183,6 +189,7 @@ describe("forecast block refresh use case", () => {
       network: {
         downloadFile: vi.fn(async () => {
           events.push("download");
+
           return new Uint8Array([1]);
         }),
       },
@@ -222,6 +229,7 @@ describe("forecast block refresh use case", () => {
       network: {
         downloadFile: vi.fn(async (url) => {
           events.push(url.endsWith("missing") ? "download-missing" : "download-stale");
+
           return new Uint8Array([1]);
         }),
       },
@@ -276,6 +284,7 @@ describe("forecast block refresh use case", () => {
           maxActiveReadCount = Math.max(maxActiveReadCount, activeReadCount);
           await new Promise<void>((resolve) => releaseReads.push(resolve));
           activeReadCount -= 1;
+
           return new Uint8Array([1]);
         }),
         readLatestCachedBlock: vi.fn(),
@@ -317,7 +326,10 @@ describe("forecast block refresh use case", () => {
     expect(releaseReads).toHaveLength(2);
     expect(maxActiveReadCount).toBe(2);
 
-    for (const releaseRead of releaseReads.splice(0)) releaseRead();
+    for (const releaseRead of releaseReads.splice(0)) {
+      releaseRead();
+    }
+
     await expect(resultPromise).resolves.toBe(true);
   });
 });

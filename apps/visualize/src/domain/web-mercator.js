@@ -19,6 +19,7 @@ export function mercatorCanvasHeight(grid) {
   const spanX = Math.abs(
     webMercatorX(grid.longitudeOfLastPoint) - webMercatorX(grid.longitudeOfFirstPoint),
   );
+
   return Math.round((grid.ni * spanY) / spanX);
 }
 
@@ -32,6 +33,7 @@ export function gridCorners({
   const south = Math.min(la1, la2);
   const west = Math.min(lo1, lo2);
   const east = Math.max(lo1, lo2);
+
   return [
     [west, north],
     [east, north],

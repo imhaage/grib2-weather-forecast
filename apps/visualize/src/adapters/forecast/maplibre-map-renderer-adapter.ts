@@ -90,7 +90,10 @@ export function createMapLibreMapRendererAdapter({
     setVisible(visible: boolean) {
       const scene = getMapScene();
       scene.hidden = !visible;
-      if (visible && map) map.resize();
+
+      if (visible && map) {
+        map.resize();
+      }
     },
 
     clearLayer() {
@@ -108,6 +111,7 @@ export function createMapLibreMapRendererAdapter({
         heatCanvas.width = grid.ni;
         heatCanvas.height = needH;
       }
+
       return {
         canvas: heatCanvas,
         canvasChanged,
@@ -118,7 +122,11 @@ export function createMapLibreMapRendererAdapter({
 
     drawBitmap(bitmap: CanvasImageSource) {
       const ctx = heatCanvas?.getContext("2d");
-      if (!heatCanvas || !ctx) return;
+
+      if (!heatCanvas || !ctx) {
+        return;
+      }
+
       ctx.clearRect(0, 0, heatCanvas.width, heatCanvas.height);
       ctx.drawImage(bitmap, 0, 0);
     },
@@ -143,10 +151,17 @@ export function createMapLibreMapRendererAdapter({
     },
 
     async init(fitBoundsArgs?: FitBoundsArgs) {
-      if (map) return map;
+      if (map) {
+        return map;
+      }
+
       map = createMapLibreMap();
       await new Promise<void>((resolve) => map?.once("load", resolve));
-      if (fitBoundsArgs) map.fitBounds(...fitBoundsArgs);
+
+      if (fitBoundsArgs) {
+        map.fitBounds(...fitBoundsArgs);
+      }
+
       map.addControl(
         new maplibregl.FullscreenControl({
           container: getMapScene() as HTMLElement,
@@ -160,6 +175,7 @@ export function createMapLibreMapRendererAdapter({
         tooltipEl,
         wrapEl,
       });
+
       return map;
     },
 
@@ -169,7 +185,11 @@ export function createMapLibreMapRendererAdapter({
 
     getViewportBounds() {
       const bounds = map?.getBounds?.();
-      if (!bounds) return null;
+
+      if (!bounds) {
+        return null;
+      }
+
       return {
         west: bounds.getWest(),
         south: bounds.getSouth(),
@@ -207,7 +227,10 @@ export function createMapLibreMapRendererAdapter({
     },
 
     onViewportSettled(callback: () => void) {
-      if (!map) return;
+      if (!map) {
+        return;
+      }
+
       map.on("moveend", callback);
       map.on("zoomend", callback);
     },

@@ -49,16 +49,27 @@ export function createForecastPrerenderBlockService({
     { renderGeneration, state }: PrerenderBlockOptions,
   ) {
     const block = state.resources.find((resource) => resource.key === blockKey);
-    if (!block) return;
+
+    if (!block) {
+      return;
+    }
 
     for (let hour = block.startHour; hour <= block.endHour; hour++) {
-      if (getCurrentState() !== state || getCurrentRenderGeneration() !== renderGeneration) return;
+      if (getCurrentState() !== state || getCurrentRenderGeneration() !== renderGeneration) {
+        return;
+      }
 
       const hourIndex = state.hourList.indexOf(hour);
-      if (hourIndex === -1 || cache.hasHour(hour)) continue;
+
+      if (hourIndex === -1 || cache.hasHour(hour)) {
+        continue;
+      }
 
       const entry = await renderHour(hourIndex);
-      if (!entry) return;
+
+      if (!entry) {
+        return;
+      }
 
       if (getCurrentState() === state && getCurrentRenderGeneration() === renderGeneration) {
         if (cache.hasHour(hour)) {
@@ -74,6 +85,7 @@ export function createForecastPrerenderBlockService({
         }
       } else {
         entry.bitmap.close();
+
         return;
       }
     }

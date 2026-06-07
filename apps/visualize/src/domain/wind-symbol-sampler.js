@@ -23,8 +23,10 @@ function matrixStrideForZoom(zoom, sampling) {
   ) {
     throw new TypeError("Wind symbol sampling policy is required");
   }
+
   const roundedZoom = Math.round(Number.isFinite(zoom) ? zoom : sampling.referenceZoom);
   const scale = 2 ** (sampling.referenceZoom - roundedZoom);
+
   return Math.max(1, Math.round(sampling.matrixStride * scale));
 }
 
@@ -49,6 +51,7 @@ function blockFitsBounds(grid, bounds, startRowFromNorth, startCol, stride, nort
   const eastLng = grid.longitudeOfFirstPoint + (startCol + stride - 1) * grid.di;
   const northBlockLat = latitudeForRowFromNorth(grid, startRowFromNorth, northLat);
   const southBlockLat = latitudeForRowFromNorth(grid, startRowFromNorth + stride - 1, northLat);
+
   return (
     westLng >= bounds.west &&
     eastLng <= bounds.east &&
@@ -84,11 +87,15 @@ function aggregateVectorBlock({
 
     for (let col = startCol; col < endCol; col += 1) {
       const lng = grid.longitudeOfFirstPoint + col * grid.di;
-      if (!isInsideBounds(lng, lat, bounds)) continue;
+
+      if (!isInsideBounds(lng, lat, bounds)) {
+        continue;
+      }
 
       const index = row * grid.ni + col;
       const u = vectorUValues[index];
       const v = vectorVValues[index];
+
       if (
         !hasUsableVectorComponent(u, missingValue) ||
         !hasUsableVectorComponent(v, missingValue)
@@ -104,7 +111,10 @@ function aggregateVectorBlock({
     }
   }
 
-  if (count !== expectedCount) return null;
+  if (count !== expectedCount) {
+    return null;
+  }
+
   return {
     u: uSum / count,
     v: vSum / count,
@@ -116,6 +126,7 @@ function aggregateVectorBlock({
 function featureForAggregatedVector({ lng, lat, u, v }) {
   const speedKmh = speedKmhFromVector(u, v);
   const directionDegrees = directionDegreesFromVector(u, v);
+
   return {
     type: "Feature",
     geometry: {
@@ -170,7 +181,10 @@ export function buildWindSymbolFeatures({
         northLat,
         isStoN,
       });
-      if (vector) features.push(featureForAggregatedVector(vector));
+
+      if (vector) {
+        features.push(featureForAggregatedVector(vector));
+      }
     }
   }
 

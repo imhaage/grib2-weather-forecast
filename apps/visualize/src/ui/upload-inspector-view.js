@@ -1,7 +1,14 @@
 function createElement(document, tagName, { className, textContent } = {}) {
   const element = document.createElement(tagName);
-  if (className) element.className = className;
-  if (textContent != null) element.textContent = textContent;
+
+  if (className) {
+    element.className = className;
+  }
+
+  if (textContent != null) {
+    element.textContent = textContent;
+  }
+
   return element;
 }
 
@@ -11,6 +18,7 @@ function createCardRow(document, key, value) {
     createElement(document, "span", { className: "key", textContent: key }),
     createElement(document, "span", { className: "val", textContent: String(value) }),
   );
+
   return row;
 }
 
@@ -49,5 +57,6 @@ export function renderUploadedMessageCard(
   button.dataset.var = product.shortName;
   button.dataset.messageIndex = String(index);
   card.append(headerEl, rows, button);
+
   return card;
 }

@@ -32,8 +32,10 @@ export async function inspectUploadedFile({
   try {
     const buffer = await fileReader.readAsArrayBuffer(file);
     const messages = [...messageIterator.iterateMessages(buffer)];
+
     if (messages.length === 0) {
       emit({ type: "empty" });
+
       return;
     }
 

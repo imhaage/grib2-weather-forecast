@@ -1,8 +1,10 @@
 export function mustFind(document, selector) {
   const element = document.querySelector(selector);
+
   if (!element) {
     throw new Error(`Required DOM element not found: "${selector}"`);
   }
+
   return element;
 }
 

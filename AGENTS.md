@@ -12,7 +12,211 @@ Supports DRT 0 (simple packing), DRT 2/3 (complex packing + spatial differencing
 DRT 4/254 (IEEE 754), DRT 40 (JPEG 2000, OpenJPEG WASM, EWAM), DRT 42 (CCSDS, AROME/ARPEGE),
 DRT 255 (constant field).
 
-### CSS
+## Code style — Blank lines and curly braces
+
+### Goal
+
+Make logical phases inside any function visually distinct at a glance.
+A blank line signals a boundary: either between two blocks, or between two logical phases.
+
+---
+
+### Rule 1 — Systematic (always apply)
+
+**Always use curly braces** on every control flow block — no braceless single-line statements.
+
+**Always add a blank line between two blocks** (`if`, `for`, `while`, `try`, etc.), regardless of what they do.
+
+These two rules are mechanical and have no exceptions.
+
+```ts
+// ✅ Good
+if (!layer) {
+  return null;
+}
+
+if (!options.enabled) {
+  return null;
+}
+
+for (const item of items) {
+  process(item);
+}
+```
+
+```ts
+// ❌ Bad — missing braces, missing blank lines
+if (!layer) return null;
+if (!options.enabled) return null;
+for (const item of items) process(item);
+```
+
+---
+
+### Rule 2 — Logical phases (apply with judgment)
+
+Inside a function, group statements into **phases**: a phase is a set of statements
+that serve the same logical purpose. Separate phases with a blank line.
+Do not add blank lines within a phase.
+
+Typical phases, in order:
+
+1. **Side effects / hooks** — `useX()`, `await`, subscriptions
+2. **Initial derivations** — `const`/`let` derived directly from inputs, props, or args
+3. **Transformations** — loops, `map`, `filter`, `reduce`
+4. **Final derivations** — values that depend on previous phases
+5. **Return**
+Guard clauses (`if … return`) each form their own block and follow Rule 1:
+one blank line between each guard, and one blank line before the first phase.
+
+---
+
+### Examples
+
+#### Utility function
+
+```ts
+// ✅ Good
+function buildLayerConfig(source: Source, options: Options) {
+  const { type, id } = source;
+  const isVisible = options.visible ?? true;
+
+  const filteredLayers = source.layers.filter(l => l.active);
+  const mapped = filteredLayers.map(l => ({ ...l, sourceId: id }));
+
+  const baseConfig = getBaseConfig(type);
+  const result = mergeConfig(baseConfig, mapped, { visible: isVisible });
+
+  return result;
+}
+```
+
+```ts
+// ❌ Bad — no phase separation, logic is blurred
+function buildLayerConfig(source: Source, options: Options) {
+  const { type, id } = source;
+  const isVisible = options.visible ?? true;
+  const filteredLayers = source.layers.filter(l => l.active);
+  const mapped = filteredLayers.map(l => ({ ...l, sourceId: id }));
+  const baseConfig = getBaseConfig(type);
+  const result = mergeConfig(baseConfig, mapped, { visible: isVisible });
+  return result;
+}
+```
+
+---
+
+#### Function with guard clauses
+
+```ts
+// ✅ Good
+function processLayer(layer: Layer | null, options: Options) {
+  if (!layer) {
+    return null;
+  }
+
+  if (!options.enabled) {
+    return null;
+  }
+
+  const { id, type } = layer;
+  const isVisible = options.visible ?? true;
+
+  const filtered = layer.sublayers.filter(s => s.active);
+
+  const config = buildConfig(id, type, filtered, { isVisible });
+
+  return config;
+}
+```
+
+```ts
+// ❌ Bad — guards blurred with logic, missing braces, missing blank lines
+function processLayer(layer: Layer | null, options: Options) {
+  if (!layer) return null;
+  if (!options.enabled) return null;
+  const { id, type } = layer;
+  const isVisible = options.visible ?? true;
+  const filtered = layer.sublayers.filter(s => s.active);
+  const config = buildConfig(id, type, filtered, { isVisible });
+  return config;
+}
+```
+
+---
+
+#### React component
+
+```tsx
+// ✅ Good
+function WeatherLayer({ sourceId, options }: Props) {
+  const config = useLayerConfig(sourceId);
+  const { isVisible, opacity } = useLayerOptions(options);
+
+  const activeLayers = config.layers.filter(l => l.enabled);
+  const hasData = activeLayers.length > 0;
+
+  const layerProps = buildLayerProps(activeLayers, { opacity });
+
+  return (
+    <MapLayer visible={isVisible && hasData} {...layerProps} />
+  );
+}
+```
+
+```tsx
+// ❌ Bad — all statements collapsed, no visual structure
+function WeatherLayer({ sourceId, options }: Props) {
+  const config = useLayerConfig(sourceId);
+  const { isVisible, opacity } = useLayerOptions(options);
+  const activeLayers = config.layers.filter(l => l.enabled);
+  const hasData = activeLayers.length > 0;
+  const layerProps = buildLayerProps(activeLayers, { opacity });
+  return <MapLayer visible={isVisible && hasData} {...layerProps} />;
+}
+```
+
+---
+
+#### Async function
+
+```ts
+// ✅ Good
+async function fetchRadarData(url: string, options: FetchOptions) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), options.timeout);
+
+  const response = await fetch(url, { signal: controller.signal });
+  const buffer = await response.arrayBuffer();
+
+  clearTimeout(timeout);
+
+  const decoded = decodeGrib(buffer);
+  const normalized = normalizeRadarValues(decoded, options.scale);
+
+  return normalized;
+}
+```
+
+---
+
+### Edge cases
+
+- A **single-statement function** needs no blank lines.
+- A **phase of one line** is still a phase — add blank lines around it if surrounding statements belong to different phases.
+- A **comment introducing a phase** belongs to that phase: no blank line between the comment and the code it describes.
+```ts
+// ✅ Good
+const layers = config.layers;
+const isVisible = options.visible ?? true;
+
+// transform
+const mapped = layers.map(l => ({ ...l, visible: isVisible }));
+
+return mapped;
+```
+
+## CSS
 
 The CSS split is a work in progress. Before editing CSS, check which layer/file owns the rule.
 

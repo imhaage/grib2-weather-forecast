@@ -17,6 +17,7 @@ function createUploadDom() {
       <div id="cards"></div>
     </section>
   `;
+
   return {
     status: document.getElementById("status"),
     summary: document.getElementById("file-summary"),
@@ -48,6 +49,7 @@ function createController(overrides = {}) {
       const card = document.createElement("article");
       card.dataset.index = String(message.index);
       card.textContent = message.product.shortName;
+
       return card;
     },
     readFileAsArrayBuffer: vi.fn(async () => new ArrayBuffer(8)),

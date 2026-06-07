@@ -28,10 +28,22 @@ function hasLayer(map: MapLibreLike, id: string) {
 export function createIsobarLayerService({ getMap }: { getMap: () => MapLibreLike | null }) {
   function remove() {
     const map = getMap();
-    if (!map) return;
-    if (hasLayer(map, ISOBAR_LABEL_LAYER_ID)) map.removeLayer(ISOBAR_LABEL_LAYER_ID);
-    if (hasLayer(map, ISOBAR_LINE_LAYER_ID)) map.removeLayer(ISOBAR_LINE_LAYER_ID);
-    if (hasSource(map)) map.removeSource(ISOBAR_SOURCE_ID);
+
+    if (!map) {
+      return;
+    }
+
+    if (hasLayer(map, ISOBAR_LABEL_LAYER_ID)) {
+      map.removeLayer(ISOBAR_LABEL_LAYER_ID);
+    }
+
+    if (hasLayer(map, ISOBAR_LINE_LAYER_ID)) {
+      map.removeLayer(ISOBAR_LINE_LAYER_ID);
+    }
+
+    if (hasSource(map)) {
+      map.removeSource(ISOBAR_SOURCE_ID);
+    }
   }
 
   function addLayers(map: MapLibreLike) {
@@ -66,15 +78,23 @@ export function createIsobarLayerService({ getMap }: { getMap: () => MapLibreLik
 
   function update(geojson: FeatureCollectionLike | null | undefined) {
     const map = getMap();
-    if (!map) return;
+
+    if (!map) {
+      return;
+    }
+
     if (!geojson?.features?.length) {
       remove();
+
       return;
     }
+
     if (hasSource(map)) {
       map.getSource(ISOBAR_SOURCE_ID)?.setData?.(geojson);
+
       return;
     }
+
     map.addSource(ISOBAR_SOURCE_ID, {
       type: "geojson",
       data: geojson,

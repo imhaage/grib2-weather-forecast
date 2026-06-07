@@ -32,6 +32,7 @@ export function createForecastDownloadView({
 
   function renderItems(resources) {
     clear();
+
     for (const resource of resources) {
       const item = document.createElement("div");
       item.className = `forecast-download-bar ${BLOCK_STATUS.MISSING}`;
@@ -57,17 +58,28 @@ export function createForecastDownloadView({
 
   function setBlockStatus(block, status) {
     const item = downloadBarForBlock(block);
+
     if (item) {
       item.classList.remove(...BLOCK_STATUS_CLASSES);
       item.classList.add(status);
-      if (status === BLOCK_STATUS.READY) item.classList.add("done");
+
+      if (status === BLOCK_STATUS.READY) {
+        item.classList.add("done");
+      }
+
       item.title = `${formatRunSummary([block])} · ${status}`;
     }
+
     const fileItem = downloadFileItemForBlock(block);
+
     if (fileItem) {
       fileItem.classList.remove(...BLOCK_STATUS_CLASSES);
       fileItem.classList.add(status);
-      if (status === BLOCK_STATUS.READY) fileItem.classList.add("done");
+
+      if (status === BLOCK_STATUS.READY) {
+        fileItem.classList.add("done");
+      }
+
       fileItem.querySelector(".forecast-download-file__status").textContent =
         BLOCK_STATUS_LABELS[status] ?? status;
     }

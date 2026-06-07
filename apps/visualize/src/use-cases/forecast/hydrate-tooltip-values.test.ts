@@ -24,16 +24,21 @@ function createService(overrides = {}) {
     setTimer: vi.fn((callback: () => Promise<void> | void) => {
       timerId++;
       scheduled.set(timerId, callback);
+
       return timerId;
     }),
     updateIsobarOverlay: vi.fn(),
     ...overrides,
   };
+
   return {
     dependencies,
     runNextTimer: async () => {
       const callback = scheduled.values().next().value;
-      if (callback) await callback();
+
+      if (callback) {
+        await callback();
+      }
     },
     service: createForecastTooltipHydrationService(dependencies),
   };

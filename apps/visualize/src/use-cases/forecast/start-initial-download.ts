@@ -18,7 +18,10 @@ export function createForecastInitialDownloadUseCase({
       downloadKey,
       loadingStatus: "Fetching file list…",
     });
-    if (!isRefreshActive(downloadKey) || !resources) return null;
+
+    if (!isRefreshActive(downloadKey) || !resources) {
+      return null;
+    }
 
     const session = prepareSession({
       packageKey,
@@ -28,6 +31,7 @@ export function createForecastInitialDownloadUseCase({
     });
     setStatus(downloadStatus(session));
     const latestReady = await refreshBlocksToLatest(session);
+
     return latestReady ? session : null;
   }
 

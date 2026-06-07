@@ -6,6 +6,7 @@ export function createMapPresentationController({
 }) {
   function renderColorScaleTicks({ min, max, units, isLog }) {
     dom.colorScale.ticks.replaceChildren();
+
     for (const tick of legendTicksFor({
       paletteName: getCurrentPalette(),
       min,

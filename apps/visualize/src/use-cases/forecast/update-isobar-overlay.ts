@@ -33,16 +33,22 @@ export function createForecastIsobarOverlayUseCase({
   function update(entry: ForecastEntry, values: Float32Array | null | undefined) {
     if (!canShowIsobars(entry.product.shortName)) {
       renderer.clearIsobars();
+
       return;
     }
+
     if (entry.isobars) {
       renderer.updateIsobars(entry.isobars);
+
       return;
     }
+
     if (!values) {
       renderer.clearIsobars();
+
       return;
     }
+
     entry.isobars = buildIsobars({
       shortName: entry.product.shortName,
       grid: entry.grid,

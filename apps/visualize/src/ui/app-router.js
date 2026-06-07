@@ -18,8 +18,10 @@ export function createAppRouter({
 }) {
   function route() {
     const currentRoute = parseForecastRoute(getHash());
+
     if (currentRoute.canonicalHash) {
       replaceHash(currentRoute.canonicalHash);
+
       return;
     }
 
@@ -27,23 +29,28 @@ export function createAppRouter({
       showView("view-map");
       setToolbarMode("field");
       showMapView(currentRoute);
+
       return;
     }
 
     if (currentRoute.type === "forecast") {
       const { packageKey } = currentRoute;
+
       if (!isValidPackage(packageKey)) {
         setHash("");
+
         return;
       }
 
       showView("view-map");
       setToolbarMode("run");
       showDataStatusPanel();
+
       if (getCurrentPackageKey() !== packageKey) {
         resetModelState();
         startDownload(packageKey);
       }
+
       return;
     }
 

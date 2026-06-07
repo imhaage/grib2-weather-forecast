@@ -36,6 +36,7 @@ function createMemoryStorage() {
     },
     put(record: MemoryRecord) {
       records.set(record.id, record);
+
       return Promise.resolve(true);
     },
     findByPackageBlock(
@@ -44,12 +45,17 @@ function createMemoryStorage() {
       predicate: (record: MemoryRecord) => boolean,
     ) {
       let match: MemoryRecord | null = null;
+
       for (const record of records.values()) {
-        if (record.packageKey !== packageKey || record.blockKey !== blockKey) continue;
+        if (record.packageKey !== packageKey || record.blockKey !== blockKey) {
+          continue;
+        }
+
         if (predicate(record) && (!match || String(record.savedAt) > String(match.savedAt))) {
           match = record;
         }
       }
+
       return Promise.resolve(match);
     },
     deleteObsolete(packageKey: string, blockKey: string, currentId: string) {
@@ -62,13 +68,16 @@ function createMemoryStorage() {
           records.delete(record.id);
         }
       }
+
       return Promise.resolve();
     },
     clear() {
       records.clear();
+
       return Promise.resolve();
     },
   };
+
   return { records, storage };
 }
 

@@ -84,10 +84,14 @@ export function createUploadInspectorController({
   }
 
   function getSelectedMessage(route) {
-    if (!fileState) return null;
+    if (!fileState) {
+      return null;
+    }
+
     if (route.messageIndex != null) {
       return fileState.messages.find((message) => message.index === route.messageIndex) ?? null;
     }
+
     return (
       fileState.messages.find((message) => message.product.shortName === route.variableShortName) ??
       null

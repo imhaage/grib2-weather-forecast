@@ -32,6 +32,7 @@ describe("wind symbol sampler", () => {
     expect(
       collection.features.every((feature) => {
         const [lng, lat] = feature.geometry.coordinates;
+
         return lng >= 1.5 && lng <= 3.5 && lat >= 50.5 && lat <= 51.5;
       }),
     ).toBe(true);

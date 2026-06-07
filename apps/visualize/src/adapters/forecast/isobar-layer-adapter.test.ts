@@ -4,6 +4,7 @@ import { createIsobarLayerService } from "./isobar-layer-adapter";
 function createMap() {
   const sources = new Map();
   const layers = new Set();
+
   return {
     addLayer: vi.fn((layer) => layers.add(layer.id)),
     addSource: vi.fn((id, source) => sources.set(id, source)),

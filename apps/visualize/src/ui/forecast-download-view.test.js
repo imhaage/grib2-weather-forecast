@@ -16,6 +16,7 @@ function createView() {
     formatRunSummary: (resources) => resources.map((resource) => resource.key).join(", "),
     formatSize: (bytes) => `${bytes} B`,
   });
+
   return { barsEl, fileListEl, statusEl, view };
 }
 

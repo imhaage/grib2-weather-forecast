@@ -9,6 +9,7 @@ import { createForecastRunController } from "./forecast-run-controller.js";
 
 vi.mock("grib2-decoder", async (importOriginal) => {
   const actual = await importOriginal();
+
   return {
     ...actual,
     fmtRefTime: () => "2026-05-04 06:00 UTC",
@@ -107,6 +108,7 @@ function createDownloadWorkerClient(events = []) {
       const blockKey = url.match(/__(\d+)H__/)?.[1] ?? "unknown";
       events.push(`download:${blockKey}H`);
       options.onProgress?.({ loaded: 1, total: 2 });
+
       return {
         buffer: new Uint8Array([Number(blockKey)]).buffer,
       };
@@ -187,12 +189,17 @@ function createController(overrides = {}) {
       })),
       renderHour: vi.fn(async (request) => {
         events.push(`render:${String(request.hour).padStart(2, "0")}H`);
-        if (overrides.missingRenderHours?.includes(request.hour)) return null;
+
+        if (overrides.missingRenderHours?.includes(request.hour)) {
+          return null;
+        }
+
         return createFakeRenderResult();
       }),
       storeBlock: vi.fn(async (block, buffer) => {
         const source = buffer[0] >= 100 ? "cache" : "network";
         events.push(`store:${block.key}:${source}:${buffer[0]}`);
+
         return true;
       }),
     })),
@@ -215,6 +222,7 @@ function createController(overrides = {}) {
       Object.entries(overrides).filter(([key]) => !["events", "missingRenderHours"].includes(key)),
     ),
   });
+
   return { controller, dom, mapPresentation, mapRenderer, state };
 }
 
@@ -248,6 +256,7 @@ async function createControllerWithMockedFactory(api = { startDownload: vi.fn() 
     setRendering: vi.fn(),
   });
   vi.doUnmock("../composition/forecast-runtime-factory.js");
+
   return { controller, createForecastRuntimeFactory };
 }
 

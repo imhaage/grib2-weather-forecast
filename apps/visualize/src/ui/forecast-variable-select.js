@@ -6,30 +6,42 @@ function createVariableOption(document, varDef) {
   const option = document.createElement("option");
   option.value = variableKeyFor(varDef);
   option.textContent = varDef.name;
+
   return option;
 }
 
 export function appendGroupedVariableOptions(document, select, variables) {
   const groups = new Map();
+
   for (const varDef of variables) {
     const groupName = varDef.group;
+
     if (!groupName) {
       select.appendChild(createVariableOption(document, varDef));
       continue;
     }
+
     if (!groups.has(groupName)) {
       const group = document.createElement("optgroup");
       group.label = groupName;
       groups.set(groupName, group);
     }
+
     groups.get(groupName).appendChild(createVariableOption(document, varDef));
   }
+
   for (const groupName of VARIABLE_GROUP_ORDER) {
     const group = groups.get(groupName);
-    if (group) select.appendChild(group);
+
+    if (group) {
+      select.appendChild(group);
+    }
   }
+
   for (const [groupName, group] of groups) {
-    if (!VARIABLE_GROUP_ORDER.includes(groupName)) select.appendChild(group);
+    if (!VARIABLE_GROUP_ORDER.includes(groupName)) {
+      select.appendChild(group);
+    }
   }
 }
 
@@ -55,7 +67,10 @@ export function createForecastVariableControlsView({
   }
 
   function renderWindDirectionToggle({ hidden, checked }) {
-    if (!windDirectionControl || !windDirectionToggle) return;
+    if (!windDirectionControl || !windDirectionToggle) {
+      return;
+    }
+
     windDirectionControl.hidden = hidden;
     windDirectionToggle.checked = checked;
   }

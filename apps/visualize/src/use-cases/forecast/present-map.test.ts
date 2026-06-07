@@ -114,6 +114,7 @@ function createUseCase(overrides = {}) {
     },
     ...overrides,
   });
+
   return { mapPresentation, mapRenderer, modelState, useCase, state };
 }
 

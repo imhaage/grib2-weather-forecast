@@ -26,10 +26,15 @@ export function createForecastPackageResourceService({
   async function fetchPackageResources(packageKey: string, downloadKey: unknown) {
     const pkg = packages[packageKey];
     let resources = await fetchResources(pkg.datasetId, pkg.titlePattern);
-    if (!isRefreshActive(downloadKey)) return null;
+
+    if (!isRefreshActive(downloadKey)) {
+      return null;
+    }
+
     if (pkg.skipHour0) {
       resources = resources.filter((resource) => (resource.startHour ?? 0) > 0);
     }
+
     return resources;
   }
 

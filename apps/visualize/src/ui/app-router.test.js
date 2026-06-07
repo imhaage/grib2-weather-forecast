@@ -19,6 +19,7 @@ function createRouter(overrides = {}) {
     resetModelState: () => calls.push(["resetModelState"]),
     startDownload: (packageKey) => calls.push(["startDownload", packageKey]),
   });
+
   return { router, calls };
 }
 

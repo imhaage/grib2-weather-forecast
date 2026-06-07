@@ -98,6 +98,7 @@ async function mapWithConcurrency<T, R>(
   worker: (item: T, index: number) => Promise<R> | R,
 ) {
   const limit = pLimit(concurrency);
+
   return Promise.all(items.map((item, index) => limit(() => worker(item, index))));
 }
 
@@ -121,16 +122,26 @@ export function createForecastBlockRefreshUseCase({
     onAvailable: (block: ForecastBlock, buffer: Uint8Array, status: string) => Promise<unknown>,
   ): Promise<CacheLoadResult | undefined> {
     const cachedBuffer = await cache.readCachedBlock(packageKey, block);
-    if (!lifecycle.isRefreshActive(downloadKey)) return;
+
+    if (!lifecycle.isRefreshActive(downloadKey)) {
+      return;
+    }
+
     if (cachedBuffer) {
       await onAvailable(block, cachedBuffer, statuses.LOADED_FROM_CACHE);
+
       return { status: CACHE_LOAD_RESULT.CURRENT, block };
     }
 
     const staleCachedBlock = await cache.readLatestCachedBlock(packageKey, block);
-    if (!lifecycle.isRefreshActive(downloadKey)) return;
+
+    if (!lifecycle.isRefreshActive(downloadKey)) {
+      return;
+    }
+
     if (staleCachedBlock) {
       await onAvailable(block, staleCachedBlock.buffer, statuses.LOADED_FROM_CACHE);
+
       return { status: CACHE_LOAD_RESULT.STALE, block };
     }
 
@@ -143,17 +154,30 @@ export function createForecastBlockRefreshUseCase({
     downloadKey: unknown,
     onAvailable: (block: ForecastBlock, buffer: Uint8Array, status: string) => Promise<unknown>,
   ) {
-    if (!lifecycle.isRefreshActive(downloadKey)) return;
+    if (!lifecycle.isRefreshActive(downloadKey)) {
+      return;
+    }
+
     status.setBlockStatus(block, statuses.DOWNLOADING);
     status.resetBlockDownloadProgress(block);
     const buffer = await network.downloadFile(block.url, block.filesize, (loaded, total) => {
-      if (!lifecycle.isRefreshActive(downloadKey)) return;
+      if (!lifecycle.isRefreshActive(downloadKey)) {
+        return;
+      }
+
       status.setBlockDownloadProgress(block, `${Math.round((loaded / total) * 100)}%`);
     });
     const cacheWriteSucceeded = await cache.writeCachedBlock(packageKey, block, buffer);
-    if (!lifecycle.isRefreshActive(downloadKey)) return;
+
+    if (!lifecycle.isRefreshActive(downloadKey)) {
+      return;
+    }
+
     await onAvailable(block, buffer, statuses.READY);
-    if (cacheWriteSucceeded) await cache.deleteObsoleteCachedBlocks(packageKey, block);
+
+    if (cacheWriteSucceeded) {
+      await cache.deleteObsoleteCachedBlocks(packageKey, block);
+    }
   }
 
   async function refreshBlocksToLatest(
@@ -172,16 +196,24 @@ export function createForecastBlockRefreshUseCase({
       session.resources,
       maxParallelDownloads,
       async (block) => {
-        if (!lifecycle.isRefreshActive(session.downloadKey)) return null;
+        if (!lifecycle.isRefreshActive(session.downloadKey)) {
+          return null;
+        }
+
         const previousBlock = previousBlocks.get(block.key);
+
         if (lifecycle.isBlockInMemoryCurrent(block, previousBlock)) {
           status.markInMemoryBlockAvailable(block, statuses.LOADED_FROM_CACHE, session);
+
           return { status: CACHE_LOAD_RESULT.CURRENT, block };
         }
+
         if (lifecycle.isBlockInMemoryStale(block, previousBlock)) {
           status.markInMemoryBlockAvailable(block, statuses.LOADED_FROM_CACHE, session);
+
           return { status: CACHE_LOAD_RESULT.STALE, block };
         }
+
         return loadCachedBlock(
           session.packageKey,
           block,
@@ -198,7 +230,10 @@ export function createForecastBlockRefreshUseCase({
       result?.status === CACHE_LOAD_RESULT.STALE ? [result.block] : [],
     );
 
-    if (!lifecycle.isRefreshActive(session.downloadKey)) return false;
+    if (!lifecycle.isRefreshActive(session.downloadKey)) {
+      return false;
+    }
+
     await mapWithConcurrency(missingBlocks, maxParallelDownloads, async (block) => {
       await refreshBlockFromNetwork(
         session.packageKey,
@@ -207,9 +242,16 @@ export function createForecastBlockRefreshUseCase({
         enqueueAvailableBlock,
       );
     });
-    if (!lifecycle.isRefreshActive(session.downloadKey)) return false;
+
+    if (!lifecycle.isRefreshActive(session.downloadKey)) {
+      return false;
+    }
+
     await presentation.waitForPresentationIdle(session);
-    if (!lifecycle.isRefreshActive(session.downloadKey)) return false;
+
+    if (!lifecycle.isRefreshActive(session.downloadKey)) {
+      return false;
+    }
 
     await mapWithConcurrency(blocksNeedingRefresh, maxParallelDownloads, async (block) => {
       await refreshBlockFromNetwork(
@@ -220,6 +262,7 @@ export function createForecastBlockRefreshUseCase({
       );
     });
     await presentation.waitForPresentationIdle(session);
+
     return lifecycle.isRefreshActive(session.downloadKey);
   }
 

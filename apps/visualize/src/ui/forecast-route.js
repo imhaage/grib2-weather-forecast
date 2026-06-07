@@ -23,6 +23,7 @@ export function parseForecastRoute(hash) {
 
   if (hash.startsWith("#inspect/message/")) {
     const messageIndex = Number.parseInt(hash.slice(17), 10);
+
     if (Number.isInteger(messageIndex)) {
       return {
         type: "inspect",
@@ -40,6 +41,7 @@ export function parseForecastRoute(hash) {
 
   if (hash.startsWith("#grid/")) {
     const variableShortName = decodeURIComponent(hash.slice(6));
+
     return {
       type: "inspect",
       variableShortName,
@@ -56,6 +58,7 @@ export function parseForecastRoute(hash) {
 
   if (hash.startsWith("#arome/")) {
     const packageKey = hash.slice(7);
+
     return {
       type: "forecast",
       packageKey,

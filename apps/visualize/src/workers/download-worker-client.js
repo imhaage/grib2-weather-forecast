@@ -15,9 +15,13 @@ export function createDownloadWorkerClient({
   let remote = null;
 
   function ensureRemote() {
-    if (remote) return remote;
+    if (remote) {
+      return remote;
+    }
+
     worker = createWorker();
     remote = comlink.wrap(worker);
+
     return remote;
   }
 
@@ -31,6 +35,7 @@ export function createDownloadWorkerClient({
         );
       } catch (error) {
         onError(error);
+
         return null;
       }
     },
