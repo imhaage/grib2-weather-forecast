@@ -8,6 +8,11 @@ The initial goal was simply to build a JS/WASM decoder so users could easily rea
 
 Then the visualization component was added gradually. This was an opportunity to have fun with caching large files in the browser using IndexedDB, implementing a cache update strategy to ensure the best possible user experience despite the large file sizes, parallelizing resource-intensive tasks with Web Workers, get all of this to work on mid-range smartphones, and tackling many other challenges.
 
+## Applications
+
+- [`apps/visualize`](apps/visualize/README.md) — browser forecast visualizer and local GRIB2 file
+  inspector.
+
 ## Experimentation with agent-based AI
 This project started as an experiment aimed at creating a complex app without writing a single line of code. Claude Code, and later Codex, did everything, from source code to commit and push.
 
