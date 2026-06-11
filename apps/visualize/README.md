@@ -51,8 +51,9 @@ src/workers/       background download, decode, and rendering work
 src/composition/   runtime dependency wiring
 ```
 
-`src/main.js` is the Vite entry point. `index.js` still contains shared bootstrap and uploaded-field
-rendering code while application workflows live behind controllers and use cases.
+`src/main.js` is the Vite entry point and calls the typed `src/bootstrap.ts` composition root.
+Composition modules and controllers are TypeScript. Domain types remain browser-independent;
+worker, browser-storage, network, and MapLibre contracts are defined at their external boundaries.
 
 ## Decoder Boundary
 

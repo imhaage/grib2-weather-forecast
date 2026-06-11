@@ -1491,7 +1491,7 @@ git commit -m "refactor: remove loose visualize contracts"
 - Modify: `apps/visualize/README.md`
 - Modify: `docs/superpowers/plans/2026-06-11-visualize-type-boundaries.md`
 
-- [ ] **Step 1: Update the architecture documentation**
+- [x] **Step 1: Update the architecture documentation**
 
 Update `apps/visualize/README.md` to state:
 
@@ -1502,7 +1502,7 @@ Update `apps/visualize/README.md` to state:
 
 Keep the document concise and remove references to the legacy `index.js` workflow.
 
-- [ ] **Step 2: Run full verification**
+- [x] **Step 2: Run full verification**
 
 Run:
 
@@ -1522,7 +1522,7 @@ Expected:
 - Vite build exits 0;
 - all decoder tests pass.
 
-- [ ] **Step 3: Run final architecture assertions**
+- [x] **Step 3: Run final architecture assertions**
 
 Run:
 
@@ -1541,11 +1541,11 @@ test ! -f apps/visualize/index.js
 
 Expected: every assertion exits 0.
 
-- [ ] **Step 4: Mark this plan complete**
+- [x] **Step 4: Mark this plan complete**
 
 Change every completed checkbox in this file from `[ ]` to `[x]`.
 
-- [ ] **Step 5: Commit final documentation**
+- [x] **Step 5: Commit final documentation**
 
 ```bash
 git add apps/visualize/README.md docs/superpowers/plans/2026-06-11-visualize-type-boundaries.md
