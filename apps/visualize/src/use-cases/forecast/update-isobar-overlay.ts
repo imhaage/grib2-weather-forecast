@@ -1,26 +1,17 @@
+import type { GridDefinition, ProductDefinition } from "../../domain/field-types";
 import { generateIsobars, supportsIsobars } from "../../domain/isobars.js";
+import type { ForecastFeatureCollection, ForecastMapRendererPort } from "./map-contracts";
 
 interface ForecastEntry {
-  grid?: unknown;
-  isobars?: FeatureCollectionLike | null;
-  product: {
-    shortName: string;
-  };
-}
-
-interface FeatureCollectionLike {
-  [key: string]: unknown;
-}
-
-interface IsobarRenderer {
-  clearIsobars: () => void;
-  updateIsobars: (geojson: FeatureCollectionLike | null | undefined) => void;
+  grid?: GridDefinition;
+  isobars?: ForecastFeatureCollection | null;
+  product: ProductDefinition;
 }
 
 interface CreateForecastIsobarOverlayUseCaseOptions {
   generateIsobars?: typeof generateIsobars;
   missingValue: number;
-  renderer: IsobarRenderer;
+  renderer: Pick<ForecastMapRendererPort, "clearIsobars" | "updateIsobars">;
   supportsIsobars?: typeof supportsIsobars;
 }
 
@@ -54,7 +45,7 @@ export function createForecastIsobarOverlayUseCase({
       grid: entry.grid,
       values,
       missingValue,
-    });
+    }) as ForecastFeatureCollection;
     renderer.updateIsobars(entry.isobars);
   }
 

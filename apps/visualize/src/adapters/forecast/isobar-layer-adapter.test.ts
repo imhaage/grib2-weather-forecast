@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
+import { makeForecastFeatureCollection } from "../../use-cases/forecast/map-test-fixtures";
 import { createIsobarLayerService } from "./isobar-layer-adapter";
 
 function createMap() {
@@ -19,7 +20,7 @@ describe("isobar layer adapter", () => {
   test("adds source and line and label layers when features are available", () => {
     const map = createMap();
     const service = createIsobarLayerService({ getMap: () => map });
-    const geojson = { type: "FeatureCollection", features: [{ type: "Feature" }] };
+    const geojson = makeForecastFeatureCollection([{ type: "Feature" }]);
 
     service.update(geojson);
 
@@ -32,8 +33,8 @@ describe("isobar layer adapter", () => {
     const map = createMap();
     const source = { setData: vi.fn() };
     const service = createIsobarLayerService({ getMap: () => map });
-    const first = { type: "FeatureCollection", features: [{ type: "Feature" }] };
-    const second = { type: "FeatureCollection", features: [{ type: "Feature" }] };
+    const first = makeForecastFeatureCollection([{ type: "Feature" }]);
+    const second = makeForecastFeatureCollection([{ type: "Feature" }]);
 
     service.update(first);
     map.getSource = vi.fn(() => source);
@@ -46,8 +47,8 @@ describe("isobar layer adapter", () => {
     const map = createMap();
     const service = createIsobarLayerService({ getMap: () => map });
 
-    service.update({ type: "FeatureCollection", features: [{ type: "Feature" }] });
-    service.update({ type: "FeatureCollection", features: [] });
+    service.update(makeForecastFeatureCollection([{ type: "Feature" }]));
+    service.update(makeForecastFeatureCollection());
 
     expect(map.removeLayer).toHaveBeenCalledWith("isobars-label");
     expect(map.removeLayer).toHaveBeenCalledWith("isobars-line");

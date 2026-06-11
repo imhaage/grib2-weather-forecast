@@ -12,11 +12,6 @@ interface MapLibreLike {
   removeSource: (id: string) => void;
 }
 
-interface FeatureCollectionLike {
-  features?: unknown[];
-  [key: string]: unknown;
-}
-
 function hasSource(map: MapLibreLike) {
   return Boolean(map.getSource(ISOBAR_SOURCE_ID));
 }
@@ -76,7 +71,7 @@ export function createIsobarLayerService({ getMap }: { getMap: () => MapLibreLik
     });
   }
 
-  function update(geojson: FeatureCollectionLike | null | undefined) {
+  function update(geojson: ForecastFeatureCollection | null | undefined) {
     const map = getMap();
 
     if (!map) {
@@ -107,3 +102,5 @@ export function createIsobarLayerService({ getMap }: { getMap: () => MapLibreLik
     update,
   };
 }
+
+import type { ForecastFeatureCollection } from "../../use-cases/forecast/map-contracts";

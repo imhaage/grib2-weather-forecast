@@ -55,7 +55,7 @@ function ensureArrowIcon(map: MapLibreLike) {
   map.addImage(WIND_ARROW_ICON_ID, createArrowIconImageData());
 }
 
-function addWindSymbolSource(map: MapLibreLike, geojson: unknown) {
+function addWindSymbolSource(map: MapLibreLike, geojson: ForecastFeatureCollection) {
   map.addSource(WIND_SYMBOL_SOURCE_ID, {
     type: "geojson",
     data: geojson,
@@ -106,7 +106,7 @@ function removeLayerIfExists(map: MapLibreLike, layerId: string) {
 }
 
 export function createWindSymbolLayerService({ getMap }: { getMap: () => MapLibreLike | null }) {
-  function ensureLayers(map: MapLibreLike, geojson: unknown) {
+  function ensureLayers(map: MapLibreLike, geojson: ForecastFeatureCollection) {
     if (!map.getSource(WIND_SYMBOL_SOURCE_ID)) {
       addWindSymbolSource(map, geojson);
     }
@@ -123,7 +123,7 @@ export function createWindSymbolLayerService({ getMap }: { getMap: () => MapLibr
   }
 
   return {
-    update(geojson: unknown) {
+    update(geojson: ForecastFeatureCollection) {
       const map = getMap();
 
       if (!map) {
@@ -155,3 +155,5 @@ export function createWindSymbolLayerService({ getMap }: { getMap: () => MapLibr
     },
   };
 }
+
+import type { ForecastFeatureCollection } from "../../use-cases/forecast/map-contracts";

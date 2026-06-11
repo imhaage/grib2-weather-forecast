@@ -772,7 +772,7 @@ git commit -m "refactor: define model block worker contracts"
 - Modify: `apps/visualize/src/adapters/forecast/wind-symbol-layer-adapter.ts`
 - Modify: corresponding tests
 
-- [ ] **Step 1: Define the expected map capability in the use-case test**
+- [x] **Step 1: Define the expected map capability in the use-case test**
 
 In `present-map.test.ts`, define the fake with `satisfies ForecastMapPort`:
 
@@ -794,7 +794,7 @@ const mapPort = {
 } satisfies ForecastMapPort;
 ```
 
-- [ ] **Step 2: Run typecheck and confirm the missing port fails**
+- [x] **Step 2: Run typecheck and confirm the missing port fails**
 
 Run:
 
@@ -804,7 +804,7 @@ npm run typecheck:visualize
 
 Expected: FAIL because `ForecastMapPort` is not defined/exported.
 
-- [ ] **Step 3: Define pure presentation contracts**
+- [x] **Step 3: Define pure presentation contracts**
 
 Add exact types for:
 
@@ -826,13 +826,13 @@ Use cases and map ports accept `ForecastRaster`. The worker adapter wraps `Image
 `ForecastRaster`, and the MapLibre adapter performs the narrow unwrap needed to call canvas APIs.
 No `CanvasImageSource`, `ImageBitmap`, or `HTMLCanvasElement` type may appear in use-case contracts.
 
-- [ ] **Step 4: Align MapLibre adapters**
+- [x] **Step 4: Align MapLibre adapters**
 
 Keep MapLibre-specific map, source, layer, and bounds interfaces local to
 `maplibre-map-renderer-adapter.ts`. Replace use-case-facing `unknown` arguments with the exact
 forecast map port.
 
-- [ ] **Step 5: Run focused tests and checks**
+- [x] **Step 5: Run focused tests and checks**
 
 Run:
 

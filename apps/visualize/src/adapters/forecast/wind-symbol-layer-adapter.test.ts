@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { makeForecastFeatureCollection } from "../../use-cases/forecast/map-test-fixtures";
 import { createWindSymbolLayerService } from "./wind-symbol-layer-adapter";
 
 function createMap() {
@@ -48,7 +49,7 @@ describe("wind symbol layer adapter", () => {
   test("adds source and layers on first update", () => {
     const map = createMap();
     const service = createWindSymbolLayerService({ getMap: () => map });
-    const geojson = { type: "FeatureCollection", features: [] };
+    const geojson = makeForecastFeatureCollection();
 
     service.update(geojson);
 
@@ -64,7 +65,7 @@ describe("wind symbol layer adapter", () => {
     const map = createMap();
     const service = createWindSymbolLayerService({ getMap: () => map });
 
-    service.update({ type: "FeatureCollection", features: [] });
+    service.update(makeForecastFeatureCollection());
 
     expect(map.addLayer).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -83,7 +84,7 @@ describe("wind symbol layer adapter", () => {
     const map = createMap();
     const service = createWindSymbolLayerService({ getMap: () => map });
 
-    service.update({ type: "FeatureCollection", features: [] });
+    service.update(makeForecastFeatureCollection());
 
     expect(map.addLayer).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -106,7 +107,7 @@ describe("wind symbol layer adapter", () => {
     };
     const service = createWindSymbolLayerService({ getMap: () => map });
 
-    service.update({ type: "FeatureCollection", features: [] });
+    service.update(makeForecastFeatureCollection());
 
     expect(canvas.width).toBe(32);
     expect(canvas.height).toBe(32);
@@ -124,8 +125,8 @@ describe("wind symbol layer adapter", () => {
     const map = createMap();
     const source = { setData: vi.fn() };
     const service = createWindSymbolLayerService({ getMap: () => map });
-    const first = { type: "FeatureCollection", features: [] };
-    const second = { type: "FeatureCollection", features: [] };
+    const first = makeForecastFeatureCollection();
+    const second = makeForecastFeatureCollection();
 
     service.update(first);
     map.getSource = vi.fn(() => source);
@@ -138,7 +139,7 @@ describe("wind symbol layer adapter", () => {
     const map = createMap();
     const service = createWindSymbolLayerService({ getMap: () => map });
 
-    service.update({ type: "FeatureCollection", features: [] });
+    service.update(makeForecastFeatureCollection());
     service.remove();
 
     expect(map.removeLayer).toHaveBeenCalledWith("wind-arrows");

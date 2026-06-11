@@ -1,12 +1,16 @@
 import maplibregl from "maplibre-gl";
 
 import { setupMapTooltip } from "../../../map-tooltip.js";
+import type { GridDefinition } from "../../domain/field-types";
+import type {
+  ForecastBounds,
+  ForecastFeatureCollection,
+  ForecastMapCanvas,
+  ForecastRaster,
+  MapCorner,
+} from "../../use-cases/forecast/map-contracts";
 import { createIsobarLayerService } from "./isobar-layer-adapter";
 import { createWindSymbolLayerService } from "./wind-symbol-layer-adapter";
-
-interface GridLike {
-  ni: number;
-}
 
 interface BoundsLike {
   getEast: () => number;
@@ -38,7 +42,7 @@ interface MapLibreLike {
 }
 
 interface MapRendererOptions {
-  canvasHeightForGrid: (grid: GridLike) => number;
+  canvasHeightForGrid: (grid: GridDefinition) => number;
   getGridState: () => unknown;
   getMapScene: () => HTMLElement | { hidden: boolean };
   missingValue: number;
@@ -47,12 +51,7 @@ interface MapRendererOptions {
   wrapEl: HTMLElement | { getBoundingClientRect: () => { left: number; top: number } };
 }
 
-type FitBoundsArgs = [bounds: unknown, options?: unknown];
-
-interface FeatureCollectionLike {
-  features?: unknown[];
-  [key: string]: unknown;
-}
+type FitBoundsArgs = [bounds: ForecastBounds, options?: { animate?: boolean; padding?: number }];
 
 function createMapLibreMap() {
   return new maplibregl.Map({
@@ -102,7 +101,7 @@ export function createMapLibreMapRendererAdapter({
       windSymbolLayer.remove();
     },
 
-    ensureHeatCanvas(grid: GridLike) {
+    ensureHeatCanvas(grid: GridDefinition) {
       const needH = canvasHeightForGrid(grid);
       const canvasChanged =
         !heatCanvas || heatCanvas.width !== grid.ni || heatCanvas.height !== needH;
@@ -120,7 +119,7 @@ export function createMapLibreMapRendererAdapter({
       };
     },
 
-    drawBitmap(bitmap: CanvasImageSource) {
+    drawBitmap(bitmap: ForecastRaster) {
       const ctx = heatCanvas?.getContext("2d");
 
       if (!heatCanvas || !ctx) {
@@ -128,14 +127,14 @@ export function createMapLibreMapRendererAdapter({
       }
 
       ctx.clearRect(0, 0, heatCanvas.width, heatCanvas.height);
-      ctx.drawImage(bitmap, 0, 0);
+      ctx.drawImage(bitmap as CanvasImageSource, 0, 0);
     },
 
-    setLayer(canvas: HTMLCanvasElement, corners: unknown) {
+    setLayer(canvas: ForecastMapCanvas, corners: MapCorner[]) {
       removeLayerIfExists();
       map?.addSource("grib2", {
         type: "canvas",
-        canvas,
+        canvas: canvas as HTMLCanvasElement,
         coordinates: corners,
         animate: true,
       });
@@ -202,7 +201,7 @@ export function createMapLibreMapRendererAdapter({
       return map?.getZoom?.() ?? 0;
     },
 
-    fitBounds(bounds: unknown, options?: unknown) {
+    fitBounds(bounds: ForecastBounds, options?: { animate?: boolean; padding?: number }) {
       map?.fitBounds(bounds, options);
     },
 
@@ -210,7 +209,7 @@ export function createMapLibreMapRendererAdapter({
       map?.triggerRepaint();
     },
 
-    updateIsobars(geojson: FeatureCollectionLike | null | undefined) {
+    updateIsobars(geojson: ForecastFeatureCollection | null | undefined) {
       isobarLayer.update(geojson);
     },
 
@@ -218,7 +217,7 @@ export function createMapLibreMapRendererAdapter({
       isobarLayer.remove();
     },
 
-    updateWindSymbols(geojson: unknown) {
+    updateWindSymbols(geojson: ForecastFeatureCollection) {
       windSymbolLayer.update(geojson);
     },
 

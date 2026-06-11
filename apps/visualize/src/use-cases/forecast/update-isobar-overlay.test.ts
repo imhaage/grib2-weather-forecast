@@ -1,4 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
+import type { ForecastFeatureCollection } from "./map-contracts";
+import { makeForecastFeatureCollection, makeGridDefinition } from "./map-test-fixtures";
 import { createForecastIsobarOverlayUseCase } from "./update-isobar-overlay";
 
 describe("forecast isobar overlay use case", () => {
@@ -18,7 +20,7 @@ describe("forecast isobar overlay use case", () => {
   });
 
   test("reuses cached isobars when already present on the entry", () => {
-    const isobars = { type: "FeatureCollection", features: [] };
+    const isobars = makeForecastFeatureCollection();
     const renderer = { clearIsobars: vi.fn(), updateIsobars: vi.fn() };
     const useCase = createForecastIsobarOverlayUseCase({
       generateIsobars: vi.fn(),
@@ -33,13 +35,13 @@ describe("forecast isobar overlay use case", () => {
   });
 
   test("generates and stores isobars for supported fields with values", () => {
-    const isobars = { type: "FeatureCollection", features: [] };
+    const isobars = makeForecastFeatureCollection();
     const entry: {
-      grid: { id: string };
-      isobars?: typeof isobars | null;
+      grid: ReturnType<typeof makeGridDefinition>;
+      isobars?: ForecastFeatureCollection | null;
       product: { shortName: string };
     } = {
-      grid: { id: "grid" },
+      grid: makeGridDefinition(),
       product: { shortName: "msl" },
     };
     const values = new Float32Array([1013]);

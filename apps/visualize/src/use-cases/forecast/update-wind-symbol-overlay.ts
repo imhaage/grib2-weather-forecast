@@ -1,5 +1,12 @@
+import type { GridDefinition } from "../../domain/field-types";
+import type { ForecastRunState } from "../../domain/forecast-types";
 import { isVectorCompositeVariable } from "../../domain/wind-composite-variable.js";
 import { buildWindSymbolFeatures } from "../../domain/wind-symbol-sampler.js";
+import type {
+  ForecastFeatureCollection,
+  ForecastMapRendererPort,
+  ViewportBounds,
+} from "./map-contracts";
 
 const DEFAULT_WIND_SYMBOL_SAMPLING = Object.freeze({
   referenceZoom: 6,
@@ -7,26 +14,9 @@ const DEFAULT_WIND_SYMBOL_SAMPLING = Object.freeze({
 });
 
 interface ForecastEntry {
-  grid: unknown;
+  grid: GridDefinition;
   vectorUValues?: Float32Array | null;
   vectorVValues?: Float32Array | null;
-}
-
-interface ForecastModelState {
-  showWindDirection?: boolean;
-  variable?: string | null;
-}
-
-interface ViewportBounds {
-  east: number;
-  north: number;
-  south: number;
-  west: number;
-}
-
-interface WindSymbolRenderer {
-  clearWindSymbols?: () => void;
-  updateWindSymbols?: (geojson: unknown) => void;
 }
 
 interface WindSymbolSampling {
@@ -37,10 +27,10 @@ interface WindSymbolSampling {
 interface CreateForecastWindSymbolOverlayUseCaseOptions {
   buildFeatures?: typeof buildWindSymbolFeatures;
   getBounds: () => ViewportBounds | null;
-  getModelState: () => ForecastModelState | null | undefined;
+  getModelState: () => ForecastRunState | null | undefined;
   getZoom: () => number;
   missingValue: number;
-  renderer: WindSymbolRenderer;
+  renderer: Pick<ForecastMapRendererPort, "clearWindSymbols" | "updateWindSymbols">;
   sampling?: WindSymbolSampling;
 }
 
@@ -90,7 +80,7 @@ export function createForecastWindSymbolOverlayUseCase({
         bounds,
         zoom: getZoom(),
         sampling,
-      }),
+      }) as ForecastFeatureCollection,
     );
   }
 
