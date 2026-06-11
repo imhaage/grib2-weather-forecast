@@ -1179,7 +1179,7 @@ git commit -m "refactor: type forecast run controller"
 - Modify: `apps/visualize/src/use-cases/upload-inspector/ports.ts`
 - Modify: `apps/visualize/src/domain/field-types.ts`
 
-- [ ] **Step 1: Write the uploaded-field workflow tests**
+- [x] **Step 1: Write the uploaded-field workflow tests**
 
 Cover these scenarios:
 
@@ -1192,7 +1192,7 @@ test("returns stale when render generation changes before worker completion")
 
 Use fake ports and assert returned typed results rather than DOM mutations.
 
-- [ ] **Step 2: Run tests and verify they fail**
+- [x] **Step 2: Run tests and verify they fail**
 
 Run:
 
@@ -1202,7 +1202,7 @@ npm test -w visualize -- src/use-cases/upload-inspector/present-uploaded-field.t
 
 Expected: FAIL because the use case does not exist.
 
-- [ ] **Step 3: Define uploaded-field ports**
+- [x] **Step 3: Define uploaded-field ports**
 
 Add exact capabilities:
 
@@ -1218,7 +1218,7 @@ export interface UploadedFieldRenderPort {
 
 Define route resolution, render request, success, not-found, decode-failed, and stale result types.
 
-- [ ] **Step 4: Implement the use case**
+- [x] **Step 4: Implement the use case**
 
 The use case must:
 
@@ -1229,7 +1229,7 @@ The use case must:
 - close no bitmap and mutate no DOM;
 - return a typed result for the controller.
 
-- [ ] **Step 5: Run focused tests and checks**
+- [x] **Step 5: Run focused tests and checks**
 
 Run:
 
@@ -1243,7 +1243,7 @@ npm run check:visualize
 
 Expected: all commands pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/visualize/src/use-cases/upload-inspector apps/visualize/src/domain/field-types.ts

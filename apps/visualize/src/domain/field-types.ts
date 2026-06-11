@@ -41,3 +41,11 @@ export interface DecodedField {
   product: ProductDefinition;
   header: MessageHeader;
 }
+
+export interface UploadedMessage {
+  index: number;
+  buffer: Uint8Array;
+  header: MessageHeader;
+  product: ProductDefinition;
+  grid?: GridDefinition;
+}
