@@ -86,7 +86,7 @@ function decodeSecondaryDisplayValues(data) {
 
 function storeBlock({ blockKey, buffer }) {
   blockBuffers.set(blockKey, buffer);
-  return { ok: true };
+  return { type: "storeBlockResult", ok: true };
 }
 
 async function renderHour(data) {
@@ -148,6 +148,7 @@ async function renderHour(data) {
 
   const bitmap = await createImageBitmap(image);
   const result = {
+    type: "renderHourResult",
     renderGeneration,
     bitmap,
     dataMin,
@@ -192,10 +193,12 @@ async function renderHour(data) {
 
 async function decodeValues(data) {
   const decoded = await decodeDisplayValues(data);
-  if (!decoded) return { renderGeneration: data.renderGeneration, values: null };
+  if (!decoded) {
+    return { type: "decodeValuesResult", renderGeneration: data.renderGeneration };
+  }
   const secondaryDecoded = await decodeSecondaryDisplayValues(data);
   if (data.secondaryVariable && !secondaryDecoded) {
-    return { renderGeneration: data.renderGeneration, values: null };
+    return { type: "decodeValuesResult", renderGeneration: data.renderGeneration };
   }
   const isVectorComposite = Boolean(data.vectorComposite);
   const values =
@@ -207,6 +210,7 @@ async function decodeValues(data) {
         })
       : decoded.values;
   const result = {
+    type: "decodeValuesResult",
     renderGeneration: data.renderGeneration,
     ...decoded,
     values,

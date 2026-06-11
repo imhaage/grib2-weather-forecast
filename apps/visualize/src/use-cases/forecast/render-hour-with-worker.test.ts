@@ -1,19 +1,21 @@
 import { describe, expect, test, vi } from "vitest";
+import {
+  makeModelBlockDecodeValuesResult,
+  makeModelBlockRenderResult,
+} from "../../workers/model-block-worker-test-fixtures";
+import { makeForecastRunState, makeRemoteResource } from "./forecast-test-fixtures";
 import { createForecastHourWorkerRenderService } from "./render-hour-with-worker";
 
 function createService(overrides = {}) {
-  const modelState = {
+  const modelState = makeForecastRunState({
     availableBlocks: new Set(["01H"]),
     hourList: [1],
     packageKey: "AROME_SP1",
-    resources: [{ key: "01H", startHour: 1, endHour: 1 }],
+    resources: [makeRemoteResource()],
     variable: "t",
-  };
-  const renderHour = vi.fn(async () => ({
-    bitmap: { close: vi.fn() },
-    values: new Float32Array(),
-  }));
-  const decodeValues = vi.fn(async () => ({ values: new Float32Array([1, 2]) }));
+  });
+  const renderHour = vi.fn(async () => makeModelBlockRenderResult({ values: new Float32Array() }));
+  const decodeValues = vi.fn(async () => makeModelBlockDecodeValuesResult());
   const dependencies = {
     getCurrentPalette: vi.fn(() => "Temperature"),
     getCurrentRenderGeneration: vi.fn(() => 1),
@@ -53,12 +55,12 @@ describe("forecast hour worker render use case", () => {
   });
 
   test("closes stale rendered bitmaps when render generation changes", async () => {
-    const bitmap = { close: vi.fn() };
+    const bitmap = { close: vi.fn() } as unknown as ImageBitmap;
     const { service } = createService({
       getCurrentRenderGeneration: vi.fn().mockReturnValueOnce(1).mockReturnValueOnce(2),
       getModelBlockService: vi.fn(() => ({
-        decodeValues: vi.fn(),
-        renderHour: vi.fn(async () => ({ bitmap })),
+        decodeValues: vi.fn(async () => null),
+        renderHour: vi.fn(async () => makeModelBlockRenderResult({ bitmap })),
       })),
     });
 

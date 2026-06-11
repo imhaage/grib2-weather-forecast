@@ -1,18 +1,15 @@
+import type { ForecastRunState } from "../../domain/forecast-types";
 import { isVectorCompositeVariable } from "../../domain/wind-composite-variable.js";
+import type {
+  ModelBlockDecodeValuesResult,
+  ModelBlockRenderRequest,
+  ModelBlockRenderResult,
+} from "../../workers/model-block-worker-contracts";
 import { createForecastRenderRequest } from "./create-render-request";
 
-type ForecastRenderRequest = NonNullable<ReturnType<typeof createForecastRenderRequest>>;
-
-interface RenderedHourResult {
-  bitmap?: {
-    close: () => void;
-  };
-  values?: Float32Array;
-}
-
 interface ModelBlockService {
-  decodeValues: (request: ForecastRenderRequest) => Promise<RenderedHourResult | null>;
-  renderHour: (request: ForecastRenderRequest) => Promise<RenderedHourResult | null>;
+  decodeValues: (request: ModelBlockRenderRequest) => Promise<ModelBlockDecodeValuesResult | null>;
+  renderHour: (request: ModelBlockRenderRequest) => Promise<ModelBlockRenderResult | null>;
 }
 
 interface PerformanceApi {
@@ -23,7 +20,7 @@ interface CreateForecastHourWorkerRenderServiceOptions {
   getCurrentPalette: () => string;
   getCurrentRenderGeneration: () => number;
   getModelBlockService: () => ModelBlockService;
-  getModelState: () => Parameters<typeof createForecastRenderRequest>[0]["state"];
+  getModelState: () => ForecastRunState;
   missingValue: number;
   notifyDiagnostics: () => void;
   perfDebug?: boolean;

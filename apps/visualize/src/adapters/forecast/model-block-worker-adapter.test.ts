@@ -1,13 +1,34 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { makeRemoteResource } from "../../use-cases/forecast/forecast-test-fixtures";
+import type {
+  ModelBlockWorkerRequest,
+  ModelBlockWorkerResult,
+} from "../../workers/model-block-worker-contracts";
+import {
+  makeModelBlockDecodeValuesResult,
+  makeModelBlockRenderRequest,
+  makeModelBlockRenderResult,
+} from "../../workers/model-block-worker-test-fixtures";
 import { createModelBlockWorkerAdapter } from "./model-block-worker-adapter";
 
 describe("model block worker adapter", () => {
   let post: ReturnType<
-    typeof vi.fn<(message: unknown, transferables?: Transferable[]) => Promise<unknown>>
+    typeof vi.fn<
+      (
+        message: ModelBlockWorkerRequest,
+        transferables?: Transferable[],
+      ) => Promise<ModelBlockWorkerResult | null>
+    >
   >;
 
   beforeEach(() => {
-    post = vi.fn<(message: unknown, transferables?: Transferable[]) => Promise<unknown>>();
+    post =
+      vi.fn<
+        (
+          message: ModelBlockWorkerRequest,
+          transferables?: Transferable[],
+        ) => Promise<ModelBlockWorkerResult | null>
+      >();
   });
 
   function createAdapter() {
@@ -22,11 +43,11 @@ describe("model block worker adapter", () => {
   }
 
   test("stores blocks through the worker protocol and transfers ownership", async () => {
-    post.mockResolvedValue({ ok: true });
+    post.mockResolvedValue({ type: "storeBlockResult", ok: true });
     const adapter = createAdapter();
     const buffer = new Uint8Array([1, 2, 3]);
 
-    await expect(adapter.storeBlock({ key: "01H" }, buffer)).resolves.toBe(true);
+    await expect(adapter.storeBlock(makeRemoteResource(), buffer)).resolves.toBe(true);
 
     expect(post).toHaveBeenCalledWith(
       {
@@ -39,12 +60,9 @@ describe("model block worker adapter", () => {
   });
 
   test("renders hours by transferring the LUT buffer", async () => {
-    post.mockResolvedValue({ bitmap: {}, dataCount: 4 });
+    post.mockResolvedValue(makeModelBlockRenderResult());
     const adapter = createAdapter();
-    const request = {
-      type: "renderHour",
-      lut: new Uint8Array([1, 2, 3]),
-    };
+    const request = makeModelBlockRenderRequest();
 
     await adapter.renderHour(request);
 
@@ -52,13 +70,9 @@ describe("model block worker adapter", () => {
   });
 
   test("decodes values by reusing render requests with a decodeValues message type", async () => {
-    post.mockResolvedValue({ values: new Float32Array([1]) });
+    post.mockResolvedValue(makeModelBlockDecodeValuesResult());
     const adapter = createAdapter();
-    const request = {
-      type: "renderHour",
-      blockKey: "01H",
-      lut: new Uint8Array([1, 2, 3]),
-    };
+    const request = makeModelBlockRenderRequest();
 
     await adapter.decodeValues(request);
 

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { makeModelBlockRenderResult } from "../../workers/model-block-worker-test-fixtures";
 import { makeBitmapCacheEntryFromWorker } from "./create-bitmap-cache-entry";
 
 describe("forecast bitmap cache entry use case", () => {
@@ -7,12 +8,11 @@ describe("forecast bitmap cache entry use case", () => {
     const vectorUValues = new Float32Array([1, 2]);
     const vectorVValues = new Float32Array([3, 4]);
     const entry = makeBitmapCacheEntryFromWorker(
-      {
-        bitmap: {},
+      makeModelBlockRenderResult({
         values,
         vectorUValues,
         vectorVValues,
-      },
+      }),
       { keepValues: true },
     );
 

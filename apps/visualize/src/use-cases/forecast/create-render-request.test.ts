@@ -1,26 +1,28 @@
 import { describe, expect, test } from "vitest";
+import type { ForecastRunState } from "../../domain/forecast-types";
 import { createForecastRenderRequest } from "./create-render-request";
+import { makeForecastRunState, makeRemoteResource } from "./forecast-test-fixtures";
 
-function createState(overrides = {}) {
-  return {
+function createState(overrides: Partial<ForecastRunState> = {}) {
+  return makeForecastRunState({
     packageKey: "AROME_HP1",
     variable: "wspd_10",
     resources: [
-      {
+      makeRemoteResource({
         key: "01H",
         startHour: 1,
         endHour: 1,
-      },
-      {
+      }),
+      makeRemoteResource({
         key: "02H",
         startHour: 2,
         endHour: 2,
-      },
+      }),
     ],
     availableBlocks: new Set(["02H"]),
     hourList: [1, 2],
     ...overrides,
-  };
+  });
 }
 
 describe("forecast render request use case", () => {

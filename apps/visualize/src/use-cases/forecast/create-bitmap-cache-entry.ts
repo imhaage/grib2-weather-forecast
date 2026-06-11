@@ -1,32 +1,11 @@
-interface ForecastWorkerBitmapEntry {
-  bitmap?: unknown;
-  values?: unknown;
-  vectorComposite?: unknown;
-  vectorUValues?: unknown;
-  vectorVValues?: unknown;
-  dataMin?: unknown;
-  dataMax?: unknown;
-  dataMean?: unknown;
-  dataCount?: unknown;
-  unitTransform?: unknown;
-  renderMin?: unknown;
-  range?: unknown;
-  staticScale?: unknown;
-  isLog?: unknown;
-  displayUnits?: unknown;
-  isFallback?: unknown;
-  isobars?: unknown;
-  grid?: unknown;
-  product?: unknown;
-  header?: unknown;
-}
+import type { ModelBlockRenderResult } from "../../workers/model-block-worker-contracts";
 
 interface BitmapCacheEntryOptions {
   keepValues?: boolean;
 }
 
 export function makeBitmapCacheEntryFromWorker(
-  renderEntry: ForecastWorkerBitmapEntry,
+  renderEntry: ModelBlockRenderResult,
   { keepValues = false }: BitmapCacheEntryOptions = {},
 ) {
   return {

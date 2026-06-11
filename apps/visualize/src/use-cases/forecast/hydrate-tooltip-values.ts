@@ -1,8 +1,8 @@
 interface TooltipHydrationData {
   values?: Float32Array;
   vectorComposite?: unknown;
-  vectorUValues?: Float32Array;
-  vectorVValues?: Float32Array;
+  vectorUValues?: Float32Array | null;
+  vectorVValues?: Float32Array | null;
 }
 
 interface TooltipCachedEntry {

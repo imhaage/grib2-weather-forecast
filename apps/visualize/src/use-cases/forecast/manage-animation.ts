@@ -162,7 +162,9 @@ export function createForecastAnimationUseCase({
     getCurrentRenderGeneration: () => currentRenderGeneration,
     getCurrentState: currentState,
     keepValuesForCurrentVariable: hourWorkerRenderService.shouldKeepValuesForCurrentVariable,
-    mapWorkerEntry: makeBitmapCacheEntryFromWorker,
+    mapWorkerEntry: makeBitmapCacheEntryFromWorker as unknown as Parameters<
+      typeof createForecastPrerenderBlockService
+    >[0]["mapWorkerEntry"],
     renderHour: hourWorkerRenderService.renderHour as unknown as Parameters<
       typeof createForecastPrerenderBlockService
     >[0]["renderHour"],

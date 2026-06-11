@@ -657,7 +657,7 @@ git commit -m "refactor: type forecast refresh capabilities"
 - Modify: `apps/visualize/src/use-cases/forecast/create-bitmap-cache-entry.ts`
 - Modify: corresponding tests
 
-- [ ] **Step 1: Add worker protocol fixtures**
+- [x] **Step 1: Add worker protocol fixtures**
 
 Create `model-block-worker-contracts.test.ts`:
 
@@ -699,7 +699,7 @@ describe("model block worker contracts", () => {
 });
 ```
 
-- [ ] **Step 2: Verify the worker contract test fails**
+- [x] **Step 2: Verify the worker contract test fails**
 
 Run:
 
@@ -709,7 +709,7 @@ npm test -w visualize -- src/workers/model-block-worker-contracts.test.ts
 
 Expected: FAIL because the contract module does not exist.
 
-- [ ] **Step 3: Create discriminated worker contracts**
+- [x] **Step 3: Create discriminated worker contracts**
 
 Move worker requests and results out of `domain/types.ts` into
 `model-block-worker-contracts.ts`. Use:
@@ -724,7 +724,7 @@ type ModelBlockWorkerRequest =
 Add discriminants to results where the current worker protocol can support them without behavior
 change. Keep `ImageBitmap` and transferable buffers here, not in domain.
 
-- [ ] **Step 4: Type the adapter and use-case ports**
+- [x] **Step 4: Type the adapter and use-case ports**
 
 Replace `ModelBlockWorkerMessage`, `RenderHourRequest`, `DecodeValuesRequest`, and casts in
 `model-block-worker-adapter.ts` with canonical worker contracts.
@@ -733,7 +733,7 @@ Type `create-render-request.ts`, `render-hour-with-worker.ts`, and
 `create-bitmap-cache-entry.ts` with exact request/result types. Remove property-by-property
 `unknown` declarations.
 
-- [ ] **Step 5: Run focused tests and checks**
+- [x] **Step 5: Run focused tests and checks**
 
 Run:
 
@@ -751,7 +751,7 @@ npm run check:visualize
 
 Expected: all commands pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/visualize/model-block-worker.js apps/visualize/src/workers \

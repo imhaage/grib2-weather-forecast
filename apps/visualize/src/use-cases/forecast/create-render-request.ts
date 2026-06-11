@@ -1,5 +1,6 @@
 import { createRenderScaleParams } from "../../domain/forecast-field.js";
 import { blockForHour } from "../../domain/forecast-state.js";
+import type { ForecastRunState } from "../../domain/forecast-types";
 import { findPackageVariable } from "../../domain/model-packages.js";
 import { buildLUT, LOG_SCALE_FLOOR } from "../../domain/palettes.js";
 import { displayUnitsFor, unitTransformFor } from "../../domain/unit-transforms.js";
@@ -8,22 +9,10 @@ import {
   componentVariableKeyForVector,
   isVectorCompositeVariable,
 } from "../../domain/wind-composite-variable.js";
-
-interface ForecastRenderRequestState {
-  packageKey: string;
-  variable: string;
-  resources: Array<{
-    key: string;
-    startHour: number;
-    endHour: number;
-    [key: string]: unknown;
-  }>;
-  availableBlocks: Set<string>;
-  hourList: number[];
-}
+import type { ModelBlockRenderRequest } from "../../workers/model-block-worker-contracts";
 
 interface CreateForecastRenderRequestOptions {
-  state: ForecastRenderRequestState;
+  state: ForecastRunState;
   hourIndex: number;
   hour: number;
   renderGeneration: number;
@@ -40,7 +29,7 @@ export function createForecastRenderRequest({
   paletteName,
   missingValue,
   includeValues = false,
-}: CreateForecastRenderRequestOptions) {
+}: CreateForecastRenderRequestOptions): ModelBlockRenderRequest | null {
   const block = blockForHour(state.resources, hour);
 
   if (!block || !state.availableBlocks.has(block.key)) {
@@ -48,6 +37,11 @@ export function createForecastRenderRequest({
   }
 
   const selectedVariable = state.variable;
+
+  if (!selectedVariable) {
+    return null;
+  }
+
   const uComponentKey = componentVariableKeyForVector(selectedVariable, "u");
   const vComponentKey = componentVariableKeyForVector(selectedVariable, "v");
   const renderVariableKey = uComponentKey ?? selectedVariable;

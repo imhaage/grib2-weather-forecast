@@ -1,28 +1,19 @@
+import type { RemoteResource } from "../../domain/forecast-types";
 import { createModelBlockWorkerClient } from "../../workers/model-block-worker-client.js";
-
-interface ModelBlock {
-  key: string;
-}
-
-interface StoreBlockResult {
-  ok?: boolean;
-}
+import type {
+  ModelBlockDecodeValuesRequest,
+  ModelBlockDecodeValuesResult,
+  ModelBlockRenderRequest,
+  ModelBlockRenderResult,
+  ModelBlockWorkerRequest,
+  ModelBlockWorkerResult,
+} from "../../workers/model-block-worker-contracts";
 
 interface ModelBlockWorkerClient {
-  post: (message: ModelBlockWorkerMessage, transferables?: Transferable[]) => Promise<unknown>;
-}
-
-interface ModelBlockWorkerMessage {
-  [key: string]: unknown;
-  type: string;
-}
-
-interface RenderHourRequest extends ModelBlockWorkerMessage {
-  lut: Uint8Array;
-}
-
-interface DecodeValuesRequest extends ModelBlockWorkerMessage {
-  type: string;
+  post: (
+    message: ModelBlockWorkerRequest,
+    transferables?: Transferable[],
+  ) => Promise<ModelBlockWorkerResult | null>;
 }
 
 export function createModelBlockWorkerAdapter({
@@ -33,28 +24,35 @@ export function createModelBlockWorkerAdapter({
   const client = createWorkerClient();
 
   return {
-    async storeBlock(block: ModelBlock, buffer: Uint8Array) {
-      const result = (await client.post(
+    async storeBlock(block: RemoteResource, buffer: Uint8Array) {
+      const result = await client.post(
         {
           type: "storeBlock",
           blockKey: block.key,
           buffer,
         },
         [buffer.buffer],
-      )) as StoreBlockResult | null;
+      );
 
-      return Boolean(result?.ok);
+      return result?.type === "storeBlockResult" && result.ok;
     },
 
-    renderHour(request: RenderHourRequest) {
-      return client.post(request, [request.lut.buffer]);
+    async renderHour(request: ModelBlockRenderRequest): Promise<ModelBlockRenderResult | null> {
+      const result = await client.post(request, [request.lut.buffer]);
+
+      return result?.type === "renderHourResult" ? result : null;
     },
 
-    decodeValues(request: DecodeValuesRequest) {
-      return client.post({
+    async decodeValues(
+      request: ModelBlockRenderRequest,
+    ): Promise<ModelBlockDecodeValuesResult | null> {
+      const decodeRequest: ModelBlockDecodeValuesRequest = {
         ...request,
         type: "decodeValues",
-      });
+      };
+      const result = await client.post(decodeRequest);
+
+      return result?.type === "decodeValuesResult" ? result : null;
     },
   };
 }
