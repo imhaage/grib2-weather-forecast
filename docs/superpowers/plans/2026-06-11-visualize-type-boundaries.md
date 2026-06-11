@@ -269,7 +269,7 @@ git commit -m "refactor: centralize forecast domain types"
 - Modify: `apps/visualize/src/domain/types.ts`
 - Modify: files importing grid, product, header, decoded-field, scale, or numeric-value types
 
-- [ ] **Step 1: Add a pure field contract test**
+- [x] **Step 1: Add a pure field contract test**
 
 Create `apps/visualize/src/domain/field-types.test.ts`:
 
@@ -311,7 +311,7 @@ describe("field type contracts", () => {
 });
 ```
 
-- [ ] **Step 2: Verify the new test fails**
+- [x] **Step 2: Verify the new test fails**
 
 Run:
 
@@ -321,7 +321,7 @@ npm test -w visualize -- src/domain/field-types.test.ts
 
 Expected: FAIL because `field-types.ts` does not exist.
 
-- [ ] **Step 3: Create the pure field type module**
+- [x] **Step 3: Create the pure field type module**
 
 Move these definitions from `domain/types.ts` into `domain/field-types.ts`:
 
@@ -374,7 +374,7 @@ export interface DecodedField {
 Keep variable metadata types in their existing domain module or move them only if they are already
 shared by multiple modules.
 
-- [ ] **Step 4: Move browser-only render types out of `domain/types.ts`**
+- [x] **Step 4: Move browser-only render types out of `domain/types.ts`**
 
 Do not recreate `RenderFieldResult`, `RenderWorkerResult`, `ModelBlockRenderResult`, or
 `ForecastDownloadSession` in the domain. These move in later tasks to worker or use-case contracts.
@@ -382,7 +382,7 @@ Do not recreate `RenderFieldResult`, `RenderWorkerResult`, `ModelBlockRenderResu
 Delete `domain/types.ts` when no imports remain. If variable metadata types remain, rename the file
 to `variable-metadata-types.ts` and update imports.
 
-- [ ] **Step 5: Run focused and static checks**
+- [x] **Step 5: Run focused and static checks**
 
 Run:
 
@@ -395,7 +395,7 @@ npm run check:visualize
 Expected: all commands pass and `rg "ImageBitmap|ImageData|HTMLInputElement" apps/visualize/src/domain`
 returns no matches.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/visualize/src/domain apps/visualize/src/workers

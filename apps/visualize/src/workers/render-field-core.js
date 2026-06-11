@@ -4,8 +4,8 @@ import { applyUnitTransform } from "../domain/unit-transforms.js";
 import { latitudeFromWebMercatorY } from "../domain/web-mercator.js";
 
 /**
- * @param {import("../domain/types.js").RenderFieldInput} input
- * @returns {import("../domain/types.js").RenderFieldResult}
+ * @param {import("./render-types.js").RenderFieldInput} input
+ * @returns {import("./render-types.js").RenderFieldResult}
  */
 export function renderFieldToImageData({
   values,

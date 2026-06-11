@@ -1,7 +1,7 @@
 // @ts-check
 
-/** @typedef {import("./types").VariableKeySource} VariableKeySource */
-/** @typedef {import("./types").VariableMetadata} VariableMetadata */
+/** @typedef {import("./variable-metadata-types").VariableKeySource} VariableKeySource */
+/** @typedef {import("./variable-metadata-types").VariableMetadata} VariableMetadata */
 
 const PRESSURE_METADATA = Object.freeze({
   defaultPalette: "Plasma",
