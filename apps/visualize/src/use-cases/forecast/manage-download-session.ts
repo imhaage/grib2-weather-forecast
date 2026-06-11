@@ -1,34 +1,9 @@
+import type { BlockStatus, ForecastRunState, RemoteResource } from "../../domain/forecast-types";
 import { runTimeValue } from "../../domain/resources.js";
-
-interface ForecastResource {
-  filesize?: number;
-  key: string;
-  runId?: string;
-  status?: string;
-}
-
-interface ForecastPackage {
-  variables: unknown[];
-}
-
-interface ForecastDownloadSession {
-  packageKey: string;
-  pkg: ForecastPackage;
-  pkgVars: unknown[];
-  resources: ForecastResource[];
-  runSummary: string;
-  downloadKey: unknown;
-  availableCount: number;
-  legendInitialized: boolean;
-}
-
-interface ForecastModelState {
-  availableBlocks?: Set<string>;
-  blockStatus?: Map<string, string>;
-}
+import type { ForecastDownloadSession } from "./contracts";
 
 interface CreateForecastDownloadSessionServiceOptions {
-  missingStatus?: string;
+  missingStatus?: BlockStatus;
 }
 
 export function createForecastDownloadSessionService({
@@ -71,7 +46,7 @@ export function createForecastDownloadSessionService({
     return `Checking ${session.resources.length} ${session.packageKey} files (${session.runSummary})…`;
   }
 
-  function resetResourceStatuses(resources: ForecastResource[], modelState?: ForecastModelState) {
+  function resetResourceStatuses(resources: RemoteResource[], modelState?: ForecastRunState) {
     for (const resource of resources) {
       resource.status = missingStatus;
       modelState?.blockStatus?.set(resource.key, missingStatus);
@@ -79,24 +54,24 @@ export function createForecastDownloadSessionService({
   }
 
   function isBlockInMemoryCurrent(
-    modelState: ForecastModelState,
-    { block, previousBlock }: { block: ForecastResource; previousBlock?: ForecastResource },
+    modelState: ForecastRunState,
+    { block, previousBlock }: { block: RemoteResource; previousBlock?: RemoteResource },
   ) {
     return Boolean(
       previousBlock &&
-        modelState.availableBlocks?.has(block.key) &&
+        modelState.availableBlocks.has(block.key) &&
         previousBlock.filesize === block.filesize &&
         runTimeValue(previousBlock.runId) >= runTimeValue(block.runId),
     );
   }
 
   function isBlockInMemoryStale(
-    modelState: ForecastModelState,
-    { block, previousBlock }: { block: ForecastResource; previousBlock?: ForecastResource },
+    modelState: ForecastRunState,
+    { block, previousBlock }: { block: RemoteResource; previousBlock?: RemoteResource },
   ) {
     return Boolean(
       previousBlock &&
-        modelState.availableBlocks?.has(block.key) &&
+        modelState.availableBlocks.has(block.key) &&
         runTimeValue(previousBlock.runId) < runTimeValue(block.runId),
     );
   }

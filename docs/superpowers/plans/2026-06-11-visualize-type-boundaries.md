@@ -416,7 +416,7 @@ git commit -m "refactor: isolate pure field types"
 - Modify: `apps/visualize/src/use-cases/forecast/load-resources.ts`
 - Modify: `apps/visualize/src/use-cases/forecast/update-resources.ts`
 
-- [ ] **Step 1: Add contract fixtures**
+- [x] **Step 1: Add contract fixtures**
 
 Create `contracts.test.ts` with valid `ForecastRefreshKey` and `ForecastDownloadSession` fixtures:
 
@@ -475,7 +475,7 @@ describe("forecast workflow contracts", () => {
 });
 ```
 
-- [ ] **Step 2: Verify the fixture fails**
+- [x] **Step 2: Verify the fixture fails**
 
 Run:
 
@@ -485,7 +485,7 @@ npm test -w visualize -- src/use-cases/forecast/contracts.test.ts
 
 Expected: FAIL because `contracts.ts` does not exist.
 
-- [ ] **Step 3: Create strict workflow contracts**
+- [x] **Step 3: Create strict workflow contracts**
 
 Create `contracts.ts`:
 
@@ -517,7 +517,7 @@ export interface ForecastDownloadSession {
 
 Do not add a slider, DOM element, or presentation-queue implementation state to the session.
 
-- [ ] **Step 4: Replace generic `*Like` contracts**
+- [x] **Step 4: Replace generic `*Like` contracts**
 
 Update `ports.ts` to import canonical types and remove:
 
@@ -532,7 +532,7 @@ Use `ForecastPackage`, `RemoteResource`, `ForecastRunState`, `ForecastRefreshKey
 `ForecastDownloadSession` directly. Keep a single `ports.ts` during this migration and do not
 duplicate canonical models in it.
 
-- [ ] **Step 5: Align resource/download use cases**
+- [x] **Step 5: Align resource/download use cases**
 
 Update the listed use cases to use exact request, state, and return types. Replace `unknown`
 download keys with `ForecastRefreshKey`, except at an adapter boundary that genuinely accepts an
@@ -540,7 +540,7 @@ opaque token.
 
 Remove local duplicate interfaces from `manage-download-session.ts`.
 
-- [ ] **Step 6: Run focused and static checks**
+- [x] **Step 6: Run focused and static checks**
 
 Run:
 
@@ -559,7 +559,7 @@ npm run check:visualize
 
 Expected: all commands pass.
 
-- [ ] **Step 7: Verify generic contracts are gone from this slice**
+- [x] **Step 7: Verify generic contracts are gone from this slice**
 
 Run:
 
@@ -570,7 +570,7 @@ rg "ForecastPackageLike|ForecastResourceLike|ForecastDownloadSessionLike|Forecas
 
 Expected: no matches.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add apps/visualize/src/use-cases/forecast

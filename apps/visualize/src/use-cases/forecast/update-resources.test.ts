@@ -1,16 +1,29 @@
 import { describe, expect, test, vi } from "vitest";
+import {
+  makeForecastDownloadSession,
+  makeForecastPackage,
+  makeForecastRefreshKey,
+  makeForecastRunState,
+  makeRemoteResource,
+} from "./forecast-test-fixtures";
 import { createForecastResourceUpdateUseCase } from "./update-resources";
 
 describe("forecast resource update use case", () => {
   test("loads latest resources, prepares a session, and refreshes blocks", async () => {
-    const resources = [{ key: "01H" }];
-    const previousResources = [{ key: "old-01H" }];
-    const session = { id: "session" };
+    const resources = [makeRemoteResource()];
+    const previousResources = [makeRemoteResource({ key: "old-01H" })];
+    const pkg = makeForecastPackage();
+    const state = makeForecastRunState({
+      resourceRefreshId: 1,
+      resources: previousResources,
+    });
+    const downloadKey = makeForecastRefreshKey({ state });
+    const session = makeForecastDownloadSession({ pkg, resources, downloadKey });
     const ports = {
       isRefreshActive: vi.fn(() => true),
       loadPackageResources: vi.fn(async () => resources),
       packages: {
-        AROME_SP1: { label: "AROME SP1" },
+        AROME_SP1: pkg,
       },
       prepareSession: vi.fn(() => session),
       refreshBlocksToLatest: vi.fn(async () => true),
@@ -18,13 +31,6 @@ describe("forecast resource update use case", () => {
       setStatus: vi.fn(),
     };
     const useCase = createForecastResourceUpdateUseCase(ports);
-    const downloadKey = {
-      state: {
-        packageKey: "AROME_SP1",
-        resources: previousResources,
-      },
-    };
-
     await expect(useCase.refreshCurrentResourcesToLatest(downloadKey)).resolves.toBe(session);
 
     expect(ports.loadPackageResources).toHaveBeenCalledWith({
@@ -34,7 +40,7 @@ describe("forecast resource update use case", () => {
     });
     expect(ports.prepareSession).toHaveBeenCalledWith({
       packageKey: "AROME_SP1",
-      pkg: { label: "AROME SP1" },
+      pkg,
       resources,
       downloadKey,
     });
@@ -45,42 +51,40 @@ describe("forecast resource update use case", () => {
   });
 
   test("returns null when the refresh is no longer active", async () => {
+    const pkg = makeForecastPackage();
+    const downloadKey = makeForecastRefreshKey();
     const useCase = createForecastResourceUpdateUseCase({
       isRefreshActive: vi.fn(() => false),
-      loadPackageResources: vi.fn(),
+      loadPackageResources: vi.fn(async () => null),
       packages: {
-        AROME_SP1: { label: "AROME SP1" },
+        AROME_SP1: pkg,
       },
-      prepareSession: vi.fn(),
-      refreshBlocksToLatest: vi.fn(),
-      refreshStatus: vi.fn(),
-      setStatus: vi.fn(),
-    });
-
-    await expect(
-      useCase.refreshCurrentResourcesToLatest({
-        state: { packageKey: "AROME_SP1", resources: [] },
-      }),
-    ).resolves.toBeNull();
-  });
-
-  test("returns null when latest block refresh does not complete", async () => {
-    const useCase = createForecastResourceUpdateUseCase({
-      isRefreshActive: vi.fn(() => true),
-      loadPackageResources: vi.fn(async () => [{ key: "01H" }]),
-      packages: {
-        AROME_SP1: { label: "AROME SP1" },
-      },
-      prepareSession: vi.fn(() => ({ id: "session" })),
+      prepareSession: vi.fn(() => makeForecastDownloadSession({ pkg, downloadKey })),
       refreshBlocksToLatest: vi.fn(async () => false),
       refreshStatus: vi.fn(() => "refreshing"),
       setStatus: vi.fn(),
     });
 
-    await expect(
-      useCase.refreshCurrentResourcesToLatest({
-        state: { packageKey: "AROME_SP1", resources: [] },
-      }),
-    ).resolves.toBeNull();
+    await expect(useCase.refreshCurrentResourcesToLatest(downloadKey)).resolves.toBeNull();
+  });
+
+  test("returns null when latest block refresh does not complete", async () => {
+    const resources = [makeRemoteResource()];
+    const pkg = makeForecastPackage();
+    const downloadKey = makeForecastRefreshKey();
+    const session = makeForecastDownloadSession({ pkg, resources, downloadKey });
+    const useCase = createForecastResourceUpdateUseCase({
+      isRefreshActive: vi.fn(() => true),
+      loadPackageResources: vi.fn(async () => resources),
+      packages: {
+        AROME_SP1: pkg,
+      },
+      prepareSession: vi.fn(() => session),
+      refreshBlocksToLatest: vi.fn(async () => false),
+      refreshStatus: vi.fn(() => "refreshing"),
+      setStatus: vi.fn(),
+    });
+
+    await expect(useCase.refreshCurrentResourcesToLatest(downloadKey)).resolves.toBeNull();
   });
 });

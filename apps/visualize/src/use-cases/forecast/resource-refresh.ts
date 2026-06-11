@@ -1,14 +1,13 @@
-import type { ForecastResourceRefreshKey, ForecastResourceRefreshState } from "./ports";
+import type { ForecastRunState } from "../../domain/forecast-types";
+import type { ForecastRefreshKey } from "./contracts";
 
 export function createForecastResourceRefreshUseCase() {
-  function begin(
-    state: ForecastResourceRefreshState | null | undefined,
-  ): ForecastResourceRefreshKey | null {
+  function begin(state: ForecastRunState | null | undefined): ForecastRefreshKey | null {
     if (!state) {
       return null;
     }
 
-    state.resourceRefreshId = (state.resourceRefreshId ?? 0) + 1;
+    state.resourceRefreshId++;
 
     return {
       state,
@@ -17,8 +16,8 @@ export function createForecastResourceRefreshUseCase() {
   }
 
   function isActive(
-    currentState: ForecastResourceRefreshState | null | undefined,
-    refreshKey: ForecastResourceRefreshKey | null | undefined,
+    currentState: ForecastRunState | null | undefined,
+    refreshKey: ForecastRefreshKey | null | undefined,
   ): boolean {
     return Boolean(
       refreshKey &&

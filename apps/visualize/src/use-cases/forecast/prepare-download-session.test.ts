@@ -1,10 +1,18 @@
 import { describe, expect, test, vi } from "vitest";
+import {
+  makeForecastDownloadSession,
+  makeForecastPackage,
+  makeForecastRefreshKey,
+  makeRemoteResource,
+} from "./forecast-test-fixtures";
 import { createForecastDownloadPreparationUseCase } from "./prepare-download-session";
 
 describe("forecast download preparation use case", () => {
   test("prepares resources and creates a download session", () => {
-    const resources = [{ key: "01H" }];
-    const session = { id: "session" };
+    const resources = [makeRemoteResource()];
+    const pkg = makeForecastPackage();
+    const downloadKey = makeForecastRefreshKey();
+    const session = makeForecastDownloadSession({ pkg, resources, downloadKey });
     const ports = {
       applyResources: vi.fn(),
       createSession: vi.fn(() => session),
@@ -16,9 +24,9 @@ describe("forecast download preparation use case", () => {
 
     const result = useCase.prepareSession({
       packageKey: "AROME_SP1",
-      pkg: { label: "AROME" },
+      pkg,
       resources,
-      downloadKey: { id: 1 },
+      downloadKey,
     });
 
     expect(result).toBe(session);
@@ -27,10 +35,10 @@ describe("forecast download preparation use case", () => {
     expect(ports.resetResourceStatuses).toHaveBeenCalledWith(resources);
     expect(ports.createSession).toHaveBeenCalledWith({
       packageKey: "AROME_SP1",
-      pkg: { label: "AROME" },
+      pkg,
       resources,
       runSummary: "run 06Z",
-      downloadKey: { id: 1 },
+      downloadKey,
     });
   });
 });

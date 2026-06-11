@@ -1,3 +1,11 @@
+import type {
+  BlockStatus,
+  ForecastPackage,
+  ForecastRunState,
+  RemoteResource,
+} from "../../domain/forecast-types";
+import type { ForecastDownloadSession, ForecastRefreshKey } from "./contracts";
+
 export type ForecastAnimationCacheStatus = "waiting" | "building" | "ready";
 
 export interface ForecastAnimationCacheState {
@@ -17,130 +25,84 @@ export interface ForecastAnimationCacheBuildPorts {
   waitForPrerenderIdle(): Promise<void>;
 }
 
-export interface ForecastResourceRefreshState {
-  resourceRefreshId?: number;
-}
-
-export interface ForecastResourceRefreshKey {
-  state: ForecastResourceRefreshState;
-  refreshId: number;
-}
-
-export type ForecastPackageLike = object;
-
-export interface ForecastResourceLike {
-  [key: string]: unknown;
-}
-
-export interface ForecastDownloadSessionLike {
-  [key: string]: unknown;
-}
-
 export interface ForecastInitialDownloadRequest {
   packageKey: string;
-  pkg: ForecastPackageLike;
-  downloadKey: unknown;
+  pkg: ForecastPackage;
+  downloadKey: ForecastRefreshKey;
 }
 
 export interface ForecastResourceLoadRequest {
   packageKey: string;
-  downloadKey: unknown;
+  downloadKey: ForecastRefreshKey;
   loadingStatus: string;
 }
 
 export interface ForecastSessionPreparationRequest {
   packageKey: string;
-  pkg: ForecastPackageLike;
-  resources: ForecastResourceLike[];
-  downloadKey: unknown;
+  pkg: ForecastPackage;
+  resources: RemoteResource[];
+  downloadKey: ForecastRefreshKey;
 }
 
 export interface ForecastInitialDownloadPorts {
-  downloadStatus(session: ForecastDownloadSessionLike): string;
-  isRefreshActive(downloadKey: unknown): boolean;
-  loadPackageResources(
-    request: ForecastResourceLoadRequest,
-  ): Promise<ForecastResourceLike[] | null>;
-  prepareSession(request: ForecastSessionPreparationRequest): ForecastDownloadSessionLike;
-  refreshBlocksToLatest(session: ForecastDownloadSessionLike): Promise<boolean>;
+  downloadStatus(session: ForecastDownloadSession): string;
+  isRefreshActive(downloadKey: ForecastRefreshKey): boolean;
+  loadPackageResources(request: ForecastResourceLoadRequest): Promise<RemoteResource[] | null>;
+  prepareSession(request: ForecastSessionPreparationRequest): ForecastDownloadSession;
+  refreshBlocksToLatest(session: ForecastDownloadSession): Promise<boolean>;
   setStatus(status: string): void;
 }
 
 export interface ForecastDownloadPreparationPorts {
-  applyResources(resources: ForecastResourceLike[]): void;
+  applyResources(resources: RemoteResource[]): void;
   createSession(
     request: ForecastSessionPreparationRequest & {
       runSummary: string;
     },
-  ): ForecastDownloadSessionLike;
-  formatRunSummary(resources: ForecastResourceLike[]): string;
-  renderItems(resources: ForecastResourceLike[]): void;
-  resetResourceStatuses(resources: ForecastResourceLike[]): void;
-}
-
-export interface ForecastResourceUpdateState {
-  packageKey: string;
-  resources: ForecastResourceLike[];
-}
-
-export interface ForecastResourceUpdateKey {
-  state: ForecastResourceUpdateState;
+  ): ForecastDownloadSession;
+  formatRunSummary(resources: RemoteResource[]): string;
+  renderItems(resources: RemoteResource[]): void;
+  resetResourceStatuses(resources: RemoteResource[]): void;
 }
 
 export interface ForecastResourceUpdatePorts {
-  isRefreshActive(downloadKey: ForecastResourceUpdateKey): boolean;
-  loadPackageResources(
-    request: ForecastResourceLoadRequest,
-  ): Promise<ForecastResourceLike[] | null>;
-  packages: Record<string, ForecastPackageLike>;
-  prepareSession(request: ForecastSessionPreparationRequest): ForecastDownloadSessionLike;
+  isRefreshActive(downloadKey: ForecastRefreshKey): boolean;
+  loadPackageResources(request: ForecastResourceLoadRequest): Promise<RemoteResource[] | null>;
+  packages: Readonly<Record<string, ForecastPackage>>;
+  prepareSession(request: ForecastSessionPreparationRequest): ForecastDownloadSession;
   refreshBlocksToLatest(
-    session: ForecastDownloadSessionLike,
+    session: ForecastDownloadSession,
     options: {
-      previousResources: ForecastResourceLike[];
+      previousResources: RemoteResource[];
     },
   ): Promise<boolean>;
-  refreshStatus(session: ForecastDownloadSessionLike): string;
+  refreshStatus(session: ForecastDownloadSession): string;
   setStatus(status: string): void;
 }
 
 export interface ForecastResourceLoadPorts {
   fetchPackageResources(
     packageKey: string,
-    downloadKey: unknown,
-  ): Promise<ForecastResourceLike[] | null>;
-  isRefreshActive(downloadKey: unknown): boolean;
+    downloadKey: ForecastRefreshKey,
+  ): Promise<RemoteResource[] | null>;
+  isRefreshActive(downloadKey: ForecastRefreshKey): boolean;
   setStatus(status: string): void;
 }
 
-export interface ForecastBlockLike {
-  key: string;
-  [key: string]: unknown;
-}
-
-export interface ForecastAvailableBlockState {
-  availableBlocks: Set<string>;
-}
-
-export interface ForecastAvailableBlockSession {
-  availableCount: number;
-  [key: string]: unknown;
-}
-
 export interface ForecastAvailableBlockStoreRequest {
-  block: ForecastBlockLike;
+  block: RemoteResource;
   buffer: Uint8Array;
-  session: ForecastAvailableBlockSession;
-  state: ForecastAvailableBlockState;
-  status: string;
+  session: ForecastDownloadSession;
+  state: ForecastRunState;
+  status: BlockStatus;
 }
 
 export interface ForecastAvailableBlockPorts {
-  incrementAvailableCount(session: ForecastAvailableBlockSession): void;
-  invalidateBlockRenderCache(block: ForecastBlockLike): void;
-  markBlockAvailable(state: ForecastAvailableBlockState, block: ForecastBlockLike): void;
-  setBlockStatus(block: ForecastBlockLike, status: string): void;
-  storeBlock(block: ForecastBlockLike, buffer: Uint8Array): Promise<boolean>;
+  incrementAvailableCount(session: ForecastDownloadSession): void;
+  invalidateBlockRenderCache(block: RemoteResource): void;
+  markBlockAvailable(state: ForecastRunState, block: RemoteResource): void;
+  setBlockStatus(block: RemoteResource, status: BlockStatus): void;
+  storeBlock(block: RemoteResource, buffer: Uint8Array): Promise<boolean>;
 }
 
 export interface ForecastVariableDefinition {

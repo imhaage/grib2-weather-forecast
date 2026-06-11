@@ -1,5 +1,6 @@
 import { PACKAGES } from "../../domain/model-packages.js";
-import type { ForecastResourceUpdateKey, ForecastResourceUpdatePorts } from "./ports";
+import type { ForecastRefreshKey } from "./contracts";
+import type { ForecastResourceUpdatePorts } from "./ports";
 
 export function createForecastResourceUpdateUseCase({
   isRefreshActive,
@@ -10,7 +11,7 @@ export function createForecastResourceUpdateUseCase({
   refreshStatus,
   setStatus,
 }: ForecastResourceUpdatePorts) {
-  async function refreshCurrentResourcesToLatest(downloadKey: ForecastResourceUpdateKey) {
+  async function refreshCurrentResourcesToLatest(downloadKey: ForecastRefreshKey) {
     if (!isRefreshActive(downloadKey)) {
       return null;
     }

@@ -1,10 +1,11 @@
 import { describe, expect, test } from "vitest";
+import { makeForecastRunState } from "./forecast-test-fixtures";
 import { createForecastResourceRefreshUseCase } from "./resource-refresh";
 
 describe("forecast resource refresh use case", () => {
   test("creates active refresh keys tied to the current state generation", () => {
     const useCase = createForecastResourceRefreshUseCase();
-    const state = {};
+    const state = makeForecastRunState();
 
     const firstKey = useCase.begin(state);
     const secondKey = useCase.begin(state);
@@ -17,11 +18,11 @@ describe("forecast resource refresh use case", () => {
 
   test("rejects missing, null, or foreign refresh keys", () => {
     const useCase = createForecastResourceRefreshUseCase();
-    const state = {};
+    const state = makeForecastRunState();
     const key = useCase.begin(state);
 
     expect(useCase.isActive(null, key)).toBe(false);
     expect(useCase.isActive(state, null)).toBe(false);
-    expect(useCase.isActive({}, key)).toBe(false);
+    expect(useCase.isActive(makeForecastRunState(), key)).toBe(false);
   });
 });

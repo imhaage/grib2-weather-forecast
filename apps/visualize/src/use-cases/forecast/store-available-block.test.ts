@@ -1,11 +1,16 @@
 import { describe, expect, test, vi } from "vitest";
+import {
+  makeForecastDownloadSession,
+  makeForecastRunState,
+  makeRemoteResource,
+} from "./forecast-test-fixtures";
 import { createForecastAvailableBlockUseCase } from "./store-available-block";
 
 describe("forecast available block use case", () => {
   test("stores a new block, marks it available, and increments the session count", async () => {
-    const state = { availableBlocks: new Set<string>() };
-    const session = { availableCount: 0 };
-    const block = { key: "01H" };
+    const state = makeForecastRunState();
+    const session = makeForecastDownloadSession();
+    const block = makeRemoteResource();
     const useCase = createForecastAvailableBlockUseCase({
       incrementAvailableCount: vi.fn((session) => {
         session.availableCount++;
@@ -32,9 +37,9 @@ describe("forecast available block use case", () => {
   test("invalidates render cache without incrementing count when block was already available", async () => {
     const invalidateBlockRenderCache = vi.fn();
     const incrementAvailableCount = vi.fn();
-    const state = { availableBlocks: new Set(["01H"]) };
-    const session = { availableCount: 1 };
-    const block = { key: "01H" };
+    const state = makeForecastRunState({ availableBlocks: new Set(["01H"]) });
+    const session = makeForecastDownloadSession({ availableCount: 1 });
+    const block = makeRemoteResource();
     const useCase = createForecastAvailableBlockUseCase({
       incrementAvailableCount,
       invalidateBlockRenderCache,
@@ -56,8 +61,8 @@ describe("forecast available block use case", () => {
   });
 
   test("does not mutate state when worker storage fails", async () => {
-    const state = { availableBlocks: new Set<string>() };
-    const session = { availableCount: 0 };
+    const state = makeForecastRunState();
+    const session = makeForecastDownloadSession();
     const useCase = createForecastAvailableBlockUseCase({
       incrementAvailableCount: vi.fn(),
       invalidateBlockRenderCache: vi.fn(),
@@ -67,7 +72,7 @@ describe("forecast available block use case", () => {
     });
 
     const stored = await useCase.storeAvailableBlock({
-      block: { key: "01H" },
+      block: makeRemoteResource(),
       buffer: new Uint8Array([1]),
       session,
       state,
