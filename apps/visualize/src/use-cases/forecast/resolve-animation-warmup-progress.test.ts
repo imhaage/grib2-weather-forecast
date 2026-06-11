@@ -1,11 +1,12 @@
 import { describe, expect, test } from "vitest";
+import { makeForecastRunState, makeRemoteResource } from "./forecast-test-fixtures";
 import { resolveAnimationWarmupProgress } from "./resolve-animation-warmup-progress";
 
 describe("forecast animation warmup progress use case", () => {
   test("hides progress when no forecast hours are available", () => {
     expect(
       resolveAnimationWarmupProgress({
-        modelState: { hourList: [], animationCacheStatus: "waiting", resources: [] },
+        modelState: makeForecastRunState(),
         ready: 0,
       }),
     ).toEqual({
@@ -25,12 +26,12 @@ describe("forecast animation warmup progress use case", () => {
   test("marks a complete building cache as ready", () => {
     expect(
       resolveAnimationWarmupProgress({
-        modelState: {
+        modelState: makeForecastRunState({
           hourList: [1, 2],
           animationCacheStatus: "building",
           resources: [],
           availableBlocks: new Set(),
-        },
+        }),
         ready: 2,
       }),
     ).toMatchObject({
@@ -50,12 +51,12 @@ describe("forecast animation warmup progress use case", () => {
   test("explains that animation generation is waiting for missing downloads", () => {
     expect(
       resolveAnimationWarmupProgress({
-        modelState: {
+        modelState: makeForecastRunState({
           hourList: [1, 2],
           animationCacheStatus: "waiting",
-          resources: [{ key: "01H", status: "downloading" }],
+          resources: [makeRemoteResource({ status: "downloading" })],
           availableBlocks: new Set(),
-        },
+        }),
         ready: 1,
       }).progress,
     ).toMatchObject({

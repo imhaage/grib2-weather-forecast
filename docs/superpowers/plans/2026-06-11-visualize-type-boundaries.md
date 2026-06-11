@@ -850,7 +850,7 @@ npm run check:visualize
 
 Expected: all commands pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/visualize/src/use-cases/forecast apps/visualize/src/adapters/forecast
@@ -870,7 +870,7 @@ git commit -m "refactor: type forecast map presentation"
 - Modify: `apps/visualize/src/use-cases/forecast/manage-runtime.ts`
 - Modify: corresponding tests
 
-- [ ] **Step 1: Add a typed runtime fixture**
+- [x] **Step 1: Add a typed runtime fixture**
 
 Update `manage-runtime.test.ts` so the `ports` object uses:
 
@@ -882,7 +882,7 @@ const ports = {
 
 Remove implicit compatibility from the test fake.
 
-- [ ] **Step 2: Run typecheck and record contract failures**
+- [x] **Step 2: Run typecheck and record contract failures**
 
 Run:
 
@@ -892,7 +892,7 @@ npm run typecheck:visualize
 
 Expected: FAIL on the current `unknown` runtime and animation dependencies.
 
-- [ ] **Step 3: Define runtime and animation capability ports**
+- [x] **Step 3: Define runtime and animation capability ports**
 
 Move duplicate local interfaces from `manage-runtime.ts` and `manage-animation.ts` into
 `contracts.ts` or focused port files:
@@ -907,7 +907,7 @@ Move duplicate local interfaces from `manage-runtime.ts` and `manage-animation.t
 Use canonical `ForecastRunState`, `ForecastPackage`, `ForecastDownloadSession`,
 `ForecastRefreshKey`, worker request/results, and map ports.
 
-- [ ] **Step 4: Remove casts through `unknown`**
+- [x] **Step 4: Remove casts through `unknown`**
 
 Refactor the constructor wiring in `manage-animation.ts` so collaborators already satisfy their
 interfaces. Remove the existing `as unknown as Parameters<...>` casts.
@@ -915,7 +915,7 @@ interfaces. Remove the existing `as unknown as Parameters<...>` casts.
 If two collaborators genuinely expose incompatible shapes, add a small named adapter function
 beside the composition code rather than casting.
 
-- [ ] **Step 5: Run focused tests and checks**
+- [x] **Step 5: Run focused tests and checks**
 
 Run:
 
@@ -934,7 +934,7 @@ npm run check:visualize
 
 Expected: all commands pass.
 
-- [ ] **Step 6: Check the use-case type debt**
+- [x] **Step 6: Check the use-case type debt**
 
 Run:
 
@@ -945,7 +945,7 @@ rg -n "as unknown|interface .*Like|\\[key: string\\]: unknown" apps/visualize/sr
 Expected: no matches except narrow external error or decoded-header boundaries documented by a
 comment.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/visualize/src/use-cases/forecast

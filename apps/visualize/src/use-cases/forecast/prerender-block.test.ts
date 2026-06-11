@@ -1,26 +1,28 @@
 import { describe, expect, test, vi } from "vitest";
+import { makeModelBlockRenderResult } from "../../workers/model-block-worker-test-fixtures";
+import { makeForecastRunState, makeRemoteResource } from "./forecast-test-fixtures";
+import { makeForecastMapEntry } from "./map-test-fixtures";
 import { createForecastPrerenderBlockService } from "./prerender-block";
 
 describe("forecast prerender block use case", () => {
   test("renders missing hours from a block into the bitmap cache", async () => {
-    const state = {
+    const state = makeForecastRunState({
       hourList: [1, 2],
-      resources: [{ key: "block-1", startHour: 1, endHour: 2 }],
-    };
+      resources: [makeRemoteResource({ key: "block-1", startHour: 1, endHour: 2 })],
+    });
     const cache = {
       hasHour: vi.fn(() => false),
       setHour: vi.fn(),
     };
-    const renderHour = vi.fn(async (index) => ({
-      bitmap: { close: vi.fn() },
-      hourIndex: index,
-    }));
+    const renderHour = vi.fn(async (index) =>
+      makeModelBlockRenderResult({ renderGeneration: index }),
+    );
     const service = createForecastPrerenderBlockService({
       cache,
       getCurrentRenderGeneration: vi.fn(() => 1),
       getCurrentState: vi.fn(() => state),
       keepValuesForCurrentVariable: vi.fn(() => true),
-      mapWorkerEntry: vi.fn((entry) => ({ cachedFrom: entry.hourIndex })),
+      mapWorkerEntry: vi.fn((entry) => makeForecastMapEntry({ renderMin: entry.renderGeneration })),
       renderHour,
       updateWarmupProgress: vi.fn(),
     });
@@ -29,16 +31,17 @@ describe("forecast prerender block use case", () => {
 
     expect(renderHour).toHaveBeenCalledWith(0);
     expect(renderHour).toHaveBeenCalledWith(1);
-    expect(cache.setHour).toHaveBeenCalledWith(1, { cachedFrom: 0 });
-    expect(cache.setHour).toHaveBeenCalledWith(2, { cachedFrom: 1 });
+    expect(cache.setHour).toHaveBeenCalledWith(1, expect.objectContaining({ renderMin: 0 }));
+    expect(cache.setHour).toHaveBeenCalledWith(2, expect.objectContaining({ renderMin: 1 }));
   });
 
   test("closes stale rendered bitmaps when the hour was cached concurrently", async () => {
-    const state = {
+    const state = makeForecastRunState({
       hourList: [1],
-      resources: [{ key: "block-1", startHour: 1, endHour: 1 }],
-    };
-    const bitmap = { close: vi.fn() };
+      resources: [makeRemoteResource({ key: "block-1" })],
+    });
+    const bitmap = makeModelBlockRenderResult().bitmap;
+    const closeBitmap = vi.spyOn(bitmap, "close");
     const cache = {
       hasHour: vi.fn().mockReturnValueOnce(false).mockReturnValueOnce(true),
       setHour: vi.fn(),
@@ -49,34 +52,35 @@ describe("forecast prerender block use case", () => {
       getCurrentState: vi.fn(() => state),
       keepValuesForCurrentVariable: vi.fn(() => false),
       mapWorkerEntry: vi.fn(),
-      renderHour: vi.fn(async () => ({ bitmap })),
+      renderHour: vi.fn(async () => makeModelBlockRenderResult({ bitmap })),
       updateWarmupProgress: vi.fn(),
     });
 
     await service.prerenderBlock("block-1", { renderGeneration: 1, state });
 
-    expect(bitmap.close).toHaveBeenCalled();
+    expect(closeBitmap).toHaveBeenCalled();
     expect(cache.setHour).not.toHaveBeenCalled();
   });
 
   test("stops when the render generation changes", async () => {
-    const state = {
+    const state = makeForecastRunState({
       hourList: [1],
-      resources: [{ key: "block-1", startHour: 1, endHour: 1 }],
-    };
-    const bitmap = { close: vi.fn() };
+      resources: [makeRemoteResource({ key: "block-1" })],
+    });
+    const bitmap = makeModelBlockRenderResult().bitmap;
+    const closeBitmap = vi.spyOn(bitmap, "close");
     const service = createForecastPrerenderBlockService({
       cache: { hasHour: vi.fn(() => false), setHour: vi.fn() },
       getCurrentRenderGeneration: vi.fn().mockReturnValueOnce(1).mockReturnValueOnce(2),
       getCurrentState: vi.fn(() => state),
       keepValuesForCurrentVariable: vi.fn(() => false),
       mapWorkerEntry: vi.fn(),
-      renderHour: vi.fn(async () => ({ bitmap })),
+      renderHour: vi.fn(async () => makeModelBlockRenderResult({ bitmap })),
       updateWarmupProgress: vi.fn(),
     });
 
     await service.prerenderBlock("block-1", { renderGeneration: 1, state });
 
-    expect(bitmap.close).toHaveBeenCalled();
+    expect(closeBitmap).toHaveBeenCalled();
   });
 });

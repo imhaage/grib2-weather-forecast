@@ -1,20 +1,23 @@
 import { describe, expect, test, vi } from "vitest";
+import { makeModelBlockDecodeValuesResult } from "../../workers/model-block-worker-test-fixtures";
+import { makeForecastRunState } from "./forecast-test-fixtures";
 import { createForecastTooltipHydrationService } from "./hydrate-tooltip-values";
+import { makeForecastMapEntry } from "./map-test-fixtures";
 
 function createService(overrides = {}) {
   let timerId = 0;
   const scheduled = new Map<number, () => Promise<void> | void>();
   const dependencies = {
     clearTimer: vi.fn((id: number) => scheduled.delete(id)),
-    decodeValues: vi.fn(async () => ({
-      values: new Float32Array([1, 2]),
-      vectorUValues: new Float32Array([3, 4]),
-      vectorVValues: new Float32Array([5, 6]),
-    })),
+    decodeValues: vi.fn(async () =>
+      makeModelBlockDecodeValuesResult({
+        values: new Float32Array([1, 2]),
+        vectorUValues: new Float32Array([3, 4]),
+        vectorVValues: new Float32Array([5, 6]),
+      }),
+    ),
     delayMs: 140,
-    getCachedEntry: vi.fn(() => ({
-      product: { shortName: "t" },
-    })),
+    getCachedEntry: vi.fn(() => makeForecastMapEntry()),
     getCurrentRenderGeneration: vi.fn(() => 1),
     getCurrentState: vi.fn(),
     isPlayerPlaying: vi.fn(() => false),
@@ -46,7 +49,7 @@ function createService(overrides = {}) {
 
 describe("forecast tooltip hydration use case", () => {
   test("hydrates cached entries after the debounce delay", async () => {
-    const state = { currentHour: 1 };
+    const state = makeForecastRunState({ currentHour: 1 });
     const { dependencies, runNextTimer, service } = createService({
       getCurrentState: vi.fn(() => state),
     });
@@ -63,7 +66,7 @@ describe("forecast tooltip hydration use case", () => {
       values: expect.any(Float32Array),
     });
     expect(dependencies.updateIsobarOverlay).toHaveBeenCalledWith(
-      { product: { shortName: "t" } },
+      expect.objectContaining({ product: { name: "Temperature", shortName: "t", pdtNumber: 0 } }),
       expect.any(Float32Array),
     );
   });

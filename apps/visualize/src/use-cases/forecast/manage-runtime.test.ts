@@ -1,34 +1,57 @@
 import { describe, expect, test, vi } from "vitest";
-import { createForecastRuntimeUseCase } from "./manage-runtime";
+import {
+  makeForecastDownloadSession,
+  makeForecastPackage,
+  makeForecastRefreshKey,
+  makeForecastRunState,
+} from "./forecast-test-fixtures";
+import {
+  type CreateForecastRuntimeUseCaseOptions,
+  createForecastRuntimeUseCase,
+} from "./manage-runtime";
 
-function createRuntime(overrides = {}) {
+function createRuntime(overrides: Partial<CreateForecastRuntimeUseCaseOptions> = {}) {
   const ports = {
     animationService: {
       currentRenderGeneration: 0,
-      getDiagnostics: vi.fn(() => ({})),
+      bitmapCacheReadyCount: vi.fn(() => 0),
+      getDiagnostics: vi.fn(() => ({
+        currentRenderGeneration: 0,
+        isPrerendering: false,
+        lastDecodeMs: null,
+        lastRenderMs: null,
+        queueLength: 0,
+        readyBitmaps: 0,
+        totalBitmaps: 0,
+      })),
       invalidateBitmapCache: vi.fn(),
+      invalidateBlockRenderCache: vi.fn(),
       isAnimationCacheReadyForPlayback: vi.fn(() => false),
       isBitmapCacheComplete: vi.fn(() => false),
       queueCurrentTooltipValueHydration: vi.fn(),
+      queuePrerenderBlock: vi.fn(),
+      queuePrerenderForAllBlocks: vi.fn(),
       resetDecoding: vi.fn(),
       showHour: vi.fn(async () => {}),
       updateWarmupProgress: vi.fn(),
+      waitForPrerenderIdle: vi.fn(async () => {}),
     },
     buildAnimationCacheAfterNetworkSettles: vi.fn(async () => {}),
-    beginResourceRefresh: vi.fn(() => Symbol("downloadKey")),
+    beginResourceRefresh: vi.fn(() => makeForecastRefreshKey()),
     configureModelVariableControls: vi.fn(),
     createModelBlockServiceClient: vi.fn(() => ({
+      decodeValues: vi.fn(),
       renderHour: vi.fn(),
       storeBlock: vi.fn(),
     })),
-    createModelState: vi.fn((packageKey) => ({ packageKey, showWindDirection: true })),
+    createModelState: vi.fn((packageKey) => makeForecastRunState({ packageKey })),
     createDownloadWorkerClient: vi.fn(() => ({
       post: vi.fn(async () => ({ buffer: new Uint8Array([1]).buffer })),
     })),
-    downloadInitialForecast: vi.fn(async () => ({ resources: [] })),
+    downloadInitialForecast: vi.fn(async () => makeForecastDownloadSession()),
     downloadWorkerProxyUrl: vi.fn((url) => `proxy:${url}`),
     getSelectedHourIndex: vi.fn(() => 0),
-    getPackage: vi.fn((packageKey) => ({ key: packageKey, variables: [] })),
+    getPackage: vi.fn(() => makeForecastPackage()),
     isResourceRefreshActive: vi.fn(() => true),
     mapRenderer: {
       setVisible: vi.fn(),
@@ -44,7 +67,7 @@ function createRuntime(overrides = {}) {
     syncWindDirectionControl: vi.fn(),
     waitForNextFrame: vi.fn(async () => {}),
     ...overrides,
-  };
+  } satisfies CreateForecastRuntimeUseCaseOptions;
   const runtime = createForecastRuntimeUseCase(ports);
 
   return {
@@ -75,7 +98,7 @@ describe("forecast runtime use case", () => {
   test("setAnimationPlayer updates warmup progress", async () => {
     const { ports, runtime, startDownload } = createRuntime();
     await startDownload();
-    ports.animationService.updateWarmupProgress.mockClear();
+    vi.mocked(ports.animationService.updateWarmupProgress).mockClear();
 
     runtime.api.setAnimationPlayer({
       isPlaying: vi.fn(() => false),
@@ -106,7 +129,7 @@ describe("forecast runtime use case", () => {
     };
     await startDownload();
     runtime.api.setAnimationPlayer(player);
-    ports.animationService.updateWarmupProgress.mockClear();
+    vi.mocked(ports.animationService.updateWarmupProgress).mockClear();
 
     runtime.api.resetModelState();
 

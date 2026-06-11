@@ -55,7 +55,8 @@ describe("forecast hour worker render use case", () => {
   });
 
   test("closes stale rendered bitmaps when render generation changes", async () => {
-    const bitmap = { close: vi.fn() } as unknown as ImageBitmap;
+    const bitmap = makeModelBlockRenderResult().bitmap;
+    const closeBitmap = vi.spyOn(bitmap, "close");
     const { service } = createService({
       getCurrentRenderGeneration: vi.fn().mockReturnValueOnce(1).mockReturnValueOnce(2),
       getModelBlockService: vi.fn(() => ({
@@ -66,7 +67,7 @@ describe("forecast hour worker render use case", () => {
 
     await expect(service.renderHour(0)).resolves.toBeNull();
 
-    expect(bitmap.close).toHaveBeenCalled();
+    expect(closeBitmap).toHaveBeenCalled();
   });
 
   test("decodes values through the model block worker", async () => {

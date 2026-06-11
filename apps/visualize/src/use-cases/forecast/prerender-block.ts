@@ -1,38 +1,23 @@
-interface ForecastBlock {
-  endHour: number;
-  key: string;
-  startHour: number;
-}
+import type { ForecastRunState } from "../../domain/forecast-types";
+import type { ModelBlockRenderResult } from "../../workers/model-block-worker-contracts";
+import type { ForecastAnimationCachePort, ForecastBitmapCacheEntry } from "./runtime-contracts";
 
-interface ForecastPrerenderState {
-  hourList: number[];
-  resources: ForecastBlock[];
-}
-
-interface RenderedHourEntry {
-  bitmap: {
-    close: () => void;
-  };
-}
-
-interface ForecastBitmapCache {
-  hasHour: (hour: number) => boolean;
-  setHour: (hour: number, entry: unknown) => void;
-}
-
-interface CreateForecastPrerenderBlockServiceOptions {
-  cache: ForecastBitmapCache;
+export interface CreateForecastPrerenderBlockServiceOptions {
+  cache: Pick<ForecastAnimationCachePort, "hasHour" | "setHour">;
   getCurrentRenderGeneration: () => number;
-  getCurrentState: () => unknown;
+  getCurrentState: () => ForecastRunState | null;
   keepValuesForCurrentVariable: () => boolean;
-  mapWorkerEntry: (entry: RenderedHourEntry, options: { keepValues: boolean }) => unknown;
-  renderHour: (hourIndex: number) => Promise<RenderedHourEntry | null | undefined>;
+  mapWorkerEntry: (
+    entry: ModelBlockRenderResult,
+    options: { keepValues: boolean },
+  ) => ForecastBitmapCacheEntry;
+  renderHour: (hourIndex: number) => Promise<ModelBlockRenderResult | null>;
   updateWarmupProgress: () => void;
 }
 
 interface PrerenderBlockOptions {
   renderGeneration: number;
-  state: ForecastPrerenderState;
+  state: ForecastRunState;
 }
 
 export function createForecastPrerenderBlockService({

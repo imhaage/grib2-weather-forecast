@@ -1,20 +1,6 @@
-interface TooltipHydrationData {
-  values?: Float32Array;
-  vectorComposite?: unknown;
-  vectorUValues?: Float32Array | null;
-  vectorVValues?: Float32Array | null;
-}
-
-interface TooltipCachedEntry {
-  vectorComposite?: unknown;
-  vectorUValues?: Float32Array;
-  vectorVValues?: Float32Array;
-  [key: string]: unknown;
-}
-
-interface TooltipState {
-  currentHour?: number;
-}
+import type { ForecastRunState } from "../../domain/forecast-types";
+import type { ModelBlockDecodeValuesResult } from "../../workers/model-block-worker-contracts";
+import type { ForecastBitmapCacheEntry } from "./runtime-contracts";
 
 interface QueueTooltipHydrationOptions {
   hour: number;
@@ -24,26 +10,26 @@ interface QueueTooltipHydrationOptions {
 
 interface HydrateTooltipValuesOptions extends QueueTooltipHydrationOptions {
   hydrationToken: number;
-  state: TooltipState;
+  state: ForecastRunState;
 }
 
-interface CreateForecastTooltipHydrationServiceOptions<TTimer> {
-  clearTimer?: (timer: TTimer) => void;
-  decodeValues: (hourIndex: number, hour: number) => Promise<TooltipHydrationData | null>;
+export interface CreateForecastTooltipHydrationServiceOptions<TTimer> {
+  clearTimer: (timer: TTimer) => void;
+  decodeValues: (hourIndex: number, hour: number) => Promise<ModelBlockDecodeValuesResult | null>;
   delayMs?: number;
-  getCachedEntry: (hour: number) => TooltipCachedEntry | null | undefined;
+  getCachedEntry: (hour: number) => ForecastBitmapCacheEntry | null | undefined;
   getCurrentRenderGeneration: () => number;
-  getCurrentState: () => TooltipState;
+  getCurrentState: () => ForecastRunState;
   isPlayerPlaying: () => boolean;
-  makeGridState: (entry: TooltipCachedEntry, values?: Float32Array) => unknown;
+  makeGridState: (entry: ForecastBitmapCacheEntry, values?: Float32Array) => unknown;
   onError?: (...args: unknown[]) => void;
   setGridState: (gridState: unknown) => void;
-  setTimer?: (callback: () => void, delayMs: number) => TTimer;
-  updateIsobarOverlay: (cachedEntry: TooltipCachedEntry, values?: Float32Array) => void;
+  setTimer: (callback: () => void, delayMs: number) => TTimer;
+  updateIsobarOverlay: (cachedEntry: ForecastBitmapCacheEntry, values?: Float32Array) => void;
 }
 
-export function createForecastTooltipHydrationService<TTimer = ReturnType<typeof setTimeout>>({
-  clearTimer = clearTimeout as (timer: TTimer) => void,
+export function createForecastTooltipHydrationService<TTimer>({
+  clearTimer,
   decodeValues,
   delayMs = 140,
   getCachedEntry,
@@ -53,7 +39,7 @@ export function createForecastTooltipHydrationService<TTimer = ReturnType<typeof
   makeGridState,
   onError = console.error,
   setGridState,
-  setTimer = setTimeout as unknown as (callback: () => void, delayMs: number) => TTimer,
+  setTimer,
   updateIsobarOverlay,
 }: CreateForecastTooltipHydrationServiceOptions<TTimer>) {
   let timer: TTimer | null = null;

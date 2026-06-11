@@ -1,3 +1,4 @@
+import type { ForecastRunState, RemoteResource } from "../../domain/forecast-types";
 import { makeBitmapCacheEntryFromWorker } from "./create-bitmap-cache-entry";
 import { createForecastPrerenderQueueDrainService } from "./drain-prerender-queue";
 import { createForecastTooltipHydrationService } from "./hydrate-tooltip-values";
@@ -6,48 +7,15 @@ import { createForecastHourRenderQueueService } from "./manage-hour-render-queue
 import { createForecastPrerenderBlockService } from "./prerender-block";
 import { createForecastHourWorkerRenderService } from "./render-hour-with-worker";
 import { resolveAnimationWarmupProgress } from "./resolve-animation-warmup-progress";
+import type {
+  ForecastAnimationPort,
+  ForecastBitmapCacheEntry,
+  ForecastModelBlockPort,
+  ForecastWarmupProgress,
+} from "./runtime-contracts";
 
 function fmtHourLabel(hour: number) {
   return `+${String(hour).padStart(2, "0")}H`;
-}
-
-interface ForecastBlock {
-  endHour: number;
-  key: string;
-  startHour: number;
-  [key: string]: unknown;
-}
-
-interface ForecastAnimationState {
-  animationCacheStatus?: "waiting" | "building" | "ready";
-  availableBlocks: Set<string>;
-  currentHour?: number;
-  hourList: number[];
-  packageKey: string;
-  resources: ForecastBlock[];
-  variable?: string | null;
-  [key: string]: unknown;
-}
-
-interface BitmapCacheEntry {
-  bitmap?: {
-    close: () => void;
-  };
-  values?: Float32Array;
-  [key: string]: unknown;
-}
-
-interface RenderedHourEntry {
-  bitmap?: {
-    close?: () => void;
-  };
-  values?: Float32Array;
-  [key: string]: unknown;
-}
-
-interface ModelBlockService {
-  decodeValues: (request: unknown) => Promise<RenderedHourEntry | null>;
-  renderHour: (request: unknown) => Promise<RenderedHourEntry | null>;
 }
 
 interface PerformanceApi {
@@ -56,27 +24,27 @@ interface PerformanceApi {
 
 export interface CreateForecastAnimationUseCaseOptions {
   getCurrentPalette: () => string;
-  getGridState: () => { values?: unknown } | null | undefined;
+  getGridState: () => { values?: Float32Array | null } | null | undefined;
   getSelectedHourIndex: () => number;
-  getModelBlockService: () => ModelBlockService;
-  getModelState: () => ForecastAnimationState | null;
+  getModelBlockService: () => ForecastModelBlockPort;
+  getModelState: () => ForecastRunState | null;
   isPlayerPlaying: () => boolean;
-  makeGridState: (entry: BitmapCacheEntry, values?: Float32Array | null) => unknown;
+  makeGridState: (entry: ForecastBitmapCacheEntry, values?: Float32Array | null) => unknown;
   missingValue: number;
   notifyDiagnostics: () => void;
   perfDebug?: boolean;
   performanceApi?: PerformanceApi;
   presentBitmapEntry: (
     hour: number,
-    entry: BitmapCacheEntry,
+    entry: ForecastBitmapCacheEntry,
     options?: { values?: Float32Array },
   ) => Promise<unknown>;
   renderForecastHourLabel: (label: string) => void;
-  renderWarmupProgress?: (progress: unknown) => void;
+  renderWarmupProgress?: (progress: ForecastWarmupProgress) => void;
   setGridState: (gridState: unknown) => void;
   showUnavailableHour: (hour: number) => void;
   syncPlayButtonAvailability: () => void;
-  updateIsobarOverlay: (entry: BitmapCacheEntry, values?: Float32Array) => void;
+  updateIsobarOverlay: (entry: ForecastBitmapCacheEntry, values?: Float32Array) => void;
 }
 
 export function createForecastAnimationUseCase({
@@ -98,7 +66,7 @@ export function createForecastAnimationUseCase({
   showUnavailableHour,
   syncPlayButtonAvailability,
   updateIsobarOverlay,
-}: CreateForecastAnimationUseCaseOptions) {
+}: CreateForecastAnimationUseCaseOptions): ForecastAnimationPort {
   let currentRenderGeneration = 0;
   const animationCache = createAnimationCacheService();
   const hourRenderQueue = createForecastHourRenderQueueService();
@@ -123,20 +91,15 @@ export function createForecastAnimationUseCase({
   const hourWorkerRenderService = createForecastHourWorkerRenderService({
     getCurrentPalette,
     getCurrentRenderGeneration: () => currentRenderGeneration,
-    getModelBlockService: getModelBlockService as unknown as () => Parameters<
-      typeof createForecastHourWorkerRenderService
-    >[0]["getModelBlockService"] extends () => infer T
-      ? T
-      : never,
-    getModelState: requiredCurrentState as unknown as Parameters<
-      typeof createForecastHourWorkerRenderService
-    >[0]["getModelState"],
+    getModelBlockService,
+    getModelState: requiredCurrentState,
     missingValue,
     notifyDiagnostics,
     perfDebug,
     performanceApi,
   });
   const tooltipHydrationService = createForecastTooltipHydrationService({
+    clearTimer: clearTimeout,
     decodeValues: hourWorkerRenderService.decodeValues,
     getCachedEntry: animationCache.getHour,
     getCurrentRenderGeneration: () => currentRenderGeneration,
@@ -144,6 +107,7 @@ export function createForecastAnimationUseCase({
     isPlayerPlaying,
     makeGridState,
     setGridState,
+    setTimer: setTimeout,
     updateIsobarOverlay,
   });
   const prerenderQueueDrainService = createForecastPrerenderQueueDrainService({
@@ -151,23 +115,15 @@ export function createForecastAnimationUseCase({
     getCurrentState: currentState,
     notifyDiagnostics,
     prerenderBlock,
-    queue: animationCache as unknown as Parameters<
-      typeof createForecastPrerenderQueueDrainService
-    >[0]["queue"],
+    queue: animationCache,
   });
   const prerenderBlockService = createForecastPrerenderBlockService({
-    cache: animationCache as unknown as Parameters<
-      typeof createForecastPrerenderBlockService
-    >[0]["cache"],
+    cache: animationCache,
     getCurrentRenderGeneration: () => currentRenderGeneration,
     getCurrentState: currentState,
     keepValuesForCurrentVariable: hourWorkerRenderService.shouldKeepValuesForCurrentVariable,
-    mapWorkerEntry: makeBitmapCacheEntryFromWorker as unknown as Parameters<
-      typeof createForecastPrerenderBlockService
-    >[0]["mapWorkerEntry"],
-    renderHour: hourWorkerRenderService.renderHour as unknown as Parameters<
-      typeof createForecastPrerenderBlockService
-    >[0]["renderHour"],
+    mapWorkerEntry: makeBitmapCacheEntryFromWorker,
+    renderHour: hourWorkerRenderService.renderHour,
     updateWarmupProgress,
   });
 
@@ -185,7 +141,7 @@ export function createForecastAnimationUseCase({
     notifyDiagnostics();
   }
 
-  function invalidateBlockRenderCache(block: ForecastBlock | null | undefined) {
+  function invalidateBlockRenderCache(block: RemoteResource | null | undefined) {
     if (!block) {
       return;
     }
@@ -232,7 +188,7 @@ export function createForecastAnimationUseCase({
 
     const ready = bitmapCacheReadyCount();
     const { cacheStatus, progress } = resolveAnimationWarmupProgress({ modelState, ready });
-    modelState.animationCacheStatus = cacheStatus as ForecastAnimationState["animationCacheStatus"];
+    modelState.animationCacheStatus = cacheStatus;
 
     renderWarmupProgress(progress);
     syncPlayButtonAvailability();
@@ -297,7 +253,7 @@ export function createForecastAnimationUseCase({
 
       const entry = makeBitmapCacheEntryFromWorker(renderEntry, {
         keepValues: hourWorkerRenderService.shouldKeepValuesForCurrentVariable(),
-      }) as BitmapCacheEntry;
+      });
       animationCache.setHour(hour, entry);
       updateWarmupProgress();
       await presentBitmapEntry(hour, entry, { values: renderEntry.values });

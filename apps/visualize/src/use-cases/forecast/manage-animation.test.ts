@@ -1,4 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
+import { makeModelBlockRenderResult } from "../../workers/model-block-worker-test-fixtures";
+import { makeForecastRunState, makeRemoteResource } from "./forecast-test-fixtures";
 import {
   type CreateForecastAnimationUseCaseOptions,
   createForecastAnimationUseCase,
@@ -16,15 +18,13 @@ function createDom() {
 }
 
 function createUseCase(overrides: Partial<CreateForecastAnimationUseCaseOptions> = {}) {
-  const modelState: NonNullable<
-    ReturnType<CreateForecastAnimationUseCaseOptions["getModelState"]>
-  > = {
+  const modelState = makeForecastRunState({
     animationCacheStatus: "ready",
     availableBlocks: new Set<string>(),
     hourList: [1, 2],
     packageKey: "AROME_SP1",
     resources: [],
-  };
+  });
   const dom = createDom();
   const useCase = createForecastAnimationUseCase({
     getCurrentPalette: () => "Temperature",
@@ -33,6 +33,7 @@ function createUseCase(overrides: Partial<CreateForecastAnimationUseCaseOptions>
     getModelBlockService: () => ({
       decodeValues: vi.fn(),
       renderHour: vi.fn(),
+      storeBlock: vi.fn(),
     }),
     getModelState: () => modelState,
     isPlayerPlaying: () => false,
@@ -79,8 +80,8 @@ describe("forecast animation use case", () => {
     const { modelState, useCase } = createUseCase({ renderWarmupProgress });
     modelState.animationCacheStatus = "waiting";
     modelState.resources = [
-      { key: "01H", startHour: 1, endHour: 1 },
-      { key: "02H", startHour: 2, endHour: 2 },
+      makeRemoteResource(),
+      makeRemoteResource({ key: "02H", startHour: 2, endHour: 2 }),
     ];
     modelState.availableBlocks = new Set(["01H"]);
 
@@ -98,8 +99,13 @@ describe("forecast animation use case", () => {
     const { modelState, useCase } = createUseCase({ renderWarmupProgress });
     modelState.animationCacheStatus = "waiting";
     modelState.resources = [
-      { key: "01H", startHour: 1, endHour: 1, status: "loaded-from-cache" },
-      { key: "02H", startHour: 2, endHour: 2, status: "downloading" },
+      makeRemoteResource({ status: "loaded-from-cache" }),
+      makeRemoteResource({
+        key: "02H",
+        startHour: 2,
+        endHour: 2,
+        status: "downloading",
+      }),
     ];
     modelState.availableBlocks = new Set(["01H", "02H"]);
 
@@ -118,18 +124,17 @@ describe("forecast animation use case", () => {
       getSelectedHourIndex: () => 0,
       getModelBlockService: () => ({
         decodeValues: vi.fn(),
-        renderHour: vi.fn(async () => ({
-          bitmap: {},
-          dataMin: 1,
-          dataMax: 2,
-          dataMean: 1.5,
-          dataCount: 2,
-          displayUnits: "K",
-          grid: {},
-          header: {},
-          product: { shortName: "t" },
-          values: new Float32Array([1, 2]),
-        })),
+        renderHour: vi.fn(async () =>
+          makeModelBlockRenderResult({
+            dataMin: 1,
+            dataMax: 2,
+            dataMean: 1.5,
+            dataCount: 2,
+            displayUnits: "K",
+            values: new Float32Array([1, 2]),
+          }),
+        ),
+        storeBlock: vi.fn(),
       }),
       renderForecastHourLabel,
     });

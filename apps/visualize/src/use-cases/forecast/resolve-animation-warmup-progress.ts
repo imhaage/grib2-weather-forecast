@@ -1,30 +1,18 @@
-type AnimationCacheStatus = "waiting" | "building" | "ready" | string;
-
-interface ForecastResourceState {
-  key: string;
-  status?: string;
-}
-
-interface ForecastWarmupModelState {
-  animationCacheStatus?: AnimationCacheStatus;
-  availableBlocks?: Set<string>;
-  hourList: unknown[];
-  resources: ForecastResourceState[];
-}
+import type { ForecastRunState } from "../../domain/forecast-types";
 
 interface ResolveAnimationWarmupProgressInput {
-  modelState?: ForecastWarmupModelState | null;
+  modelState?: ForecastRunState | null;
   ready: number;
 }
 
-function hasPendingDownloads(modelState: ForecastWarmupModelState) {
+function hasPendingDownloads(modelState: ForecastRunState) {
   return modelState.resources.some(
     (block) => block.status === "downloading" || !modelState.availableBlocks?.has(block.key),
   );
 }
 
 function animationWarmupLabel(
-  modelState: ForecastWarmupModelState,
+  modelState: ForecastRunState,
   { isWaiting, isReady }: { isWaiting: boolean; isReady: boolean },
 ) {
   if (isWaiting && hasPendingDownloads(modelState)) {

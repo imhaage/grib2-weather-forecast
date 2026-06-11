@@ -1,7 +1,9 @@
 import { describe, expect, test, vi } from "vitest";
 import { createForecastPrerenderQueueDrainService } from "./drain-prerender-queue";
+import { makeForecastRunState } from "./forecast-test-fixtures";
+import type { ForecastPrerenderJob } from "./runtime-contracts";
 
-function createQueue(jobs: Array<{ blockKey: string; renderGeneration: number; state: object }>) {
+function createQueue(jobs: ForecastPrerenderJob[]) {
   const queue = [...jobs];
 
   return {
@@ -17,10 +19,10 @@ function createQueue(jobs: Array<{ blockKey: string; renderGeneration: number; s
 
 describe("forecast prerender queue drain use case", () => {
   test("drains queued jobs that still match the active state and render generation", async () => {
-    const state = { id: "state" };
+    const state = makeForecastRunState();
     const jobs = [
-      { blockKey: "01H", renderGeneration: 1, state },
-      { blockKey: "02H", renderGeneration: 1, state },
+      { blockKey: "01H", queueKey: "1:01H", renderGeneration: 1, state },
+      { blockKey: "02H", queueKey: "1:02H", renderGeneration: 1, state },
     ];
     const queue = createQueue(jobs);
     const notifyDiagnostics = vi.fn();
@@ -43,8 +45,15 @@ describe("forecast prerender queue drain use case", () => {
   });
 
   test("skips stale jobs", async () => {
-    const activeState = { id: "active" };
-    const queue = createQueue([{ blockKey: "01H", renderGeneration: 1, state: { id: "old" } }]);
+    const activeState = makeForecastRunState();
+    const queue = createQueue([
+      {
+        blockKey: "01H",
+        queueKey: "1:01H",
+        renderGeneration: 1,
+        state: makeForecastRunState(),
+      },
+    ]);
     const prerenderBlock = vi.fn(async () => {});
     const service = createForecastPrerenderQueueDrainService({
       getCurrentRenderGeneration: vi.fn(() => 1),

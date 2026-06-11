@@ -1,18 +1,21 @@
 import { describe, expect, test, vi } from "vitest";
-import type { ForecastRunState } from "../../domain/forecast-types";
 import {
   makeForecastDownloadSession,
   makeForecastRunState,
   makeRemoteResource,
 } from "./forecast-test-fixtures";
-import type { ForecastMapRendererPort, ViewportBounds } from "./map-contracts";
+import type {
+  ForecastMapPresentationPort,
+  ForecastMapRendererPort,
+  ViewportBounds,
+} from "./map-contracts";
 import { makeForecastMapEntry, makeGridDefinition } from "./map-test-fixtures";
 import {
   type CreateForecastMapPresentationUseCaseOptions,
   createForecastMapPresentationUseCase,
 } from "./present-map";
 
-function createUseCase(overrides = {}) {
+function createUseCase(overrides: Partial<CreateForecastMapPresentationUseCaseOptions> = {}) {
   const modelState = makeForecastRunState({
     packageKey: "AROME_SP1",
     variable: "t",
@@ -45,7 +48,7 @@ function createUseCase(overrides = {}) {
     updateLevelInfo: vi.fn(),
     updateParamInfo: vi.fn(),
     updateStats: vi.fn(),
-  };
+  } satisfies ForecastMapPresentationPort;
   const state: {
     gridState: unknown;
     viewportSettledCallback: (() => void) | null;
@@ -59,7 +62,7 @@ function createUseCase(overrides = {}) {
     formatModelPackageSubtitle: (packageKey) => packageKey.replace("_", " "),
     formatRefTime: () => "2026-06-01 00:00 UTC",
     formatValidTime: () => "2026-06-01 01:00 UTC",
-    getModelState: () => modelState as ForecastRunState,
+    getModelState: () => modelState,
     getMapBounds: () => ({ west: 0, south: 49, east: 5, north: 53 }),
     getMapZoom: () => 8,
     gridCorners: () => [
@@ -70,10 +73,8 @@ function createUseCase(overrides = {}) {
     ],
     initMap: vi.fn(async () => {}),
     makeGridState: (entry, values) => ({ entry, values }),
-    mapPresentation:
-      mapPresentation as unknown as CreateForecastMapPresentationUseCaseOptions["mapPresentation"],
-    mapRenderer:
-      mapRenderer as unknown as CreateForecastMapPresentationUseCaseOptions["mapRenderer"],
+    mapPresentation,
+    mapRenderer,
     missingValue: 9999,
     onMapViewportSettled: (callback) => {
       state.viewportSettledCallback = callback;

@@ -1,66 +1,11 @@
-interface ForecastAnimationPlayer {
-  isPlaying: () => boolean;
-  stopPlayer: () => void;
-  syncPlayButtonAvailability: () => void;
-}
+import type {
+  CreateForecastRuntimeUseCaseOptions,
+  ForecastAnimationPlayerPort,
+  ForecastRuntimeResult,
+  ForecastRuntimeState,
+} from "./runtime-contracts";
 
-interface ForecastAnimationService {
-  currentRenderGeneration: number;
-  getDiagnostics: () => unknown;
-  invalidateBitmapCache: () => void;
-  isAnimationCacheReadyForPlayback: () => boolean;
-  isBitmapCacheComplete: () => boolean;
-  queueCurrentTooltipValueHydration: () => void;
-  resetDecoding: () => void;
-  showHour: (index: number) => Promise<unknown> | unknown;
-  updateWarmupProgress: () => void;
-}
-
-interface ForecastRuntimeModelState {
-  packageKey?: string;
-  showWindDirection?: boolean;
-  [key: string]: unknown;
-}
-
-interface DownloadWorkerClient {
-  post: (
-    message: { filesize?: number | null; url: string },
-    transferables?: Transferable[],
-    options?: { onProgress?: (progress: { loaded: number; total: number }) => void },
-  ) => Promise<{ buffer?: ArrayBuffer } | null>;
-}
-
-export interface CreateForecastRuntimeUseCaseOptions {
-  animationService: ForecastAnimationService;
-  buildAnimationCacheAfterNetworkSettles: (session: unknown) => Promise<unknown>;
-  beginResourceRefresh: () => unknown;
-  configureModelVariableControls: (pkg: unknown) => void;
-  createModelBlockServiceClient: () => unknown;
-  createModelState: (packageKey: string) => ForecastRuntimeModelState;
-  createDownloadWorkerClient: () => DownloadWorkerClient;
-  downloadInitialForecast: (request: {
-    packageKey: string;
-    pkg: unknown;
-    downloadKey: unknown;
-  }) => Promise<unknown | null>;
-  downloadWorkerProxyUrl: (url: string) => string;
-  getSelectedHourIndex: () => number;
-  getPackage: (packageKey: string) => unknown;
-  isResourceRefreshActive: (downloadKey: unknown) => boolean;
-  mapRenderer: {
-    setVisible: (visible: boolean) => void;
-  };
-  refreshCurrentResourcesToLatest: (downloadKey: unknown) => Promise<unknown | null>;
-  refreshWindSymbolOverlay: () => void;
-  resetDownloadView: () => void;
-  resetForecastHourControl: () => void;
-  resetRuntimePresentation: () => void;
-  selectVariable: (varKey: string) => void;
-  setRendering: (rendering: boolean) => void;
-  setGridState: (gridState: unknown) => void;
-  syncWindDirectionControl: () => void;
-  waitForNextFrame: () => Promise<unknown>;
-}
+export type { CreateForecastRuntimeUseCaseOptions } from "./runtime-contracts";
 
 export function createForecastRuntimeUseCase({
   animationService,
@@ -86,13 +31,8 @@ export function createForecastRuntimeUseCase({
   setGridState,
   syncWindDirectionControl,
   waitForNextFrame,
-}: CreateForecastRuntimeUseCaseOptions) {
-  const runtimeState: {
-    animationPlayer: ForecastAnimationPlayer | null;
-    downloadWorkerClient: DownloadWorkerClient | null;
-    modelBlockService: unknown;
-    modelState: ForecastRuntimeModelState | null;
-  } = {
+}: CreateForecastRuntimeUseCaseOptions): ForecastRuntimeResult {
+  const runtimeState: ForecastRuntimeState = {
     modelState: null,
     modelBlockService: null,
     downloadWorkerClient: null,
@@ -251,7 +191,7 @@ export function createForecastRuntimeUseCase({
     queueCurrentTooltipValueHydration: animationService.queueCurrentTooltipValueHydration,
     refreshCurrentModelVisuals,
     resetModelState,
-    setAnimationPlayer(player: ForecastAnimationPlayer) {
+    setAnimationPlayer(player: ForecastAnimationPlayerPort) {
       runtimeState.animationPlayer = player;
       animationService.updateWarmupProgress();
     },

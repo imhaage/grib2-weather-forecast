@@ -1,23 +1,12 @@
-interface PrerenderQueueJob {
-  blockKey: string;
-  renderGeneration: number;
-  state: unknown;
-}
+import type { ForecastRunState } from "../../domain/forecast-types";
+import type { ForecastPrerenderQueuePort } from "./runtime-contracts";
 
-interface PrerenderQueue {
-  beginDrain: () => boolean;
-  completeJob: (job: PrerenderQueueJob) => void;
-  endDrain: () => void;
-  nextJob: () => PrerenderQueueJob | null;
-  queueLength: number;
-}
-
-interface CreateForecastPrerenderQueueDrainServiceOptions {
+export interface CreateForecastPrerenderQueueDrainServiceOptions {
   getCurrentRenderGeneration: () => number;
-  getCurrentState: () => unknown;
+  getCurrentState: () => ForecastRunState | null;
   notifyDiagnostics: () => void;
   prerenderBlock: (blockKey: string) => Promise<void>;
-  queue: PrerenderQueue;
+  queue: ForecastPrerenderQueuePort;
 }
 
 export function createForecastPrerenderQueueDrainService({

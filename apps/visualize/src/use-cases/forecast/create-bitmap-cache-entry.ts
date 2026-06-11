@@ -1,4 +1,5 @@
 import type { ModelBlockRenderResult } from "../../workers/model-block-worker-contracts";
+import type { ForecastBitmapCacheEntry } from "./runtime-contracts";
 
 interface BitmapCacheEntryOptions {
   keepValues?: boolean;
@@ -7,7 +8,7 @@ interface BitmapCacheEntryOptions {
 export function makeBitmapCacheEntryFromWorker(
   renderEntry: ModelBlockRenderResult,
   { keepValues = false }: BitmapCacheEntryOptions = {},
-) {
+): ForecastBitmapCacheEntry {
   return {
     bitmap: renderEntry.bitmap,
     values: keepValues ? renderEntry.values : undefined,
@@ -25,7 +26,7 @@ export function makeBitmapCacheEntryFromWorker(
     isLog: renderEntry.isLog,
     displayUnits: renderEntry.displayUnits,
     isFallback: renderEntry.isFallback,
-    isobars: renderEntry.isobars,
+    isobars: renderEntry.isobars as ForecastBitmapCacheEntry["isobars"],
     grid: renderEntry.grid,
     product: renderEntry.product,
     header: renderEntry.header,

@@ -1,28 +1,21 @@
-interface BitmapCacheEntry {
-  bitmap?: {
-    close: () => void;
-  };
-  [key: string]: unknown;
-}
-
-interface PrerenderJob {
-  blockKey: string;
-  renderGeneration: number;
-  state: unknown;
-  queueKey: string;
-}
+import type { ForecastRunState } from "../../domain/forecast-types";
+import type {
+  ForecastAnimationCachePort,
+  ForecastBitmapCacheEntry,
+  ForecastPrerenderJob,
+} from "./runtime-contracts";
 
 function bitmapCacheKey(hour: number) {
   return `${hour}`;
 }
 
-function closeBitmapEntry(entry: BitmapCacheEntry | undefined) {
+function closeBitmapEntry(entry: ForecastBitmapCacheEntry | undefined) {
   entry?.bitmap?.close();
 }
 
-export function createAnimationCacheService() {
-  let bitmapCache = new Map<string, BitmapCacheEntry>();
-  let prerenderQueue: PrerenderJob[] = [];
+export function createAnimationCacheService(): ForecastAnimationCachePort {
+  let bitmapCache = new Map<string, ForecastBitmapCacheEntry>();
+  let prerenderQueue: ForecastPrerenderJob[] = [];
   let queuedPrerenderKeys = new Set<string>();
   let isPrerendering = false;
   let idleResolvers: Array<() => void> = [];
@@ -65,7 +58,7 @@ export function createAnimationCacheService() {
       return bitmapCache.has(bitmapCacheKey(hour));
     },
 
-    setHour(hour: number, entry: BitmapCacheEntry) {
+    setHour(hour: number, entry: ForecastBitmapCacheEntry) {
       bitmapCache.set(bitmapCacheKey(hour), entry);
     },
 
@@ -103,7 +96,7 @@ export function createAnimationCacheService() {
       return Boolean(hours.length) && this.readyCount(hours) === hours.length;
     },
 
-    enqueueBlock(blockKey: string, renderGeneration: number, state: unknown) {
+    enqueueBlock(blockKey: string, renderGeneration: number, state: ForecastRunState) {
       const queueKey = `${renderGeneration}:${blockKey}`;
 
       if (queuedPrerenderKeys.has(queueKey)) {
@@ -130,7 +123,7 @@ export function createAnimationCacheService() {
       return prerenderQueue.shift() ?? null;
     },
 
-    completeJob(job: PrerenderJob) {
+    completeJob(job: ForecastPrerenderJob) {
       queuedPrerenderKeys.delete(job.queueKey);
     },
 
