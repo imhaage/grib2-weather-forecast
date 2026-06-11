@@ -5,10 +5,27 @@ import {
   readLatestCachedGribBlock,
   writeCachedGribBlock,
 } from "../adapters/forecast/grib-cache-adapter";
-import { createForecastRunController } from "./forecast-run-controller.js";
+import type {
+  ForecastMapPresentationPort,
+  ForecastMapRendererPort,
+  MapCorner,
+} from "../use-cases/forecast/map-contracts";
+import type {
+  ForecastDownloadWorkerPort,
+  ForecastModelBlockPort,
+} from "../use-cases/forecast/runtime-contracts";
+import {
+  makeModelBlockDecodeValuesResult,
+  makeModelBlockRenderResult,
+} from "../workers/model-block-worker-test-fixtures";
+import {
+  type CreateForecastRunControllerOptions,
+  createForecastRunController,
+  type ForecastRunDom,
+} from "./forecast-run-controller.js";
 
 vi.mock("grib2-decoder", async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = await importOriginal<typeof import("grib2-decoder")>();
 
   return {
     ...actual,
@@ -35,7 +52,9 @@ vi.mock("../adapters/forecast/grib-cache-adapter", () => ({
   writeCachedGribBlock: vi.fn(async () => true),
 }));
 
-function createElement(tagName = "div") {
+function createElement(): HTMLDivElement;
+function createElement<K extends keyof HTMLElementTagNameMap>(tagName: K): HTMLElementTagNameMap[K];
+function createElement(tagName: keyof HTMLElementTagNameMap = "div") {
   return document.createElement(tagName);
 }
 
@@ -59,50 +78,29 @@ function createDom() {
     forecastWindDirectionToggle: Object.assign(createElement("input"), {
       type: "checkbox",
     }),
-  };
+  } satisfies ForecastRunDom;
 }
 
-function createFakeBitmap() {
-  return { close: vi.fn() };
-}
-
-function createFakeRenderResult(overrides = {}) {
-  return {
-    bitmap: createFakeBitmap(),
+function createFakeRenderResult() {
+  return makeModelBlockRenderResult({
     dataMin: 1,
     dataMax: 4,
     dataMean: 2.5,
     dataCount: 4,
-    unitTransform: null,
-    renderMin: 0,
-    range: 10,
     staticScale: { min: 0, max: 10 },
-    isLog: false,
+    range: 10,
     displayUnits: "J kg-1",
-    isFallback: false,
-    isobars: null,
-    grid: {
-      ni: 2,
-      nj: 2,
-      dj: 1,
-      latitudeOfFirstPoint: 2,
-      longitudeOfFirstPoint: 0,
-      latitudeOfLastPoint: 1,
-      longitudeOfLastPoint: 1,
-    },
     product: {
       shortName: "cape",
       name: "CAPE (near-surface)",
       units: "J kg-1",
       pdtNumber: 0,
     },
-    header: {},
     values: new Float32Array([1, 2, 3, 4]),
-    ...overrides,
-  };
+  });
 }
 
-function createDownloadWorkerClient(events = []) {
+function createDownloadWorkerClient(events: string[] = []): ForecastDownloadWorkerPort {
   return {
     async post({ url }, _transfer = [], options = {}) {
       const blockKey = url.match(/__(\d+)H__/)?.[1] ?? "unknown";
@@ -116,7 +114,7 @@ function createDownloadWorkerClient(events = []) {
   };
 }
 
-function createResources(hours) {
+function createResources(hours: number[]) {
   return hours.map((hour) => ({
     format: "grib2",
     filesize: hour,
@@ -125,9 +123,14 @@ function createResources(hours) {
   }));
 }
 
-function createController(overrides = {}) {
+interface ControllerTestOverrides extends Partial<CreateForecastRunControllerOptions> {
+  events?: string[];
+  missingRenderHours?: number[];
+}
+
+function createController(overrides: ControllerTestOverrides = {}) {
+  const { events = [], missingRenderHours = [], ...controllerOverrides } = overrides;
   const dom = createDom();
-  const events = overrides.events ?? [];
   const mapPresentation = {
     clearStats: vi.fn(),
     hideColorScale: vi.fn(),
@@ -139,7 +142,7 @@ function createController(overrides = {}) {
     updateLevelInfo: vi.fn(),
     updateParamInfo: vi.fn(),
     updateStats: vi.fn(),
-  };
+  } satisfies ForecastMapPresentationPort;
   const heatCanvas = createElement("canvas");
   const mapRenderer = {
     clearIsobars: vi.fn(),
@@ -157,54 +160,58 @@ function createController(overrides = {}) {
     setVisible: vi.fn(),
     triggerRepaint: vi.fn(),
     updateIsobars: vi.fn(),
-  };
+  } satisfies ForecastMapRendererPort;
   const state = {
     currentPalette: "Plasma",
-    gridState: null,
+    gridState: null as { values?: Float32Array | null } | null,
   };
-  const controller = createForecastRunController({
+  const options = {
     document,
     window,
     dom,
     mapRenderer,
     mapPresentation,
     missingValue: -9999,
-    timedDecode: vi.fn(),
-    makeRenderParams: vi.fn(),
     makeGridState: vi.fn((entry, values = entry.values) => ({
       ...entry,
       values,
     })),
-    gridCorners: vi.fn(() => [
+    gridCorners: vi.fn((): MapCorner[] => [
       [0, 2],
       [1, 2],
       [1, 1],
       [0, 1],
     ]),
-    initMap: vi.fn(),
+    initMap: vi.fn(async () => {}),
     createDownloadWorkerClient: vi.fn(() => createDownloadWorkerClient(events)),
-    createModelBlockServiceClient: vi.fn(() => ({
-      decodeValues: vi.fn(async () => ({
-        values: new Float32Array([1, 2, 3, 4]),
-      })),
-      renderHour: vi.fn(async (request) => {
-        events.push(`render:${String(request.hour).padStart(2, "0")}H`);
+    createModelBlockServiceClient: vi.fn(
+      () =>
+        ({
+          decodeValues: vi.fn(async () =>
+            makeModelBlockDecodeValuesResult({
+              values: new Float32Array([1, 2, 3, 4]),
+            }),
+          ),
+          renderHour: vi.fn(async (request) => {
+            events.push(`render:${String(request.hour).padStart(2, "0")}H`);
 
-        if (overrides.missingRenderHours?.includes(request.hour)) {
-          return null;
-        }
+            if (missingRenderHours.includes(request.hour)) {
+              return null;
+            }
 
-        return createFakeRenderResult();
-      }),
-      storeBlock: vi.fn(async (block, buffer) => {
-        const source = buffer[0] >= 100 ? "cache" : "network";
-        events.push(`store:${block.key}:${source}:${buffer[0]}`);
+            return createFakeRenderResult();
+          }),
+          storeBlock: vi.fn(async (block, buffer) => {
+            const source = buffer[0] >= 100 ? "cache" : "network";
+            events.push(`store:${block.key}:${source}:${buffer[0]}`);
 
-        return true;
-      }),
-    })),
+            return true;
+          }),
+        }) satisfies ForecastModelBlockPort,
+    ),
     fetchImpl: vi.fn(async () => ({
       ok: true,
+      status: 200,
       json: async () => ({ resources: [] }),
     })),
     getCurrentPalette: () => state.currentPalette,
@@ -213,15 +220,14 @@ function createController(overrides = {}) {
       state.currentPalette = palette;
     },
     setGridState: (gridState) => {
-      state.gridState = gridState;
+      state.gridState = gridState && typeof gridState === "object" ? gridState : null;
     },
     setRendering: vi.fn(),
     updateDiagnostics: vi.fn(),
     updateStorageWarningSizeIfOpen: vi.fn(),
-    ...Object.fromEntries(
-      Object.entries(overrides).filter(([key]) => !["events", "missingRenderHours"].includes(key)),
-    ),
-  });
+    ...controllerOverrides,
+  } satisfies CreateForecastRunControllerOptions;
+  const controller = createForecastRunController(options);
 
   return { controller, dom, mapPresentation, mapRenderer, state };
 }
@@ -237,24 +243,51 @@ async function createControllerWithMockedFactory(api = { startDownload: vi.fn() 
   );
   const dom = createDom();
   const mapPresentation = {
+    clearStats: vi.fn(),
+    hideColorScale: vi.fn(),
+    hideUnavailable: vi.fn(),
+    setColorScaleGradient: vi.fn(),
+    setForecastValidTime: vi.fn(),
     showColorScale: vi.fn(),
-  };
-  const controller = createControllerWithFactory({
+    showUnavailable: vi.fn(),
+    updateLevelInfo: vi.fn(),
+    updateParamInfo: vi.fn(),
+    updateStats: vi.fn(),
+  } satisfies ForecastMapPresentationPort;
+  const mapRenderer = {
+    clearIsobars: vi.fn(),
+    clearLayer: vi.fn(),
+    drawBitmap: vi.fn(),
+    ensureHeatCanvas: vi.fn(() => ({ canvas: {}, canvasChanged: false })),
+    fitBounds: vi.fn(),
+    hasLayer: vi.fn(() => false),
+    setLayer: vi.fn(),
+    setVisible: vi.fn(),
+    triggerRepaint: vi.fn(),
+    updateIsobars: vi.fn(),
+  } satisfies ForecastMapRendererPort;
+  const options = {
     document,
     window,
     dom,
-    mapRenderer: { setVisible: vi.fn() },
+    mapRenderer,
     mapPresentation,
     missingValue: -9999,
-    makeGridState: vi.fn(),
-    gridCorners: vi.fn(),
-    initMap: vi.fn(),
-    getCurrentPalette: vi.fn(),
-    getGridState: vi.fn(),
+    makeGridState: vi.fn(() => ({})),
+    gridCorners: vi.fn((): MapCorner[] => [
+      [0, 1],
+      [1, 1],
+      [1, 0],
+      [0, 0],
+    ]),
+    initMap: vi.fn(async () => {}),
+    getCurrentPalette: vi.fn(() => "Temperature"),
+    getGridState: vi.fn(() => null),
     setCurrentPalette: vi.fn(),
     setGridState: vi.fn(),
     setRendering: vi.fn(),
-  });
+  } satisfies CreateForecastRunControllerOptions;
+  const controller = createControllerWithFactory(options);
   vi.doUnmock("../composition/forecast-runtime-factory.js");
 
   return { controller, createForecastRuntimeFactory };
@@ -288,14 +321,15 @@ describe("forecast run controller", () => {
     await controller.startDownload("AROME_SP2");
 
     expect(controller.getPackageKey()).toBe("AROME_SP2");
-    expect(controller.getModelState().variable).toBe("cape");
+    expect(controller.getModelState()?.variable).toBe("cape");
     expect(state.currentPalette).toBe("CAPE");
     expect(mapRenderer.setVisible).toHaveBeenCalledWith(false);
     expect(mapPresentation.updateLevelInfo).toHaveBeenCalled();
-    expect([...dom.forecastVarSelect.children].map((child) => child.label)).toEqual([
-      "Weather maps",
-      "Component fields",
-    ]);
+    expect(
+      [...dom.forecastVarSelect.children].map((child) =>
+        child instanceof HTMLOptGroupElement ? child.label : "",
+      ),
+    ).toEqual(["Weather maps", "Component fields"]);
   });
 
   test("shows wind direction control for vector packages and syncs the toggle state", async () => {
@@ -304,13 +338,13 @@ describe("forecast run controller", () => {
     await controller.startDownload("AROME_SP1");
     await controller.handleVariableChange("wind");
 
-    expect(controller.getModelState().variable).toBe("wind");
+    expect(controller.getModelState()?.variable).toBe("wind");
     expect(dom.forecastWindDirectionControl.hidden).toBe(false);
     expect(dom.forecastWindDirectionToggle.checked).toBe(true);
 
     controller.setWindDirectionVisible(false);
 
-    expect(controller.getModelState().showWindDirection).toBe(false);
+    expect(controller.getModelState()?.showWindDirection).toBe(false);
     expect(dom.forecastWindDirectionToggle.checked).toBe(false);
   });
 
@@ -336,7 +370,7 @@ describe("forecast run controller", () => {
   });
 
   test("shows cache and network status while loading a forecast run", async () => {
-    const events = [];
+    const events: string[] = [];
     vi.mocked(readCachedGribBlock).mockImplementation(async (_packageKey, block) =>
       block.key === "01H" ? new Uint8Array([101]) : null,
     );
@@ -347,6 +381,7 @@ describe("forecast run controller", () => {
       events,
       fetchImpl: vi.fn(async () => ({
         ok: true,
+        status: 200,
         json: async () => ({ resources: createResources([1, 2, 3]) }),
       })),
     });
@@ -364,7 +399,7 @@ describe("forecast run controller", () => {
     expect(
       [...dom.forecastDownloadFileList.querySelectorAll(".forecast-download-file")].map((item) => [
         item.id,
-        item.querySelector(".forecast-download-file__status").textContent,
+        item.querySelector(".forecast-download-file__status")?.textContent,
       ]),
     ).toEqual([
       ["dl-file-01H", "loaded from cache"],
@@ -384,6 +419,7 @@ describe("forecast run controller", () => {
     const { controller, mapRenderer, state } = createController({
       fetchImpl: vi.fn(async () => ({
         ok: true,
+        status: 200,
         json: async () => ({ resources: createResources([1]) }),
       })),
     });
@@ -393,7 +429,7 @@ describe("forecast run controller", () => {
 
     await controller.handleVariableChange("p");
 
-    expect(controller.getModelState().variable).toBe("p");
+    expect(controller.getModelState()?.variable).toBe("p");
     expect(controller.getModelState()).not.toHaveProperty("decoded");
     expect(controller.getModelState()).not.toHaveProperty("decodedOrder");
     expect(controller.getDiagnostics()).not.toHaveProperty("decodedSize");
@@ -406,6 +442,7 @@ describe("forecast run controller", () => {
     const { controller, dom, mapPresentation, mapRenderer } = createController({
       fetchImpl: vi.fn(async () => ({
         ok: true,
+        status: 200,
         json: async () => ({ resources: createResources([1, 2]) }),
       })),
       missingRenderHours: [2],

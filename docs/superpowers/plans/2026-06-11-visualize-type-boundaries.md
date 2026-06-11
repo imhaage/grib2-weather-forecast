@@ -1117,7 +1117,7 @@ git commit -m "refactor: type forecast runtime composition"
 - Modify: `apps/visualize/index.js`
 - Modify: UI view factories if their return values need exported interfaces
 
-- [ ] **Step 1: Convert test fixtures to satisfy controller options**
+- [x] **Step 1: Convert test fixtures to satisfy controller options**
 
 Rename the test and update `createController()`:
 
@@ -1129,7 +1129,7 @@ const options = {
 const controller = createForecastRunController(options);
 ```
 
-- [ ] **Step 2: Run typecheck and confirm option mismatches**
+- [x] **Step 2: Run typecheck and confirm option mismatches**
 
 Run:
 
@@ -1139,7 +1139,7 @@ npm run typecheck:visualize
 
 Expected: FAIL until the controller exports and enforces its options.
 
-- [ ] **Step 3: Rename and type the controller**
+- [x] **Step 3: Rename and type the controller**
 
 Use `git mv`, then define:
 
@@ -1151,7 +1151,7 @@ Use `git mv`, then define:
 
 Keep DOM creation in the controller and workflow construction in composition.
 
-- [ ] **Step 4: Run focused tests and checks**
+- [x] **Step 4: Run focused tests and checks**
 
 Run:
 
@@ -1163,7 +1163,7 @@ npm run check:visualize
 
 Expected: all commands pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/visualize/src/controllers apps/visualize/index.js apps/visualize/src/ui

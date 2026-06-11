@@ -1,3 +1,9 @@
+/**
+ * @param {{
+ *   hourLabel?: HTMLElement | null,
+ *   slider: HTMLInputElement
+ * }} options
+ */
 export function createForecastHourControlView({ hourLabel = null, slider }) {
   function selectedIndex() {
     return Number.parseInt(slider.value, 10);

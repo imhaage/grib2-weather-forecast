@@ -1,4 +1,7 @@
-import { createForecastRuntimeFactory } from "../composition/forecast-runtime-factory.js";
+import {
+  type CreateForecastRuntimeFactoryOptions,
+  createForecastRuntimeFactory,
+} from "../composition/forecast-runtime-factory.js";
 import { formatRunSummary } from "../domain/resources.js";
 import { createDataStatusSummaryView } from "../ui/data-status-summary.js";
 import { createForecastDownloadView } from "../ui/forecast-download-view.js";
@@ -8,9 +11,34 @@ import {
   defaultVariableForPackage,
 } from "../ui/forecast-variable-select.js";
 import { createForecastWarmupView } from "../ui/forecast-warmup-view.js";
+import type { ForecastRuntimeApi } from "../use-cases/forecast/runtime-contracts";
 
-function fmtSize(bytes) {
-  return bytes >= 1e6 ? `${(bytes / 1e6).toFixed(1)} MB` : `${(bytes / 1e3).toFixed(0)} KB`;
+function fmtSize(bytes: number | null | undefined) {
+  const size = bytes ?? 0;
+
+  return size >= 1e6 ? `${(size / 1e6).toFixed(1)} MB` : `${(size / 1e3).toFixed(0)} KB`;
+}
+
+export interface ForecastRunDom {
+  cacheWarmup: HTMLElement;
+  cacheWarmupBar: HTMLElement;
+  cacheWarmupCount: HTMLElement;
+  cacheWarmupLabel: HTMLElement;
+  dataStatusSummary: HTMLElement | null;
+  forecastDownloadBars: HTMLElement;
+  forecastDownloadFileList: HTMLElement;
+  forecastDownloadStatus: HTMLElement;
+  forecastHourLabel: HTMLElement | null;
+  forecastSlider: HTMLInputElement;
+  forecastVarSelect: HTMLSelectElement;
+  forecastWindDirectionControl: HTMLElement | null;
+  forecastWindDirectionToggle: HTMLInputElement | null;
+}
+
+export interface CreateForecastRunControllerOptions
+  extends Omit<CreateForecastRuntimeFactoryOptions, "variableControls" | "views"> {
+  document: Document;
+  dom: ForecastRunDom;
 }
 
 export function createForecastRunController({
@@ -34,7 +62,7 @@ export function createForecastRunController({
   setRendering,
   updateDiagnostics,
   updateStorageWarningSizeIfOpen,
-}) {
+}: CreateForecastRunControllerOptions): ForecastRuntimeApi {
   const forecastDownloadView = createForecastDownloadView({
     document,
     barsEl: dom.forecastDownloadBars,
