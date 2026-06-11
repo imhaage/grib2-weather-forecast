@@ -6,8 +6,10 @@ import type {
   ForecastBounds,
   ForecastFeatureCollection,
   ForecastMapCanvas,
+  ForecastMapRendererPort,
   ForecastRaster,
   MapCorner,
+  ViewportBounds,
 } from "../../use-cases/forecast/map-contracts";
 import { createIsobarLayerService } from "./isobar-layer-adapter";
 import { createWindSymbolLayerService } from "./wind-symbol-layer-adapter";
@@ -53,6 +55,20 @@ interface MapRendererOptions {
 
 type FitBoundsArgs = [bounds: ForecastBounds, options?: { animate?: boolean; padding?: number }];
 
+export interface MapLibreMapRendererAdapter extends ForecastMapRendererPort {
+  readonly map: unknown;
+  ensureHeatCanvas(grid: GridDefinition): {
+    canvas: HTMLCanvasElement;
+    canvasChanged: boolean;
+    outH: number;
+    outW: number;
+  };
+  getViewportBounds(): ViewportBounds | null;
+  getZoom(): number;
+  init(fitBoundsArgs?: FitBoundsArgs): Promise<unknown>;
+  onViewportSettled(callback: () => void): void;
+}
+
 function createMapLibreMap() {
   return new maplibregl.Map({
     container: "map",
@@ -68,7 +84,7 @@ export function createMapLibreMapRendererAdapter({
   rasterOpacity,
   tooltipEl,
   wrapEl,
-}: MapRendererOptions) {
+}: MapRendererOptions): MapLibreMapRendererAdapter {
   let map: MapLibreLike | null = null;
   let heatCanvas: HTMLCanvasElement | null = null;
   const isobarLayer = createIsobarLayerService({ getMap: () => map });
@@ -109,6 +125,10 @@ export function createMapLibreMapRendererAdapter({
         heatCanvas = document.createElement("canvas");
         heatCanvas.width = grid.ni;
         heatCanvas.height = needH;
+      }
+
+      if (!heatCanvas) {
+        throw new Error("Heat canvas initialization failed");
       }
 
       return {

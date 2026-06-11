@@ -1259,7 +1259,7 @@ git commit -m "refactor: extract uploaded field use case"
 - Modify: `apps/visualize/src/controllers/map-presentation-controller.js`
 - Modify: `apps/visualize/src/adapters/forecast/maplibre-map-renderer-adapter.ts`
 
-- [ ] **Step 1: Write controller tests**
+- [x] **Step 1: Write controller tests**
 
 Cover:
 
@@ -1273,7 +1273,7 @@ test("closes returned bitmaps after drawing")
 
 Use typed fake ports and jsdom only for user-visible controller behavior.
 
-- [ ] **Step 2: Run tests and verify they fail**
+- [x] **Step 2: Run tests and verify they fail**
 
 Run:
 
@@ -1283,7 +1283,7 @@ npm test -w visualize -- src/controllers/uploaded-field-controller.test.ts
 
 Expected: FAIL because the controller does not exist.
 
-- [ ] **Step 3: Implement the controller**
+- [x] **Step 3: Implement the controller**
 
 Move these responsibilities from `index.js`:
 
@@ -1299,7 +1299,7 @@ Move these responsibilities from `index.js`:
 The controller calls the uploaded-field use case and concrete map/presentation ports. It does not
 decode or rasterize directly.
 
-- [ ] **Step 4: Run focused tests and checks**
+- [x] **Step 4: Run focused tests and checks**
 
 Run:
 
@@ -1314,7 +1314,7 @@ npm run check:visualize
 
 Expected: all commands pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/visualize/src/controllers apps/visualize/src/adapters/forecast \

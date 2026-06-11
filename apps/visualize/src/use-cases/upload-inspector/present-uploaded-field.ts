@@ -22,7 +22,7 @@ interface PresentUploadedFieldRequest {
   renderGeneration: number;
 }
 
-function resolveUploadedMessage(
+export function resolveUploadedMessage(
   messages: UploadedMessage[],
   route: UploadedFieldRoute,
 ): UploadedMessage | null {

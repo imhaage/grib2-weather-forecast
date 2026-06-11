@@ -4,6 +4,8 @@ export function createMapPresentationController({
   getCurrentPalette,
   legendTicksFor,
 }) {
+  const unavailableMessage = dom.map.unavailable.textContent;
+
   function renderColorScaleTicks({ min, max, units, isLog }) {
     dom.colorScale.ticks.replaceChildren();
 
@@ -22,6 +24,11 @@ export function createMapPresentationController({
   }
 
   return {
+    clearError() {
+      dom.map.unavailable.textContent = unavailableMessage;
+      dom.map.unavailable.hidden = true;
+    },
+
     clearStats() {
       dom.stats.min.textContent = "—";
       dom.stats.max.textContent = "—";
@@ -52,7 +59,13 @@ export function createMapPresentationController({
       dom.colorScale.root.hidden = false;
     },
 
+    showError(message) {
+      dom.map.unavailable.textContent = message;
+      dom.map.unavailable.hidden = false;
+    },
+
     showUnavailable() {
+      dom.map.unavailable.textContent = unavailableMessage;
       dom.map.unavailable.hidden = false;
     },
 
