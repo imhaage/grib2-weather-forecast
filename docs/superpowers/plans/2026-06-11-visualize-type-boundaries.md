@@ -1427,7 +1427,7 @@ git commit -m "refactor: create typed visualize bootstrap"
 - Modify: remaining files under `apps/visualize/src`
 - Delete: obsolete type modules after imports are migrated
 
-- [ ] **Step 1: Audit remaining loose boundary types**
+- [x] **Step 1: Audit remaining loose boundary types**
 
 Run:
 
@@ -1444,7 +1444,7 @@ Expected:
 - no browser or MapLibre types in domain;
 - no domain/use-case imports from UI.
 
-- [ ] **Step 2: Remove remaining duplicate declarations**
+- [x] **Step 2: Remove remaining duplicate declarations**
 
 For every remaining duplicate:
 
@@ -1453,7 +1453,7 @@ For every remaining duplicate:
 - narrow external `unknown` at the adapter boundary;
 - preserve `unknown` only for caught errors or unparsed third-party payloads.
 
-- [ ] **Step 3: Verify TypeScript coverage of boundaries**
+- [x] **Step 3: Verify TypeScript coverage of boundaries**
 
 Run:
 
@@ -1465,7 +1465,7 @@ find apps/visualize/src/composition apps/visualize/src/controllers \
 Expected: no JavaScript boundary files remain except deliberately passive UI helpers documented in
 the final commit.
 
-- [ ] **Step 4: Run the complete visualize suite**
+- [x] **Step 4: Run the complete visualize suite**
 
 Run:
 
@@ -1477,7 +1477,7 @@ npm run check:visualize
 
 Expected: all commands pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/visualize/src

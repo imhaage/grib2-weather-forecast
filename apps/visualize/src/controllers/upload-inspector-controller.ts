@@ -1,5 +1,37 @@
 import { createBrowserFileReaderAdapter } from "../adapters/upload-inspector/browser-file-reader-adapter";
 import { inspectUploadedFile } from "../use-cases/upload-inspector/inspect-uploaded-file";
+import type {
+  UploadedFieldRoute,
+  UploadInspectionEvent,
+  UploadInspectionResult,
+  UploadInspectorFile,
+  UploadInspectorFileReaderPort,
+  UploadInspectorMessage,
+} from "../use-cases/upload-inspector/ports";
+import { resolveUploadedMessage } from "../use-cases/upload-inspector/present-uploaded-field";
+
+interface UploadInspectorDom {
+  cards: HTMLElement;
+  centre: HTMLElement;
+  count: HTMLElement;
+  name: HTMLElement;
+  referenceTime: HTMLElement;
+  results: HTMLElement;
+  size: HTMLElement;
+  status: HTMLElement;
+  summary: HTMLElement;
+}
+
+export interface CreateUploadInspectorControllerOptions {
+  centres: Record<number, string>;
+  dom: UploadInspectorDom;
+  fileReader?: UploadInspectorFileReaderPort;
+  formatRefTime(header: UploadInspectorMessage["header"]): string;
+  formatSize(size: number): string;
+  iterateMessages(buffer: ArrayBuffer): Iterable<UploadInspectorMessage>;
+  readFileAsArrayBuffer?(file: UploadInspectorFile): Promise<ArrayBuffer>;
+  renderCard(document: Document, message: UploadInspectorMessage): Node;
+}
 
 export function createUploadInspectorController({
   centres,
@@ -10,13 +42,13 @@ export function createUploadInspectorController({
   fileReader = createBrowserFileReaderAdapter(),
   readFileAsArrayBuffer,
   renderCard,
-}) {
-  let fileState = null;
+}: CreateUploadInspectorControllerOptions) {
+  let fileState: { messages: UploadInspectorMessage[] } | null = null;
   const resolvedFileReader = readFileAsArrayBuffer
     ? { readAsArrayBuffer: readFileAsArrayBuffer }
     : fileReader;
 
-  function setStatus(message, isError = false) {
+  function setStatus(message: string, isError = false) {
     dom.status.textContent = message;
     dom.status.classList.toggle("error", isError);
   }
@@ -27,11 +59,11 @@ export function createUploadInspectorController({
     dom.cards.replaceChildren();
   }
 
-  function renderInspectionResult(result) {
+  function renderInspectionResult(result: UploadInspectionResult) {
     fileState = { messages: result.messages };
     dom.name.textContent = result.file.name;
     dom.size.textContent = result.file.sizeLabel;
-    dom.count.textContent = result.summary.messageCount;
+    dom.count.textContent = String(result.summary.messageCount);
     dom.centre.textContent = result.summary.centreLabel;
     dom.referenceTime.textContent = result.summary.referenceTimeLabel;
     dom.summary.hidden = false;
@@ -42,7 +74,7 @@ export function createUploadInspectorController({
     setStatus("");
   }
 
-  function handleInspectionEvent(event) {
+  function handleInspectionEvent(event: UploadInspectionEvent) {
     switch (event.type) {
       case "reading":
         resetRenderedFile();
@@ -69,7 +101,7 @@ export function createUploadInspectorController({
     dom.status.classList.remove("error");
   }
 
-  async function processFile(file) {
+  async function processFile(file: UploadInspectorFile) {
     await inspectUploadedFile({
       file,
       centres,
@@ -83,19 +115,12 @@ export function createUploadInspectorController({
     });
   }
 
-  function getSelectedMessage(route) {
+  function getSelectedMessage(route: UploadedFieldRoute) {
     if (!fileState) {
       return null;
     }
 
-    if (route.messageIndex != null) {
-      return fileState.messages.find((message) => message.index === route.messageIndex) ?? null;
-    }
-
-    return (
-      fileState.messages.find((message) => message.product.shortName === route.variableShortName) ??
-      null
-    );
+    return resolveUploadedMessage(fileState.messages, route);
   }
 
   return {

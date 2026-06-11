@@ -81,7 +81,7 @@ function openGribCacheDb() {
       console.warn("IndexedDB cache upgrade is blocked by another tab.");
     },
   })
-    .then((db) => db as unknown as GribCacheDb)
+    .then((db) => db as GribCacheDb)
     .catch((error) => {
       console.warn("IndexedDB cache unavailable:", error);
       gribCacheDbPromise = null;

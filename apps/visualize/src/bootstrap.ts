@@ -236,7 +236,7 @@ export function bootstrap({
     dom: domRefs.upload,
     formatRefTime: fmtRefTime,
     formatSize: fmtSize,
-    iterateMessages: iterateGRIB2Messages,
+    iterateMessages: iterateUploadedMessages,
     readFileAsArrayBuffer: undefined,
     renderCard: buildCard,
   });
@@ -431,6 +431,14 @@ export function bootstrap({
 
   function fmtSize(bytes: number) {
     return bytes >= 1e6 ? `${(bytes / 1e6).toFixed(1)} MB` : `${(bytes / 1e3).toFixed(0)} KB`;
+  }
+
+  function* iterateUploadedMessages(buffer: ArrayBuffer) {
+    for (const message of iterateGRIB2Messages(buffer)) {
+      const { grid: _grid, ...uploadedMessage } = message;
+
+      yield uploadedMessage;
+    }
   }
 
   function fmtGrid(grid: GridDefinition) {

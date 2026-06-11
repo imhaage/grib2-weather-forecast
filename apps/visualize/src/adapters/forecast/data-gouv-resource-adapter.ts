@@ -10,12 +10,38 @@ interface DataGouvApiResource {
 interface DataGouvFetchResponse {
   ok: boolean;
   status: number;
-  json: () => Promise<{ resources: DataGouvApiResource[] }>;
+  json: () => Promise<unknown>;
 }
 
 interface DataGouvResourceServiceOptions {
   proxyBaseUrl: string;
   fetchImpl?: (url: string) => Promise<DataGouvFetchResponse>;
+}
+
+function isDataGouvApiResource(value: unknown): value is DataGouvApiResource {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  return typeof Reflect.get(value, "url") === "string";
+}
+
+function parseDataGouvPayload(value: unknown) {
+  if (!value || typeof value !== "object") {
+    throw new Error("Invalid data.gouv.fr response");
+  }
+
+  const resources = Reflect.get(value, "resources");
+
+  if (!Array.isArray(resources) || !resources.every(isDataGouvApiResource)) {
+    throw new Error("Invalid data.gouv.fr resources");
+  }
+
+  return resources;
+}
+
+async function defaultDataGouvFetch(url: string): Promise<DataGouvFetchResponse> {
+  return fetch(url);
 }
 
 export function proxyResourceUrl(url: string, proxyBaseUrl: string) {
@@ -69,7 +95,7 @@ export function parseDataGouvResources(resources: DataGouvApiResource[], titlePa
 
 export function createDataGouvResourceService({
   proxyBaseUrl,
-  fetchImpl = fetch as unknown as (url: string) => Promise<DataGouvFetchResponse>,
+  fetchImpl = defaultDataGouvFetch,
 }: DataGouvResourceServiceOptions) {
   return {
     proxyResourceUrl(url: string) {
@@ -84,8 +110,9 @@ export function createDataGouvResourceService({
       }
 
       const data = await response.json();
+      const resources = parseDataGouvPayload(data);
 
-      return parseDataGouvResources(data.resources, titlePattern);
+      return parseDataGouvResources(resources, titlePattern);
     },
   };
 }

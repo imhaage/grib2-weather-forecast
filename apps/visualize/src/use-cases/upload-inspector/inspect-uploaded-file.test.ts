@@ -5,6 +5,7 @@ import type { UploadInspectionEvent, UploadInspectorMessage } from "./ports";
 function message(index: number, shortName = `var-${index}`): UploadInspectorMessage {
   return {
     index,
+    buffer: new Uint8Array([index]),
     header: { centre: 85 },
     product: { shortName, name: shortName.toUpperCase() },
   };

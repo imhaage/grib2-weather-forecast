@@ -1,26 +1,20 @@
+import type { ForecastFeatureCollection } from "../../use-cases/forecast/map-contracts";
+import type { MapLibreLayerPort } from "./maplibre-contracts";
+
 const ISOBAR_SOURCE_ID = "isobars";
 const ISOBAR_LINE_LAYER_ID = "isobars-line";
 const ISOBAR_LABEL_LAYER_ID = "isobars-label";
 const ISOBAR_COLOR = "#111827";
 
-interface MapLibreLike {
-  addLayer: (layer: Record<string, unknown>) => void;
-  addSource: (id: string, source: Record<string, unknown>) => void;
-  getLayer: (id: string) => unknown;
-  getSource: (id: string) => { setData?: (data: unknown) => void } | null | undefined;
-  removeLayer: (id: string) => void;
-  removeSource: (id: string) => void;
-}
-
-function hasSource(map: MapLibreLike) {
+function hasSource(map: MapLibreLayerPort) {
   return Boolean(map.getSource(ISOBAR_SOURCE_ID));
 }
 
-function hasLayer(map: MapLibreLike, id: string) {
+function hasLayer(map: MapLibreLayerPort, id: string) {
   return Boolean(map.getLayer(id));
 }
 
-export function createIsobarLayerService({ getMap }: { getMap: () => MapLibreLike | null }) {
+export function createIsobarLayerService({ getMap }: { getMap: () => MapLibreLayerPort | null }) {
   function remove() {
     const map = getMap();
 
@@ -41,7 +35,7 @@ export function createIsobarLayerService({ getMap }: { getMap: () => MapLibreLik
     }
   }
 
-  function addLayers(map: MapLibreLike) {
+  function addLayers(map: MapLibreLayerPort) {
     map.addLayer({
       id: ISOBAR_LINE_LAYER_ID,
       type: "line",
@@ -102,5 +96,3 @@ export function createIsobarLayerService({ getMap }: { getMap: () => MapLibreLik
     update,
   };
 }
-
-import type { ForecastFeatureCollection } from "../../use-cases/forecast/map-contracts";

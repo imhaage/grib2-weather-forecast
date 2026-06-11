@@ -12,36 +12,8 @@ import type {
   ViewportBounds,
 } from "../../use-cases/forecast/map-contracts";
 import { createIsobarLayerService } from "./isobar-layer-adapter";
+import type { MapLibreMapPort } from "./maplibre-contracts";
 import { createWindSymbolLayerService } from "./wind-symbol-layer-adapter";
-
-interface BoundsLike {
-  getEast: () => number;
-  getNorth: () => number;
-  getSouth: () => number;
-  getWest: () => number;
-}
-
-interface MapLibreLike {
-  addControl: (control: unknown) => void;
-  addImage?: (
-    id: string,
-    image: { width: number; height: number; data: Uint8ClampedArray },
-  ) => void;
-  addLayer: (layer: Record<string, unknown>) => void;
-  addSource: (id: string, source: Record<string, unknown>) => void;
-  fitBounds: (bounds: unknown, options?: unknown) => void;
-  getBounds?: () => BoundsLike;
-  getLayer: (id: string) => unknown;
-  getSource: (id: string) => { setData?: (data: unknown) => void } | null | undefined;
-  getZoom?: () => number;
-  hasImage?: (id: string) => boolean;
-  once: (event: "load", callback: () => void) => void;
-  on: (event: "moveend" | "zoomend", callback: () => void) => void;
-  removeLayer: (id: string) => void;
-  removeSource: (id: string) => void;
-  resize: () => void;
-  triggerRepaint: () => void;
-}
 
 interface MapRendererOptions {
   canvasHeightForGrid: (grid: GridDefinition) => number;
@@ -73,7 +45,7 @@ function createMapLibreMap() {
   return new maplibregl.Map({
     container: "map",
     style: "https://tiles.openfreemap.org/styles/positron",
-  }) as unknown as MapLibreLike;
+  }) as MapLibreMapPort;
 }
 
 export function createMapLibreMapRendererAdapter({
@@ -85,7 +57,7 @@ export function createMapLibreMapRendererAdapter({
   tooltipEl,
   wrapEl,
 }: MapRendererOptions): MapLibreMapRendererAdapter {
-  let map: MapLibreLike | null = null;
+  let map: MapLibreMapPort | null = null;
   let heatCanvas: HTMLCanvasElement | null = null;
   const isobarLayer = createIsobarLayerService({ getMap: () => map });
   const windSymbolLayer = createWindSymbolLayerService({ getMap: () => map });

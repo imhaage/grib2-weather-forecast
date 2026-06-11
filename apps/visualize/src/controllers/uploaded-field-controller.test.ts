@@ -89,9 +89,12 @@ function createController(
   result: PresentUploadedFieldResult = createSuccessResult(),
   overrides: Partial<CreateUploadedFieldControllerOptions> = {},
 ) {
-  const state = {
+  const state: {
+    gridState: unknown;
+    palette: string;
+  } = {
     palette: "Plasma",
-    gridState: null as unknown,
+    gridState: null,
   };
   const source = {
     getMessages: vi.fn(() => [message]),

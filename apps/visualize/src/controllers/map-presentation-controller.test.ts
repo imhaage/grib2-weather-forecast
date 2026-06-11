@@ -3,6 +3,16 @@
 import { describe, expect, test, vi } from "vitest";
 import { createMapPresentationController } from "./map-presentation-controller.js";
 
+function mustGetElement(id: string) {
+  const element = document.getElementById(id);
+
+  if (!element) {
+    throw new Error(`Missing test element: ${id}`);
+  }
+
+  return element;
+}
+
 function createMapDom() {
   document.body.innerHTML = `
     <span id="forecast-valid-time"></span>
@@ -22,27 +32,27 @@ function createMapDom() {
 
   return {
     forecast: {
-      validTime: document.getElementById("forecast-valid-time"),
+      validTime: mustGetElement("forecast-valid-time"),
     },
     map: {
-      unavailable: document.getElementById("map-unavailable"),
+      unavailable: mustGetElement("map-unavailable"),
     },
     mapInfo: {
-      subtitle: document.getElementById("gv-sub"),
-      name: document.getElementById("gv-name"),
-      description: document.getElementById("gv-desc"),
-      level: document.getElementById("gv-level"),
+      subtitle: mustGetElement("gv-sub"),
+      name: mustGetElement("gv-name"),
+      description: mustGetElement("gv-desc"),
+      level: mustGetElement("gv-level"),
     },
     stats: {
-      min: document.getElementById("gv-min"),
-      max: document.getElementById("gv-max"),
-      mean: document.getElementById("gv-mean"),
-      valid: document.getElementById("gv-valid"),
+      min: mustGetElement("gv-min"),
+      max: mustGetElement("gv-max"),
+      mean: mustGetElement("gv-mean"),
+      valid: mustGetElement("gv-valid"),
     },
     colorScale: {
-      root: document.getElementById("colorscale"),
-      bar: document.getElementById("cs-bar"),
-      ticks: document.getElementById("cs-ticks"),
+      root: mustGetElement("colorscale"),
+      bar: mustGetElement("cs-bar"),
+      ticks: mustGetElement("cs-ticks"),
     },
   };
 }
@@ -66,21 +76,26 @@ describe("map presentation controller", () => {
     const controller = createController();
 
     controller.updateParamInfo("Temperature", "Air temperature", "AROME 0.01 SP1");
-    controller.updateLevelInfo({ level: "2m", units: "°C" });
+    controller.updateLevelInfo({
+      shortName: "t",
+      name: "Temperature",
+      level: "2m",
+      units: "°C",
+    });
     controller.setForecastValidTime("AROME 0.01 - SP1 : 2026-06-01 12:00 UTC");
     controller.updateStats(1.2345, 8.7654, 4.2, 1234, "°C");
 
-    expect(document.getElementById("gv-name").textContent).toBe("Temperature");
-    expect(document.getElementById("gv-desc").textContent).toBe("Air temperature");
-    expect(document.getElementById("gv-sub").textContent).toBe("AROME 0.01 SP1");
-    expect(document.getElementById("gv-level").textContent).toBe("2m · °C");
-    expect(document.getElementById("forecast-valid-time").textContent).toBe(
+    expect(mustGetElement("gv-name").textContent).toBe("Temperature");
+    expect(mustGetElement("gv-desc").textContent).toBe("Air temperature");
+    expect(mustGetElement("gv-sub").textContent).toBe("AROME 0.01 SP1");
+    expect(mustGetElement("gv-level").textContent).toBe("2m · °C");
+    expect(mustGetElement("forecast-valid-time").textContent).toBe(
       "AROME 0.01 - SP1 : 2026-06-01 12:00 UTC",
     );
-    expect(document.getElementById("gv-min").textContent).toBe("1.234 °C");
-    expect(document.getElementById("gv-max").textContent).toBe("8.765 °C");
-    expect(document.getElementById("gv-mean").textContent).toBe("4.200 °C");
-    expect(document.getElementById("gv-valid").textContent).toBe("1,234");
+    expect(mustGetElement("gv-min").textContent).toBe("1.234 °C");
+    expect(mustGetElement("gv-max").textContent).toBe("8.765 °C");
+    expect(mustGetElement("gv-mean").textContent).toBe("4.200 °C");
+    expect(mustGetElement("gv-valid").textContent).toBe("1,234");
   });
 
   test("renders color scale ticks and gradient", () => {
@@ -99,7 +114,7 @@ describe("map presentation controller", () => {
     ]);
 
     const ticks = [...document.querySelectorAll(".cs-tick")];
-    expect(document.getElementById("colorscale").hidden).toBe(false);
+    expect(mustGetElement("colorscale").hidden).toBe(false);
     expect(legendTicksFor).toHaveBeenCalledWith({
       paletteName: "Temperature",
       min: -10,
@@ -107,7 +122,7 @@ describe("map presentation controller", () => {
       isLog: false,
     });
     expect(ticks.map((tick) => tick.textContent)).toEqual(["-10.0", "0.0", "10.0"]);
-    expect(document.getElementById("cs-bar").style.background).toContain("linear-gradient");
+    expect(mustGetElement("cs-bar").style.background).toContain("linear-gradient");
   });
 
   test("toggles unavailable and clears visual summaries", () => {
@@ -118,11 +133,11 @@ describe("map presentation controller", () => {
     controller.clearStats();
     controller.hideColorScale();
 
-    expect(document.getElementById("map-unavailable").hidden).toBe(false);
-    expect(document.getElementById("colorscale").hidden).toBe(true);
-    expect(document.getElementById("gv-min").textContent).toBe("—");
-    expect(document.getElementById("gv-max").textContent).toBe("—");
-    expect(document.getElementById("gv-mean").textContent).toBe("—");
-    expect(document.getElementById("gv-valid").textContent).toBe("—");
+    expect(mustGetElement("map-unavailable").hidden).toBe(false);
+    expect(mustGetElement("colorscale").hidden).toBe(true);
+    expect(mustGetElement("gv-min").textContent).toBe("—");
+    expect(mustGetElement("gv-max").textContent).toBe("—");
+    expect(mustGetElement("gv-mean").textContent).toBe("—");
+    expect(mustGetElement("gv-valid").textContent).toBe("—");
   });
 });

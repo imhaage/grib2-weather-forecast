@@ -13,9 +13,7 @@ export interface UploadInspectorFile {
   size: number;
 }
 
-export interface UploadInspectorMessage extends Omit<UploadedMessage, "buffer"> {
-  buffer?: Uint8Array;
-}
+export type UploadInspectorMessage = UploadedMessage;
 
 export interface UploadInspectionResult {
   file: {
