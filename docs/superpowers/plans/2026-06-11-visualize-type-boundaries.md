@@ -1332,7 +1332,7 @@ git commit -m "refactor: add uploaded field controller"
 - Modify: `apps/visualize/index.js`
 - Modify: event and router modules only as required for typed bootstrap options
 
-- [ ] **Step 1: Add a bootstrap smoke test**
+- [x] **Step 1: Add a bootstrap smoke test**
 
 Create `bootstrap.test.ts` with injected browser ports and assert:
 
@@ -1342,7 +1342,7 @@ test("wires controllers, starts the router, and initializes shell UI")
 
 The test must not load real MapLibre, workers, IndexedDB, or network.
 
-- [ ] **Step 2: Run the bootstrap test and verify it fails**
+- [x] **Step 2: Run the bootstrap test and verify it fails**
 
 Run:
 
@@ -1352,7 +1352,7 @@ npm test -w visualize -- src/bootstrap.test.ts
 
 Expected: FAIL because `bootstrap.ts` does not exist.
 
-- [ ] **Step 3: Create `bootstrap.ts`**
+- [x] **Step 3: Create `bootstrap.ts`**
 
 Move composition and event wiring from `index.js` into a typed `bootstrap()` function:
 
@@ -1367,7 +1367,7 @@ Move composition and event wiring from `index.js` into a typed `bootstrap()` fun
 
 Inject browser globals through a small `BrowserEnvironment` interface in tests.
 
-- [ ] **Step 4: Remove uploaded-field workflow code from `index.js`**
+- [x] **Step 4: Remove uploaded-field workflow code from `index.js`**
 
 Delete the old:
 
@@ -1380,7 +1380,7 @@ uploaded-field palette workflow
 
 Delegate to `uploadedFieldController`.
 
-- [ ] **Step 5: Reduce the legacy entry**
+- [x] **Step 5: Reduce the legacy entry**
 
 Prefer deleting `index.js` and changing `src/main.js` to:
 
@@ -1394,7 +1394,7 @@ bootstrap();
 
 If a temporary compatibility entry is still required, it may only import and call `bootstrap()`.
 
-- [ ] **Step 6: Run focused tests and checks**
+- [x] **Step 6: Run focused tests and checks**
 
 Run:
 
@@ -1413,7 +1413,7 @@ npm run check:visualize
 
 Expected: all commands pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/visualize/src apps/visualize/index.js

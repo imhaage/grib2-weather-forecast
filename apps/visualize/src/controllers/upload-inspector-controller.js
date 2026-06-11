@@ -99,6 +99,7 @@ export function createUploadInspectorController({
   }
 
   return {
+    getMessages: () => fileState?.messages ?? [],
     getSelectedMessage,
     hasFile: () => Boolean(fileState),
     processFile,

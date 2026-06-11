@@ -1,3 +1,5 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import "../style.css";
-import "../index.js";
+import { bootstrap } from "./bootstrap";
+
+bootstrap();
