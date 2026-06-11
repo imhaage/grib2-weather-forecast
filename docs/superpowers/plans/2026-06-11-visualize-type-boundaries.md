@@ -587,7 +587,7 @@ git commit -m "refactor: type forecast workflow contracts"
 - Modify: `apps/visualize/src/adapters/forecast/grib-cache-adapter.ts`
 - Modify: corresponding tests
 
-- [ ] **Step 1: Add compile-time assertions to refresh tests**
+- [x] **Step 1: Add compile-time assertions to refresh tests**
 
 In `refresh-blocks.test.ts`, type the fixtures with `satisfies RemoteResource`,
 `satisfies ForecastDownloadSession`, and the exported refresh port type. Add one invalid fixture:
@@ -597,7 +597,7 @@ In `refresh-blocks.test.ts`, type the fixtures with `satisfies RemoteResource`,
 const invalidResource: RemoteResource = { key: "01H" };
 ```
 
-- [ ] **Step 2: Run typecheck and confirm the current contracts fail**
+- [x] **Step 2: Run typecheck and confirm the current contracts fail**
 
 Run:
 
@@ -607,7 +607,7 @@ npm run typecheck:visualize
 
 Expected: FAIL where loose refresh/session types do not satisfy the canonical contracts.
 
-- [ ] **Step 3: Replace open refresh interfaces**
+- [x] **Step 3: Replace open refresh interfaces**
 
 In `refresh-blocks.ts`:
 
@@ -620,7 +620,7 @@ In `refresh-blocks.ts`:
 
 Align `store-available-block.ts`, `manage-presentation-queue.ts`, and the cache adapter.
 
-- [ ] **Step 4: Run focused tests and checks**
+- [x] **Step 4: Run focused tests and checks**
 
 Run:
 
@@ -636,7 +636,7 @@ npm run check:visualize
 
 Expected: all commands pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/visualize/src/use-cases/forecast apps/visualize/src/adapters/forecast/grib-cache-adapter*

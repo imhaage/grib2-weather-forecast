@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { makeRemoteResource } from "../../use-cases/forecast/forecast-test-fixtures";
 import {
   createGribCacheService,
   type GribCacheRecord,
@@ -89,12 +90,12 @@ describe("grib cache adapter", () => {
   test("stores and reads cached GRIB blocks through an injected storage adapter", async () => {
     const { storage } = createMemoryStorage();
     const service = createGribCacheService({ storage });
-    const block = {
+    const block = makeRemoteResource({
       key: "01H",
       runId: "2026-05-22T03:00:00Z",
       filesize: 3,
       url: "https://example.test/arome__SP1__01H.grib2",
-    };
+    });
     const buffer = new Uint8Array([1, 2, 3]);
 
     await expect(service.writeCachedGribBlock("AROME_SP1", block, buffer)).resolves.toBe(true);
@@ -104,12 +105,12 @@ describe("grib cache adapter", () => {
   test("reads the latest older cached block as stale fallback", async () => {
     const { records, storage } = createMemoryStorage();
     const service = createGribCacheService({ storage });
-    const block = {
+    const block = makeRemoteResource({
       key: "01H",
       runId: "2026-05-22T06:00:00Z",
       filesize: 3,
       url: "https://example.test/latest.grib2",
-    };
+    });
     records.set("old", {
       id: "old",
       packageKey: "AROME_SP1",
@@ -136,12 +137,12 @@ describe("grib cache adapter", () => {
   test("uses a compatible cached block from the same or newer run", async () => {
     const { records, storage } = createMemoryStorage();
     const service = createGribCacheService({ storage });
-    const block = {
+    const block = makeRemoteResource({
       key: "01H",
       runId: "2026-05-22T03:00:00Z",
       filesize: 3,
       url: "https://example.test/requested.grib2",
-    };
+    });
     records.set("compatible", {
       id: "compatible",
       packageKey: "AROME_SP1",
@@ -160,12 +161,12 @@ describe("grib cache adapter", () => {
   test("deletes obsolete cached blocks after a current block is stored", async () => {
     const { records, storage } = createMemoryStorage();
     const service = createGribCacheService({ storage });
-    const block = {
+    const block = makeRemoteResource({
       key: "01H",
       runId: "2026-05-22T06:00:00Z",
       filesize: 3,
       url: "https://example.test/current.grib2",
-    };
+    });
     records.set("obsolete", {
       id: "obsolete",
       packageKey: "AROME_SP1",

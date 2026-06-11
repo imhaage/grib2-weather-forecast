@@ -1,7 +1,10 @@
+import type { BlockStatus, RemoteResource } from "../../domain/forecast-types";
+import type { ForecastDownloadSession } from "./contracts";
+
 interface PresentationJob {
-  block: unknown;
-  buffer: unknown;
-  status: string;
+  block: RemoteResource;
+  buffer: Uint8Array;
+  status: BlockStatus;
 }
 
 interface PresentationQueue {
@@ -11,13 +14,13 @@ interface PresentationQueue {
 }
 
 interface CreateForecastPresentationQueueServiceOptions {
-  readyStatus: string;
-  isSessionActive: (session: object) => boolean;
+  readyStatus: BlockStatus;
+  isSessionActive: (session: ForecastDownloadSession) => boolean;
   presentAvailableBlock: (
-    block: unknown,
-    buffer: unknown,
-    status: string,
-    session: object,
+    block: RemoteResource,
+    buffer: Uint8Array,
+    status: BlockStatus,
+    session: ForecastDownloadSession,
   ) => Promise<void> | void;
   scheduleLowPriorityWork: () => Promise<void>;
 }
@@ -28,9 +31,9 @@ export function createForecastPresentationQueueService({
   presentAvailableBlock,
   scheduleLowPriorityWork,
 }: CreateForecastPresentationQueueServiceOptions) {
-  const queueBySession = new WeakMap<object, PresentationQueue>();
+  const queueBySession = new WeakMap<ForecastDownloadSession, PresentationQueue>();
 
-  function queueForSession(session: object) {
+  function queueForSession(session: ForecastDownloadSession) {
     let queue = queueBySession.get(session);
 
     if (!queue) {
@@ -53,7 +56,7 @@ export function createForecastPresentationQueueService({
     }
   }
 
-  async function drainQueue(session: object, queue: PresentationQueue) {
+  async function drainQueue(session: ForecastDownloadSession, queue: PresentationQueue) {
     if (queue.isPresenting) {
       return;
     }
@@ -86,10 +89,10 @@ export function createForecastPresentationQueueService({
   }
 
   async function enqueueAvailableBlock(
-    block: unknown,
-    buffer: unknown,
-    status: string,
-    session: object,
+    block: RemoteResource,
+    buffer: Uint8Array,
+    status: BlockStatus,
+    session: ForecastDownloadSession,
   ) {
     if (status !== readyStatus) {
       await presentAvailableBlock(block, buffer, status, session);
@@ -102,7 +105,7 @@ export function createForecastPresentationQueueService({
     await drainQueue(session, queue);
   }
 
-  function waitForIdle(session: object) {
+  function waitForIdle(session: ForecastDownloadSession) {
     const queue = queueForSession(session);
 
     if (!queue.isPresenting && queue.jobs.length === 0) {

@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
+import { makeForecastDownloadSession, makeRemoteResource } from "./forecast-test-fixtures";
 import { createForecastPresentationQueueService } from "./manage-presentation-queue";
 
 describe("forecast presentation queue use case", () => {
@@ -14,10 +15,20 @@ describe("forecast presentation queue use case", () => {
         events.push("schedule");
       }),
     });
-    const session = {};
+    const session = makeForecastDownloadSession();
 
-    await service.enqueueAvailableBlock({ key: "01H" }, new Uint8Array([1]), "ready", session);
-    await service.enqueueAvailableBlock({ key: "02H" }, new Uint8Array([2]), "ready", session);
+    await service.enqueueAvailableBlock(
+      makeRemoteResource(),
+      new Uint8Array([1]),
+      "ready",
+      session,
+    );
+    await service.enqueueAvailableBlock(
+      makeRemoteResource({ key: "02H" }),
+      new Uint8Array([2]),
+      "ready",
+      session,
+    );
 
     expect(events).toEqual(["schedule", "present:01H", "schedule", "present:02H"]);
   });
@@ -31,9 +42,9 @@ describe("forecast presentation queue use case", () => {
       presentAvailableBlock,
       scheduleLowPriorityWork,
     });
-    const block = { key: "01H" };
+    const block = makeRemoteResource();
     const buffer = new Uint8Array([1]);
-    const session = {};
+    const session = makeForecastDownloadSession();
 
     await service.enqueueAvailableBlock(block, buffer, "loaded-from-cache", session);
 
@@ -54,10 +65,10 @@ describe("forecast presentation queue use case", () => {
           }),
       ),
     });
-    const session = {};
+    const session = makeForecastDownloadSession();
 
     const enqueuePromise = service.enqueueAvailableBlock(
-      { key: "01H" },
+      makeRemoteResource(),
       new Uint8Array([1]),
       "ready",
       session,

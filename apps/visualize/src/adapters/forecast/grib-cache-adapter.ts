@@ -1,16 +1,10 @@
 import { openDB } from "idb";
+import type { RemoteResource } from "../../domain/forecast-types";
 import { runTimeValue } from "../../domain/resources.js";
 
 const GRIB_CACHE_DB_NAME = "grib2-visualizer-cache";
 const GRIB_CACHE_DB_VERSION = 2;
 const GRIB_BLOCK_STORE = "gribBlocks";
-
-export interface GribBlock {
-  filesize?: number | null;
-  key: string;
-  runId?: string | null;
-  url: string;
-}
 
 export interface GribCacheRecord {
   blockKey: string;
@@ -98,7 +92,7 @@ function openGribCacheDb() {
   return gribCacheDbPromise;
 }
 
-function gribBlockCacheKey(packageKey: string, block: GribBlock) {
+function gribBlockCacheKey(packageKey: string, block: RemoteResource) {
   return [
     "grib2",
     packageKey,
@@ -120,18 +114,18 @@ function copyToArrayBuffer(buffer: Uint8Array) {
   return copy.buffer;
 }
 
-function hasCompatibleCachedGribBlockSize(record: GribCacheRecord, block: GribBlock) {
+function hasCompatibleCachedGribBlockSize(record: GribCacheRecord, block: RemoteResource) {
   return record.filesize == null || block.filesize == null || record.filesize === block.filesize;
 }
 
-function isUsableCachedGribBlock(record: GribCacheRecord, block: GribBlock) {
+function isUsableCachedGribBlock(record: GribCacheRecord, block: RemoteResource) {
   return (
     runTimeValue(record.runId) >= runTimeValue(block.runId) &&
     hasCompatibleCachedGribBlockSize(record, block)
   );
 }
 
-function isOlderCachedGribBlock(record: GribCacheRecord, block: GribBlock) {
+function isOlderCachedGribBlock(record: GribCacheRecord, block: RemoteResource) {
   return runTimeValue(record.runId) < runTimeValue(block.runId);
 }
 
@@ -227,7 +221,7 @@ export function createGribCacheService({
   storage?: GribCacheStorage;
 } = {}) {
   return {
-    async readCachedGribBlock(packageKey: string, block: GribBlock) {
+    async readCachedGribBlock(packageKey: string, block: RemoteResource) {
       try {
         const record = await storage.get(gribBlockCacheKey(packageKey, block));
         const exactBuffer = cachedGribBlockBuffer(record);
@@ -248,7 +242,7 @@ export function createGribCacheService({
       }
     },
 
-    async readLatestCachedGribBlock(packageKey: string, block: GribBlock) {
+    async readLatestCachedGribBlock(packageKey: string, block: RemoteResource) {
       try {
         const currentId = gribBlockCacheKey(packageKey, block);
         const latest = await storage.findByPackageBlock(
@@ -266,7 +260,7 @@ export function createGribCacheService({
       }
     },
 
-    async writeCachedGribBlock(packageKey: string, block: GribBlock, buffer: Uint8Array) {
+    async writeCachedGribBlock(packageKey: string, block: RemoteResource, buffer: Uint8Array) {
       try {
         const cacheBuffer = copyToArrayBuffer(buffer);
         const record = {
@@ -288,7 +282,7 @@ export function createGribCacheService({
       }
     },
 
-    async deleteObsoleteCachedGribBlocks(packageKey: string, block: GribBlock) {
+    async deleteObsoleteCachedGribBlocks(packageKey: string, block: RemoteResource) {
       try {
         await storage.deleteObsolete(packageKey, block.key, gribBlockCacheKey(packageKey, block));
       } catch (error) {
@@ -308,23 +302,23 @@ export function createGribCacheService({
 
 const defaultGribCacheService = createGribCacheService();
 
-export async function readCachedGribBlock(packageKey: string, block: GribBlock) {
+export async function readCachedGribBlock(packageKey: string, block: RemoteResource) {
   return defaultGribCacheService.readCachedGribBlock(packageKey, block);
 }
 
-export async function readLatestCachedGribBlock(packageKey: string, block: GribBlock) {
+export async function readLatestCachedGribBlock(packageKey: string, block: RemoteResource) {
   return defaultGribCacheService.readLatestCachedGribBlock(packageKey, block);
 }
 
 export async function writeCachedGribBlock(
   packageKey: string,
-  block: GribBlock,
+  block: RemoteResource,
   buffer: Uint8Array,
 ) {
   return defaultGribCacheService.writeCachedGribBlock(packageKey, block, buffer);
 }
 
-export async function deleteObsoleteCachedGribBlocks(packageKey: string, block: GribBlock) {
+export async function deleteObsoleteCachedGribBlocks(packageKey: string, block: RemoteResource) {
   return defaultGribCacheService.deleteObsoleteCachedGribBlocks(packageKey, block);
 }
 

@@ -1,4 +1,6 @@
 import pLimit from "p-limit";
+import type { BlockStatus, CacheLoadStatus, RemoteResource } from "../../domain/forecast-types";
+import type { ForecastDownloadSession, ForecastRefreshKey } from "./contracts";
 
 export const CACHE_LOAD_RESULT = Object.freeze({
   CURRENT: "current",
@@ -6,51 +8,35 @@ export const CACHE_LOAD_RESULT = Object.freeze({
   MISSING: "missing",
 });
 
-type CacheLoadResultStatus = (typeof CACHE_LOAD_RESULT)[keyof typeof CACHE_LOAD_RESULT];
-
-export interface ForecastBlock {
-  filesize?: number | null;
-  key: string;
-  url: string;
-  [key: string]: unknown;
-}
-
-interface ForecastSession {
-  downloadKey: unknown;
-  packageKey: string;
-  resources: ForecastBlock[];
-  [key: string]: unknown;
-}
-
 interface CacheLoadResult {
-  block: ForecastBlock;
-  status: CacheLoadResultStatus;
+  block: RemoteResource;
+  status: CacheLoadStatus;
 }
 
 interface ForecastBlockStatuses {
-  DOWNLOADING: string;
-  LOADED_FROM_CACHE: string;
-  READY: string;
+  DOWNLOADING: BlockStatus;
+  LOADED_FROM_CACHE: BlockStatus;
+  READY: BlockStatus;
 }
 
 interface CachePorts {
-  deleteObsoleteCachedBlocks: (packageKey: string, block: ForecastBlock) => Promise<unknown>;
-  readCachedBlock: (packageKey: string, block: ForecastBlock) => Promise<Uint8Array | null>;
+  deleteObsoleteCachedBlocks: (packageKey: string, block: RemoteResource) => Promise<void>;
+  readCachedBlock: (packageKey: string, block: RemoteResource) => Promise<Uint8Array | null>;
   readLatestCachedBlock: (
     packageKey: string,
-    block: ForecastBlock,
+    block: RemoteResource,
   ) => Promise<{ buffer: Uint8Array } | null>;
   writeCachedBlock: (
     packageKey: string,
-    block: ForecastBlock,
+    block: RemoteResource,
     buffer: Uint8Array,
   ) => Promise<boolean>;
 }
 
 interface LifecyclePorts {
-  isBlockInMemoryCurrent: (block: ForecastBlock, previousBlock?: ForecastBlock) => boolean;
-  isBlockInMemoryStale: (block: ForecastBlock, previousBlock?: ForecastBlock) => boolean;
-  isRefreshActive: (downloadKey: unknown) => boolean;
+  isBlockInMemoryCurrent: (block: RemoteResource, previousBlock?: RemoteResource) => boolean;
+  isBlockInMemoryStale: (block: RemoteResource, previousBlock?: RemoteResource) => boolean;
+  isRefreshActive: (downloadKey: ForecastRefreshKey) => boolean;
 }
 
 interface NetworkPorts {
@@ -63,23 +49,23 @@ interface NetworkPorts {
 
 interface PresentationPorts {
   enqueueAvailableBlock: (
-    block: ForecastBlock,
+    block: RemoteResource,
     buffer: Uint8Array,
-    status: string,
-    session: ForecastSession,
-  ) => Promise<unknown>;
-  waitForPresentationIdle: (session: ForecastSession) => Promise<unknown>;
+    status: BlockStatus,
+    session: ForecastDownloadSession,
+  ) => Promise<void>;
+  waitForPresentationIdle: (session: ForecastDownloadSession) => Promise<void>;
 }
 
 interface StatusPorts {
   markInMemoryBlockAvailable: (
-    block: ForecastBlock,
-    status: string,
-    session: ForecastSession,
+    block: RemoteResource,
+    status: BlockStatus,
+    session: ForecastDownloadSession,
   ) => void;
-  resetBlockDownloadProgress: (block: ForecastBlock) => void;
-  setBlockDownloadProgress: (block: ForecastBlock, progress: string) => void;
-  setBlockStatus: (block: ForecastBlock, status: string) => void;
+  resetBlockDownloadProgress: (block: RemoteResource) => void;
+  setBlockDownloadProgress: (block: RemoteResource, progress: string) => void;
+  setBlockStatus: (block: RemoteResource, status: BlockStatus) => void;
 }
 
 export interface ForecastBlockRefreshUseCaseOptions {
@@ -102,7 +88,7 @@ async function mapWithConcurrency<T, R>(
   return Promise.all(items.map((item, index) => limit(() => worker(item, index))));
 }
 
-function resourcesByBlockKey(resources: ForecastBlock[]) {
+function resourcesByBlockKey(resources: RemoteResource[]) {
   return new Map(resources.map((block) => [block.key, block]));
 }
 
@@ -117,9 +103,9 @@ export function createForecastBlockRefreshUseCase({
 }: ForecastBlockRefreshUseCaseOptions) {
   async function loadCachedBlock(
     packageKey: string,
-    block: ForecastBlock,
-    downloadKey: unknown,
-    onAvailable: (block: ForecastBlock, buffer: Uint8Array, status: string) => Promise<unknown>,
+    block: RemoteResource,
+    downloadKey: ForecastRefreshKey,
+    onAvailable: (block: RemoteResource, buffer: Uint8Array, status: BlockStatus) => Promise<void>,
   ): Promise<CacheLoadResult | undefined> {
     const cachedBuffer = await cache.readCachedBlock(packageKey, block);
 
@@ -150,10 +136,10 @@ export function createForecastBlockRefreshUseCase({
 
   async function refreshBlockFromNetwork(
     packageKey: string,
-    block: ForecastBlock,
-    downloadKey: unknown,
-    onAvailable: (block: ForecastBlock, buffer: Uint8Array, status: string) => Promise<unknown>,
-  ) {
+    block: RemoteResource,
+    downloadKey: ForecastRefreshKey,
+    onAvailable: (block: RemoteResource, buffer: Uint8Array, status: BlockStatus) => Promise<void>,
+  ): Promise<void> {
     if (!lifecycle.isRefreshActive(downloadKey)) {
       return;
     }
@@ -181,14 +167,14 @@ export function createForecastBlockRefreshUseCase({
   }
 
   async function refreshBlocksToLatest(
-    session: ForecastSession,
-    { previousResources = [] }: { previousResources?: ForecastBlock[] } = {},
-  ) {
+    session: ForecastDownloadSession,
+    { previousResources = [] }: { previousResources?: RemoteResource[] } = {},
+  ): Promise<boolean> {
     const previousBlocks = resourcesByBlockKey(previousResources);
     const enqueueAvailableBlock = async (
-      block: ForecastBlock,
+      block: RemoteResource,
       buffer: Uint8Array,
-      status: string,
+      status: BlockStatus,
     ) => {
       await presentation.enqueueAvailableBlock(block, buffer, status, session);
     };

@@ -1,4 +1,10 @@
 import { describe, expect, test, vi } from "vitest";
+import type { RemoteResource } from "../../domain/forecast-types";
+import {
+  makeForecastDownloadSession,
+  makeForecastRefreshKey,
+  makeRemoteResource,
+} from "./forecast-test-fixtures";
 import {
   CACHE_LOAD_RESULT,
   createForecastBlockRefreshUseCase,
@@ -62,10 +68,25 @@ function createService(overrides: TestOverrides = {}) {
 }
 
 describe("forecast block refresh use case", () => {
+  test("requires remote resources to provide their download URL", () => {
+    // @ts-expect-error Remote resources require a URL.
+    const invalidResource: RemoteResource = { key: "01H" };
+
+    expect(invalidResource.key).toBe("01H");
+  });
+
   test("loads cache first, downloads missing blocks before refreshing stale blocks", async () => {
     const events: string[] = [];
-    const missingBlock = { key: "01H", url: "https://example.test/missing", filesize: 1 };
-    const staleBlock = { key: "02H", url: "https://example.test/stale", filesize: 1 };
+    const missingBlock = makeRemoteResource({
+      key: "01H",
+      url: "https://example.test/missing",
+      filesize: 1,
+    });
+    const staleBlock = makeRemoteResource({
+      key: "02H",
+      url: "https://example.test/stale",
+      filesize: 1,
+    });
     const service = createService({
       cache: {
         readLatestCachedBlock: vi.fn(async (_packageKey, block) => {
@@ -90,11 +111,9 @@ describe("forecast block refresh use case", () => {
       },
     });
 
-    const result = await service.refreshBlocksToLatest({
-      packageKey: "AROME_SP1",
-      resources: [missingBlock, staleBlock],
-      downloadKey: {},
-    });
+    const result = await service.refreshBlocksToLatest(
+      makeForecastDownloadSession({ resources: [missingBlock, staleBlock] }),
+    );
 
     expect(result).toBe(true);
     expect(events).toEqual([
@@ -107,9 +126,10 @@ describe("forecast block refresh use case", () => {
   });
 
   test("returns typed cache load results for current, stale, and missing blocks", async () => {
-    const currentBlock = { key: "01H", url: "https://example.test/01H" };
-    const staleBlock = { key: "02H", url: "https://example.test/02H" };
-    const missingBlock = { key: "03H", url: "https://example.test/03H" };
+    const currentBlock = makeRemoteResource({ key: "01H", url: "https://example.test/01H" });
+    const staleBlock = makeRemoteResource({ key: "02H", url: "https://example.test/02H" });
+    const missingBlock = makeRemoteResource({ key: "03H", url: "https://example.test/03H" });
+    const downloadKey = makeForecastRefreshKey();
     const service = createService({
       cache: {
         readCachedBlock: vi.fn(async (_packageKey, block) =>
@@ -121,15 +141,21 @@ describe("forecast block refresh use case", () => {
       },
     });
 
-    await expect(service.loadCachedBlock("AROME_SP1", currentBlock, {}, vi.fn())).resolves.toEqual({
+    await expect(
+      service.loadCachedBlock("AROME_SP1", currentBlock, downloadKey, vi.fn()),
+    ).resolves.toEqual({
       status: CACHE_LOAD_RESULT.CURRENT,
       block: currentBlock,
     });
-    await expect(service.loadCachedBlock("AROME_SP1", staleBlock, {}, vi.fn())).resolves.toEqual({
+    await expect(
+      service.loadCachedBlock("AROME_SP1", staleBlock, downloadKey, vi.fn()),
+    ).resolves.toEqual({
       status: CACHE_LOAD_RESULT.STALE,
       block: staleBlock,
     });
-    await expect(service.loadCachedBlock("AROME_SP1", missingBlock, {}, vi.fn())).resolves.toEqual({
+    await expect(
+      service.loadCachedBlock("AROME_SP1", missingBlock, downloadKey, vi.fn()),
+    ).resolves.toEqual({
       status: CACHE_LOAD_RESULT.MISSING,
       block: missingBlock,
     });
@@ -160,8 +186,8 @@ describe("forecast block refresh use case", () => {
 
     await service.refreshBlockFromNetwork(
       "AROME_SP1",
-      { key: "01H", url: "https://example.test/01H", filesize: 1 },
-      {},
+      makeRemoteResource({ key: "01H", url: "https://example.test/01H", filesize: 1 }),
+      makeForecastRefreshKey(),
       enqueueAvailableBlock,
     );
 
@@ -171,12 +197,16 @@ describe("forecast block refresh use case", () => {
 
   test("presents in-memory stale blocks before refreshing them from network", async () => {
     const events: string[] = [];
-    const block = { key: "01H", url: "https://example.test/01H", filesize: 1 };
-    const previousBlock = {
+    const block = makeRemoteResource({
+      key: "01H",
+      url: "https://example.test/01H",
+      filesize: 1,
+    });
+    const previousBlock = makeRemoteResource({
       key: "01H",
       url: "https://example.test/previous",
       runId: "2026-05-22T00:00:00Z",
-    };
+    });
     const service = createService({
       lifecycle: {
         isBlockInMemoryStale: (_block, candidate) => candidate === previousBlock,
@@ -200,14 +230,9 @@ describe("forecast block refresh use case", () => {
       },
     });
 
-    await service.refreshBlocksToLatest(
-      {
-        packageKey: "AROME_SP1",
-        resources: [block],
-        downloadKey: {},
-      },
-      { previousResources: [previousBlock] },
-    );
+    await service.refreshBlocksToLatest(makeForecastDownloadSession({ resources: [block] }), {
+      previousResources: [previousBlock],
+    });
 
     expect(events).toEqual([
       `${BLOCK_STATUS.LOADED_FROM_CACHE}:01H`,
@@ -218,8 +243,16 @@ describe("forecast block refresh use case", () => {
 
   test("waits for missing block presentation before refreshing stale blocks", async () => {
     const events: string[] = [];
-    const missingBlock = { key: "01H", url: "https://example.test/missing", filesize: 1 };
-    const staleBlock = { key: "02H", url: "https://example.test/stale", filesize: 1 };
+    const missingBlock = makeRemoteResource({
+      key: "01H",
+      url: "https://example.test/missing",
+      filesize: 1,
+    });
+    const staleBlock = makeRemoteResource({
+      key: "02H",
+      url: "https://example.test/stale",
+      filesize: 1,
+    });
     const service = createService({
       cache: {
         readLatestCachedBlock: vi.fn(async (_packageKey, block) =>
@@ -243,11 +276,9 @@ describe("forecast block refresh use case", () => {
       },
     });
 
-    await service.refreshBlocksToLatest({
-      packageKey: "AROME_SP1",
-      resources: [missingBlock, staleBlock],
-      downloadKey: {},
-    });
+    await service.refreshBlocksToLatest(
+      makeForecastDownloadSession({ resources: [missingBlock, staleBlock] }),
+    );
 
     expect(events).toEqual([
       `${BLOCK_STATUS.LOADED_FROM_CACHE}:02H`,
@@ -262,9 +293,9 @@ describe("forecast block refresh use case", () => {
 
   test("limits cache loading concurrency with maxParallelDownloads", async () => {
     const blocks = [
-      { key: "01H", url: "https://example.test/01H", filesize: 1 },
-      { key: "02H", url: "https://example.test/02H", filesize: 1 },
-      { key: "03H", url: "https://example.test/03H", filesize: 1 },
+      makeRemoteResource({ key: "01H", url: "https://example.test/01H", filesize: 1 }),
+      makeRemoteResource({ key: "02H", url: "https://example.test/02H", filesize: 1 }),
+      makeRemoteResource({ key: "03H", url: "https://example.test/03H", filesize: 1 }),
     ];
     const releaseReads: Array<() => void> = [];
     let activeReadCount = 0;
@@ -311,11 +342,9 @@ describe("forecast block refresh use case", () => {
       },
     });
 
-    const resultPromise = service.refreshBlocksToLatest({
-      packageKey: "AROME_SP1",
-      resources: blocks,
-      downloadKey: {},
-    });
+    const resultPromise = service.refreshBlocksToLatest(
+      makeForecastDownloadSession({ resources: blocks }),
+    );
 
     await waitForPendingReads(2);
     expect(releaseReads).toHaveLength(2);
