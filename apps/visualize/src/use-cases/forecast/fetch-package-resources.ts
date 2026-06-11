@@ -1,20 +1,12 @@
+import type { ForecastPackage, RemoteResource } from "../../domain/forecast-types";
 import { PACKAGES } from "../../domain/model-packages.js";
-
-interface ForecastPackageResource {
-  startHour?: number;
-}
-
-interface ForecastPackage {
-  datasetId: string;
-  skipHour0?: boolean;
-  titlePattern: string;
-}
+import type { ForecastRefreshKey } from "./contracts";
 
 type ForecastPackageMap = Record<string, ForecastPackage>;
 
 interface CreateForecastPackageResourceServiceOptions {
-  fetchResources: (datasetId: string, titlePattern: string) => Promise<ForecastPackageResource[]>;
-  isRefreshActive: (downloadKey: unknown) => boolean;
+  fetchResources: (datasetId: string, titlePattern: string) => Promise<RemoteResource[]>;
+  isRefreshActive: (downloadKey: ForecastRefreshKey) => boolean;
   packages?: ForecastPackageMap;
 }
 
@@ -23,7 +15,7 @@ export function createForecastPackageResourceService({
   isRefreshActive,
   packages = PACKAGES,
 }: CreateForecastPackageResourceServiceOptions) {
-  async function fetchPackageResources(packageKey: string, downloadKey: unknown) {
+  async function fetchPackageResources(packageKey: string, downloadKey: ForecastRefreshKey) {
     const pkg = packages[packageKey];
     let resources = await fetchResources(pkg.datasetId, pkg.titlePattern);
 

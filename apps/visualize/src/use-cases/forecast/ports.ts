@@ -2,6 +2,7 @@ import type {
   BlockStatus,
   ForecastPackage,
   ForecastRunState,
+  ForecastVariable,
   RemoteResource,
 } from "../../domain/forecast-types";
 import type { ForecastDownloadSession, ForecastRefreshKey } from "./contracts";
@@ -13,13 +14,13 @@ export interface ForecastAnimationCacheState {
 }
 
 export interface ForecastRefreshSession {
-  downloadKey: unknown;
+  downloadKey: ForecastRefreshKey;
 }
 
 export interface ForecastAnimationCacheBuildPorts {
   getModelState(): ForecastAnimationCacheState;
   isBitmapCacheComplete(): boolean;
-  isRefreshActive(downloadKey: unknown): boolean;
+  isRefreshActive(downloadKey: ForecastRefreshKey): boolean;
   queuePrerenderForAllBlocks(): void;
   updateWarmupProgress(): void;
   waitForPrerenderIdle(): Promise<void>;
@@ -68,7 +69,7 @@ export interface ForecastDownloadPreparationPorts {
 export interface ForecastResourceUpdatePorts {
   isRefreshActive(downloadKey: ForecastRefreshKey): boolean;
   loadPackageResources(request: ForecastResourceLoadRequest): Promise<RemoteResource[] | null>;
-  packages: Readonly<Record<string, ForecastPackage>>;
+  packages?: Readonly<Record<string, ForecastPackage>>;
   prepareSession(request: ForecastSessionPreparationRequest): ForecastDownloadSession;
   refreshBlocksToLatest(
     session: ForecastDownloadSession,
@@ -105,13 +106,7 @@ export interface ForecastAvailableBlockPorts {
   storeBlock(block: RemoteResource, buffer: Uint8Array): Promise<boolean>;
 }
 
-export interface ForecastVariableDefinition {
-  shortName: string;
-  varKey?: string;
-  name: string;
-  units?: string;
-  levelValue?: number | null;
-}
+export type ForecastVariableDefinition = ForecastVariable;
 
 export interface ForecastVariableSelectionState {
   packageKey?: string | null;
@@ -133,7 +128,7 @@ export interface ForecastVariableSelectionPorts {
 
 export interface ForecastLegendState {
   packageKey: string;
-  variable: string;
+  variable: string | null;
   lastRunInfo?: string | null;
 }
 
@@ -160,15 +155,15 @@ export interface ForecastStaticScale {
 
 export interface ForecastLegendInitializerPorts {
   applyDefaultPalette(variableKey: string): void;
-  displayUnitsFor(shortName: string, units: string | undefined): string;
-  findPackageVariable(
+  displayUnitsFor?(shortName: string, units: string | undefined): string;
+  findPackageVariable?(
     packageKey: string,
     variableKey: string,
   ): ForecastVariableDefinition | undefined;
   formatModelPackageSubtitle(packageKey: string): string;
-  formatRefTime(header: unknown): string;
-  iterateMessages(buffer: Uint8Array): Iterable<ForecastLegendMessage>;
-  parameterDescriptionFor(shortName: string): string;
+  formatRefTime?(header: unknown): string;
+  iterateMessages?(buffer: Uint8Array): Iterable<ForecastLegendMessage>;
+  parameterDescriptionFor?(shortName: string): string;
   showColorScale(
     min: number,
     max: number,
@@ -177,7 +172,7 @@ export interface ForecastLegendInitializerPorts {
       isLog: boolean;
     },
   ): void;
-  staticScaleFor(shortName: string): ForecastStaticScale | null | undefined;
+  staticScaleFor?(shortName: string): ForecastStaticScale | null | undefined;
   updateLevelInfo(variableDefinition: ForecastVariableDefinition | undefined): void;
   updateParamInfo(name: string, description: string, subtitle: string): void;
 }

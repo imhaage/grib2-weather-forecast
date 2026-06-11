@@ -30,7 +30,7 @@ export function createForecastLegendInitializerUseCase({
     buffer: Uint8Array,
     { modelState, session }: InitializeForecastLegendContext,
   ): boolean {
-    if (session.legendInitialized) {
+    if (session.legendInitialized || !modelState.variable) {
       return false;
     }
 

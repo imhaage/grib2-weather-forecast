@@ -1026,7 +1026,7 @@ git commit -m "refactor: move forecast status ownership"
 - Modify: `apps/visualize/src/composition/forecast-runtime-factory.test.ts`
 - Modify: imports in controller tests and source files
 
-- [ ] **Step 1: Strengthen the composition test**
+- [x] **Step 1: Strengthen the composition test**
 
 Replace the current export smoke test with a typed construction test that supplies fakes using
 `satisfies CreateForecastRuntimeFactoryOptions` and asserts the returned API:
@@ -1039,7 +1039,7 @@ expect(runtime).toMatchObject({
 });
 ```
 
-- [ ] **Step 2: Run typecheck and confirm the options type is missing**
+- [x] **Step 2: Run typecheck and confirm the options type is missing**
 
 Run:
 
@@ -1049,7 +1049,7 @@ npm run typecheck:visualize
 
 Expected: FAIL because `CreateForecastRuntimeFactoryOptions` is not exported.
 
-- [ ] **Step 3: Rename and type the factory**
+- [x] **Step 3: Rename and type the factory**
 
 Use `git mv`:
 
@@ -1071,7 +1071,7 @@ Define exact options for:
 Use the canonical forecast, field, session, worker, map, and runtime contracts. Keep adapter
 construction in composition.
 
-- [ ] **Step 4: Split the two composition clusters**
+- [x] **Step 4: Split the two composition clusters**
 
 Extract:
 
@@ -1085,7 +1085,7 @@ queue construction. The render builder owns model-block workers, render queues, 
 overlays, and map presentation. The factory constructs adapters, calls both builders, and exposes
 their combined typed API.
 
-- [ ] **Step 5: Run focused tests and checks**
+- [x] **Step 5: Run focused tests and checks**
 
 Run:
 
@@ -1099,7 +1099,7 @@ npm run check:visualize
 
 Expected: all commands pass without casts through `unknown` in composition.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add apps/visualize/src/composition apps/visualize/src/controllers

@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 import { createForecastAnimationCacheBuildUseCase } from "./build-animation-cache";
+import { makeForecastRefreshKey } from "./forecast-test-fixtures";
 import type { ForecastAnimationCacheState } from "./ports";
 
 describe("forecast animation cache build use case", () => {
@@ -15,7 +16,7 @@ describe("forecast animation cache build use case", () => {
     };
     const useCase = createForecastAnimationCacheBuildUseCase(ports);
 
-    await useCase.buildAfterNetworkSettles({ downloadKey: { id: 1 } });
+    await useCase.buildAfterNetworkSettles({ downloadKey: makeForecastRefreshKey() });
 
     expect(modelState.animationCacheStatus).toBe("ready");
     expect(ports.queuePrerenderForAllBlocks).toHaveBeenCalled();
@@ -34,7 +35,7 @@ describe("forecast animation cache build use case", () => {
       waitForPrerenderIdle: vi.fn(async () => {}),
     });
 
-    await useCase.buildAfterNetworkSettles({ downloadKey: { id: 1 } });
+    await useCase.buildAfterNetworkSettles({ downloadKey: makeForecastRefreshKey() });
 
     expect(modelState.animationCacheStatus).toBe("waiting");
   });
@@ -51,7 +52,7 @@ describe("forecast animation cache build use case", () => {
       waitForPrerenderIdle: vi.fn(async () => {}),
     });
 
-    await useCase.buildAfterNetworkSettles({ downloadKey: { id: 1 } });
+    await useCase.buildAfterNetworkSettles({ downloadKey: makeForecastRefreshKey() });
 
     expect(modelState.animationCacheStatus).toBe("building");
     expect(updateWarmupProgress).toHaveBeenCalledTimes(1);

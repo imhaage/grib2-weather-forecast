@@ -26,6 +26,8 @@ describe("forecast variable selection use case", () => {
       shortName: "wind",
       name: "Wind",
       group: "Weather maps",
+      units: "km/h",
+      level: "10 m above ground",
     };
 
     const variableKey = useCase.selectInitialVariable(modelState, variableDefinition);
@@ -43,6 +45,8 @@ describe("forecast variable selection use case", () => {
       varKey: "u_10",
       name: "U wind",
       levelValue: 10,
+      units: "m s-1",
+      level: "10 m above ground",
     };
     const { ports, useCase } = createUseCase({
       findPackageVariable: vi.fn(() => variableDefinition),

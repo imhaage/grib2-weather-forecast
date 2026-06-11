@@ -17,6 +17,7 @@ describe("forecast legend initializer use case", () => {
       name: "Temperature",
       shortName: "t",
       units: "K",
+      level: "2 m above ground",
       levelValue: 2,
     };
     const ports = {
@@ -69,7 +70,12 @@ describe("forecast legend initializer use case", () => {
     const useCase = createForecastLegendInitializerUseCase({
       applyDefaultPalette: vi.fn(),
       displayUnitsFor: vi.fn(),
-      findPackageVariable: vi.fn(() => ({ shortName: "t", name: "Temperature", units: "K" })),
+      findPackageVariable: vi.fn(() => ({
+        shortName: "t",
+        name: "Temperature",
+        units: "K",
+        level: "2 m above ground",
+      })),
       formatModelPackageSubtitle: vi.fn(() => "Test model"),
       formatRefTime: vi.fn(() => "run"),
       iterateMessages,
