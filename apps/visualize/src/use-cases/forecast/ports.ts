@@ -26,9 +26,7 @@ export interface ForecastResourceRefreshKey {
   refreshId: number;
 }
 
-export interface ForecastPackageLike {
-  [key: string]: unknown;
-}
+export type ForecastPackageLike = object;
 
 export interface ForecastResourceLike {
   [key: string]: unknown;
@@ -151,7 +149,6 @@ export interface ForecastVariableDefinition {
   name: string;
   units?: string;
   levelValue?: number | null;
-  [key: string]: unknown;
 }
 
 export interface ForecastVariableSelectionState {

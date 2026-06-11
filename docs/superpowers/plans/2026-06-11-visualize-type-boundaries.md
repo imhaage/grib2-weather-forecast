@@ -60,7 +60,7 @@
   `apps/visualize/src/domain/forecast-state.ts`
 - Modify: `apps/visualize/src/domain/types.ts`
 
-- [ ] **Step 1: Add type-level fixtures for forecast contracts**
+- [x] **Step 1: Add type-level fixtures for forecast contracts**
 
 Create `apps/visualize/src/domain/forecast-types.test.ts`:
 
@@ -125,7 +125,7 @@ describe("forecast type contracts", () => {
 });
 ```
 
-- [ ] **Step 2: Run the fixture and verify it fails**
+- [x] **Step 2: Run the fixture and verify it fails**
 
 Run:
 
@@ -135,7 +135,7 @@ npm test -w visualize -- src/domain/forecast-types.test.ts
 
 Expected: FAIL because `forecast-types.ts` does not exist.
 
-- [ ] **Step 3: Create canonical forecast types**
+- [x] **Step 3: Create canonical forecast types**
 
 Create `apps/visualize/src/domain/forecast-types.ts` with:
 
@@ -204,7 +204,7 @@ export interface ForecastRunState {
 }
 ```
 
-- [ ] **Step 4: Convert the existing domain producers to TypeScript**
+- [x] **Step 4: Convert the existing domain producers to TypeScript**
 
 Use `git mv`:
 
@@ -233,7 +233,7 @@ export function createModelState(packageKey: PackageKey): ForecastRunState {
 Keep `.js` import specifiers where required by the current ESM convention. Update existing tests
 that currently expect the state without `showWindDirection`.
 
-- [ ] **Step 5: Remove duplicated forecast types from `domain/types.ts`**
+- [x] **Step 5: Remove duplicated forecast types from `domain/types.ts`**
 
 Delete `PackageKey`, `ModelName`, `BlockStatus`, `CacheLoadStatus`, `AnimationCacheStatus`,
 `ForecastVariable`, `ForecastPackage`, `RemoteResource`, and `ForecastRunState` from
@@ -241,7 +241,7 @@ Delete `PackageKey`, `ModelName`, `BlockStatus`, `CacheLoadStatus`, `AnimationCa
 
 Replace imports from `domain/types.ts` with imports from `domain/forecast-types.ts`.
 
-- [ ] **Step 6: Run focused and static checks**
+- [x] **Step 6: Run focused and static checks**
 
 Run:
 
@@ -253,7 +253,7 @@ npm run check:visualize
 
 Expected: all commands pass.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/visualize/src/domain

@@ -1,28 +1,24 @@
-export type PackageKey = string;
-export type ModelName = "AROME" | "ARPEGE" | string;
-export type BlockStatus = "missing" | "loaded-from-cache" | "downloading" | "ready";
-export type CacheLoadStatus = "current" | "stale" | "missing";
-export type AnimationCacheStatus = "waiting" | "building" | "ready";
+import type {
+  AnimationCacheStatus,
+  CacheLoadStatus,
+  ForecastPackage,
+  ForecastRunState,
+  ForecastVariable,
+  PackageKey,
+  RemoteResource,
+} from "./forecast-types";
 
-export interface ForecastVariable {
-  shortName: string;
-  varKey?: string;
-  levelValue?: number;
-  name: string;
-  units: string;
-  level: string;
-}
-
-export interface ForecastPackage {
-  model: ModelName;
-  label: string;
-  provider: string;
-  datasetId: string;
-  titlePattern: string;
-  skipHour0?: boolean;
-  bounds: [[number, number], [number, number]];
-  variables: ForecastVariable[];
-}
+export type {
+  AnimationCacheStatus,
+  BlockStatus,
+  CacheLoadStatus,
+  ForecastPackage,
+  ForecastRunState,
+  ForecastVariable,
+  ModelName,
+  PackageKey,
+  RemoteResource,
+} from "./forecast-types";
 
 export interface VariableKeySource {
   shortName: string;
@@ -40,17 +36,6 @@ export interface VariableMetadata {
   description?: string;
   defaultPalette?: string;
   staticScale?: StaticScale;
-}
-
-export interface RemoteResource {
-  startHour: number;
-  endHour: number;
-  key: string;
-  runId: string;
-  title: string;
-  url: string;
-  filesize?: number | null;
-  status?: BlockStatus;
 }
 
 export interface CachedGribBlockRecord {
@@ -224,19 +209,6 @@ export interface ModelBlockRenderResult extends Omit<DecodedField, "values"> {
   isFallback: boolean;
   values?: Float32Array;
   isobars?: unknown;
-}
-
-export interface ForecastRunState {
-  packageKey: PackageKey;
-  resourceRefreshId: number;
-  resources: RemoteResource[];
-  availableBlocks: Set<string>;
-  hourList: number[];
-  blockStatus: Map<string, BlockStatus>;
-  variable: string | null;
-  currentHour: number | null;
-  lastRunInfo: string | null;
-  animationCacheStatus: AnimationCacheStatus;
 }
 
 export interface ForecastDownloadSession {

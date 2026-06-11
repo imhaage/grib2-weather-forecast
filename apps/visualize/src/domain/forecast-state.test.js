@@ -21,6 +21,7 @@ describe("forecast state", () => {
       currentHour: null,
       lastRunInfo: null,
       animationCacheStatus: "waiting",
+      showWindDirection: true,
     });
     expect(state.availableBlocks.size).toBe(0);
     expect(state.blockStatus.size).toBe(0);

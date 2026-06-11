@@ -1,9 +1,29 @@
+import type { ForecastPackage, ForecastVariable } from "./forecast-types";
 import { variableKeyFor } from "./variable-metadata.js";
 import { vectorCompositeVariablesFor } from "./wind-composite-variable.js";
 
 const WIND_LEVELS = Object.freeze([10, 20, 50, 100]);
 
-function levelVariable({ shortName, varKeyPrefix, level, nameForLevel, units, group }) {
+interface LevelVariableConfig {
+  shortName: string;
+  varKeyPrefix: string;
+  nameForLevel: (level: number) => string;
+  units: string;
+  group: string;
+}
+
+function isDefined<T>(value: T | null | undefined): value is T {
+  return value != null;
+}
+
+function levelVariable({
+  shortName,
+  varKeyPrefix,
+  level,
+  nameForLevel,
+  units,
+  group,
+}: LevelVariableConfig & { level: number }): ForecastVariable {
   return {
     shortName,
     varKey: `${varKeyPrefix}_${level}`,
@@ -15,11 +35,11 @@ function levelVariable({ shortName, varKeyPrefix, level, nameForLevel, units, gr
   };
 }
 
-function levelVariables(config) {
+function levelVariables(config: LevelVariableConfig): ForecastVariable[] {
   return WIND_LEVELS.map((level) => levelVariable({ ...config, level }));
 }
 
-export const PACKAGES = {
+export const PACKAGES: Readonly<Record<string, ForecastPackage>> = {
   AROME_SP1: {
     model: "AROME",
     label: "AROME SP1 0.01°",
@@ -46,7 +66,7 @@ export const PACKAGES = {
         level: "2 m above ground",
         group: "Weather maps",
       },
-      ...vectorCompositeVariablesFor(["wind", "gust"]),
+      ...vectorCompositeVariablesFor(["wind", "gust"]).filter(isDefined),
       {
         shortName: "u",
         name: "U (wind, 10m)",
@@ -303,6 +323,13 @@ export const MODEL_INFO = {
   },
 };
 
-export function findPackageVariable(packageKey, key) {
-  return PACKAGES[packageKey]?.variables.find((v) => variableKeyFor(v) === key) ?? null;
+export function findPackageVariable(
+  packageKey: string | null | undefined,
+  key: string | null | undefined,
+) {
+  if (!packageKey) {
+    return undefined;
+  }
+
+  return PACKAGES[packageKey]?.variables.find((v) => variableKeyFor(v) === key);
 }
