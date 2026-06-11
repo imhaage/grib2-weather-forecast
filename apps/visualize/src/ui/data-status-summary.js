@@ -1,9 +1,4 @@
-export const BLOCK_STATUS = Object.freeze({
-  MISSING: "missing",
-  LOADED_FROM_CACHE: "loaded-from-cache",
-  DOWNLOADING: "downloading",
-  READY: "ready",
-});
+import { BLOCK_STATUS } from "../domain/forecast-types";
 
 export const BLOCK_STATUS_LABELS = Object.freeze({
   [BLOCK_STATUS.MISSING]: "missing",

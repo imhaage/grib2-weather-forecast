@@ -11,10 +11,10 @@ import {
   formatModelPackageSubtitle as formatPackageModelSubtitle,
 } from "../domain/forecast-package-labels.js";
 import { buildHourList, createModelState, markBlockAvailable } from "../domain/forecast-state.js";
+import { BLOCK_STATUS } from "../domain/forecast-types";
 import { MODEL_INFO, PACKAGES } from "../domain/model-packages.js";
 import { formatRunSummary } from "../domain/resources.js";
 import { defaultPaletteFor } from "../domain/variable-metadata.js";
-import { BLOCK_STATUS } from "../ui/data-status-summary.js";
 import { createForecastAnimationCacheBuildUseCase } from "../use-cases/forecast/build-animation-cache";
 import { createForecastPackageResourceService } from "../use-cases/forecast/fetch-package-resources";
 import { createForecastLegendInitializerUseCase } from "../use-cases/forecast/initialize-legend";

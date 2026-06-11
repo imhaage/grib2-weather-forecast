@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import type { RemoteResource } from "../../domain/forecast-types";
+import { BLOCK_STATUS, type RemoteResource } from "../../domain/forecast-types";
 import {
   makeForecastDownloadSession,
   makeForecastRefreshKey,
@@ -10,12 +10,6 @@ import {
   createForecastBlockRefreshUseCase,
   type ForecastBlockRefreshUseCaseOptions,
 } from "./refresh-blocks";
-
-const BLOCK_STATUS = Object.freeze({
-  LOADED_FROM_CACHE: "loaded-from-cache",
-  DOWNLOADING: "downloading",
-  READY: "ready",
-});
 
 interface TestOverrides {
   cache?: Partial<ForecastBlockRefreshUseCaseOptions["cache"]>;

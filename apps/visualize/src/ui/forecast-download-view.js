@@ -1,4 +1,5 @@
-import { BLOCK_STATUS, BLOCK_STATUS_CLASSES, BLOCK_STATUS_LABELS } from "./data-status-summary.js";
+import { BLOCK_STATUS } from "../domain/forecast-types";
+import { BLOCK_STATUS_CLASSES, BLOCK_STATUS_LABELS } from "./data-status-summary.js";
 
 export function createForecastDownloadView({
   document,

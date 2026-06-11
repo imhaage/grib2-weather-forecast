@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
 import { describe, expect, test } from "vitest";
+import { BLOCK_STATUS } from "../domain/forecast-types";
 import {
-  BLOCK_STATUS,
   countBlockStatuses,
   createDataStatusSummaryNodes,
   createDataStatusSummaryView,

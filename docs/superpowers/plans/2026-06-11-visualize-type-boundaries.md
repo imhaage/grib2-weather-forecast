@@ -961,7 +961,7 @@ git commit -m "refactor: type forecast runtime contracts"
 - Modify: `apps/visualize/src/composition/forecast-runtime-factory.js`
 - Modify: forecast use cases and tests importing `BLOCK_STATUS`
 
-- [ ] **Step 1: Run the existing status-related tests as a baseline**
+- [x] **Step 1: Run the existing status-related tests as a baseline**
 
 Run:
 
@@ -974,14 +974,14 @@ npm test -w visualize -- \
 
 Expected: PASS before the dependency-only refactor.
 
-- [ ] **Step 2: Move status ownership**
+- [x] **Step 2: Move status ownership**
 
 Delete `BLOCK_STATUS` from `ui/data-status-summary.js`. Import it from
 `domain/forecast-types.ts`.
 
 Update composition and use-case tests to import statuses from the canonical module.
 
-- [ ] **Step 3: Run focused tests and checks**
+- [x] **Step 3: Run focused tests and checks**
 
 Run:
 
@@ -996,7 +996,7 @@ npm run check:visualize
 
 Expected: all commands pass.
 
-- [ ] **Step 4: Verify the dependency direction**
+- [x] **Step 4: Verify the dependency direction**
 
 Run:
 
@@ -1007,7 +1007,7 @@ rg -n 'from ".*ui/' apps/visualize/src/composition apps/visualize/src/use-cases
 Expected: no composition or use-case import of application constants from UI. Composition may
 still receive concrete view objects from controllers.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add apps/visualize/src/domain apps/visualize/src/ui apps/visualize/src/composition \
