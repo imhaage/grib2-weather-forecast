@@ -106,7 +106,7 @@ its responsibility is cohesive.
 - Read: `apps/visualize/README.md`
 - Read: `docs/archive/visualize/*`
 
-- [ ] **Step 1: Inventory current behavior**
+- [x] **Step 1: Inventory current behavior**
 
 Read the listed files completely and create `apps/visualize/docs/functional-parity.md` with this
 structure:
@@ -139,7 +139,7 @@ Add every observable capability found in the current code, including:
 Every row must start as `preserved` unless the user explicitly approves `improved` or
 `removed by explicit decision`.
 
-- [ ] **Step 2: Verify the inventory contains no unresolved statuses**
+- [x] **Step 2: Verify the inventory contains no unresolved statuses**
 
 Run:
 
@@ -150,7 +150,7 @@ rg -n "preserved|improved|removed by explicit decision" apps/visualize/docs/func
 
 Expected: the first command exits 0 and every capability row has an allowed status.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add apps/visualize/docs/functional-parity.md
