@@ -1,6 +1,10 @@
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
+  },
   resolve: {
     alias: {
       "/packages/grib2-decoder/dist/grib2-decoder.js": new URL(

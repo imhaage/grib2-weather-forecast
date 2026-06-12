@@ -10,6 +10,53 @@
 
 ---
 
+## Resume Checkpoint
+
+Last updated: 2026-06-12.
+
+Repository state:
+
+- branch: `codex/visualize-react-simplification`;
+- base pushed to `origin/main`: `c3bc827`;
+- Task 1 commits:
+  - `edb8876` `docs: inventory visualize functional parity`;
+  - `c8aac68` `docs: complete visualize parity inventory`;
+  - `f3eac6e` `docs: refine visualize parity evidence`;
+  - `0fdb936` `docs: remove duplicate parity tracking`;
+- Task 1 passed independent spec-compliance and code-quality reviews;
+- Task 2 implementation is complete and verified locally;
+- Task 2 still requires independent spec-compliance and code-quality reviews before Task 3 starts.
+
+Current verification:
+
+```text
+npm test -w visualize -- src/test/setup.test.tsx
+84 test files passed, 284 tests passed
+
+npm run typecheck:visualize
+passed
+
+npm run check:visualize
+passed
+```
+
+Resume procedure in a fresh Codex project:
+
+1. Open `/Users/mat/Dev/grib2-weather-forecast`.
+2. Run `git fetch origin`.
+3. Switch to `codex/visualize-react-simplification`.
+4. Read this plan and
+   `docs/superpowers/specs/2026-06-12-visualize-react-simplification-design.md`.
+5. Run `git status --short --branch` and the three Task 2 verification commands above.
+6. Use `superpowers:subagent-driven-development`.
+7. Dispatch an independent spec reviewer for Task 2.
+8. If compliant, dispatch an independent code-quality reviewer for Task 2.
+9. Fix and re-review any findings before marking Task 2 complete in the execution tracker.
+10. Start Task 3 only after both Task 2 reviews approve it.
+
+Do not repeat Task 1. Do not reinstall React unless dependency installation is missing after the
+machine reset. Continue updating task checkboxes and commit after each reviewed task.
+
 ## Execution Rules
 
 - Create and execute this work on an isolated `codex/` branch and worktree.
@@ -167,7 +214,7 @@ git commit -m "docs: inventory visualize functional parity"
 - Create: `apps/visualize/src/test/setup.ts`
 - Create: `apps/visualize/src/test/setup.test.tsx`
 
-- [ ] **Step 1: Install React and test dependencies**
+- [x] **Step 1: Install React and test dependencies**
 
 Run:
 
@@ -180,7 +227,7 @@ npm install -D -w visualize @types/react @types/react-dom @testing-library/react
 Expected: `apps/visualize/package.json` lists React runtime dependencies and Testing Library
 development dependencies.
 
-- [ ] **Step 2: Configure JSX and test setup**
+- [x] **Step 2: Configure JSX and test setup**
 
 Update `apps/visualize/tsconfig.json`:
 
@@ -218,7 +265,7 @@ test: {
 },
 ```
 
-- [ ] **Step 3: Write the test-harness smoke test**
+- [x] **Step 3: Write the test-harness smoke test**
 
 Create `apps/visualize/src/test/setup.test.tsx`:
 
@@ -235,7 +282,7 @@ describe("test setup", () => {
 });
 ```
 
-- [ ] **Step 4: Run the test and verify the harness passes**
+- [x] **Step 4: Run the test and verify the harness passes**
 
 Run:
 
@@ -245,7 +292,7 @@ npm test -w visualize -- src/test/setup.test.tsx
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit the harness**
+- [x] **Step 5: Commit the harness**
 
 ```bash
 git add apps/visualize/package.json apps/visualize/tsconfig.json \

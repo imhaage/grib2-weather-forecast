@@ -10,7 +10,9 @@
     "grib2-decoder": "*",
     "idb": "^8.0.3",
     "maplibre-gl": "^4.7.1",
-    "p-limit": "^7.3.0"
+    "p-limit": "^7.3.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   },
   "scripts": {
     "build": "vite build",
@@ -27,7 +29,12 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.15",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^25.8.0",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
     "jsdom": "^29.1.1",
     "typescript": "^6.0.3",
     "vite": "^8.0.13",
